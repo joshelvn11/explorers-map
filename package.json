@@ -1,0 +1,15 @@
+{
+  "name": "explorers-map",
+  "private": true,
+  "packageManager": "pnpm@9.4.0",
+  "scripts": {
+    "dev:web": "pnpm --filter @explorers-map/web dev",
+    "build:web": "pnpm --filter @explorers-map/web build",
+    "lint:web": "pnpm --filter @explorers-map/web lint",
+    "typecheck:web": "pnpm --filter @explorers-map/web typecheck",
+    "lint": "pnpm -r --if-present lint",
+    "typecheck": "pnpm -r --if-present typecheck",
+    "seed": "node scripts/seed.mjs",
+    "seed:validate": "node scripts/seed.mjs"
+  }
+}

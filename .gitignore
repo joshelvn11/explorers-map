@@ -1,0 +1,14 @@
+node_modules
+.pnpm-store
+
+apps/*/node_modules
+apps/*/.next
+apps/*/dist
+
+packages/*/node_modules
+packages/*/dist
+
+*.db
+*.db-shm
+*.db-wal
+

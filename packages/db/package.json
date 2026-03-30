@@ -1,0 +1,11 @@
+{
+  "name": "@explorers-map/db",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./index.ts",
+    "./client": "./client.ts",
+    "./schema": "./schema.ts"
+  }
+}
