@@ -15,3 +15,5 @@ The format is based on Keep a Changelog.
 - Tightened the implementation plan checklist for later phases so seeding, audit metadata, source defaults, image ordering, and timestamps match the shipped schema.
 - Added a shared Phase 3 seed import service, normalized seed snapshot generation, and smoke verification for idempotent SQLite seeding.
 - Added a root `pnpm studio` shortcut for launching Drizzle Studio with the workspace config.
+- Added Phase 4 shared country, region, destination, and listing query modules plus listing write services for lifecycle, metadata, destination assignment, and gallery management.
+- Added typed service errors and a Node-based service test suite covering public visibility rules, lifecycle transitions, audit/source stamping, destination guards, and gallery replacement.

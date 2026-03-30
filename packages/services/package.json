@@ -4,10 +4,13 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "typecheck": "tsc --noEmit -p tsconfig.json"
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "node --experimental-strip-types --test ./*.test.ts"
   },
   "exports": {
     ".": "./index.ts",
+    "./countries": "./countries.ts",
+    "./errors": "./errors.ts",
     "./listings": "./listings.ts",
     "./destinations": "./destinations.ts",
     "./seed": "./seed.ts"

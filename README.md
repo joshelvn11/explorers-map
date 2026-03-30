@@ -30,6 +30,7 @@ pnpm dev:web
 pnpm build:web
 pnpm lint
 pnpm typecheck
+pnpm test:services
 pnpm db:generate
 pnpm db:migrate
 pnpm studio
@@ -46,6 +47,8 @@ Seed command behavior:
   Validates the seed source, writes `seed-data/generated/seed.snapshot.json`, and imports the normalized dataset into SQLite.
 - `pnpm seed:smoke`
   Creates a fresh temp SQLite database, runs migrations, seeds twice, and verifies idempotent counts plus representative seeded records.
+- `pnpm test:services`
+  Runs the shared service-layer Node test suite against fresh temp SQLite databases seeded with the curated development dataset.
 
 ## Environment
 

@@ -25,7 +25,7 @@ Expected flow:
 - The workspace root is configured.
 - `apps/web` is wired to resolve shared workspace packages.
 - `packages/db` now owns the initial Drizzle schema, SQLite path resolution, and migration workflow.
-- `packages/services` now owns the shared seed import pipeline used by repository scripts.
+- `packages/services` now owns the shared seed import pipeline used by repository scripts plus the shared public query and listing write services used by future app and MCP entrypoints.
 - The shared database file defaults to `.data/explorers-map.sqlite` unless `EXPLORERS_MAP_SQLITE_PATH` overrides it.
 - Core data integrity for listings, scoped slugs, and join-table duplication is enforced in the schema layer.
 
@@ -42,6 +42,21 @@ Expected flow:
 - Seeded parent rows upsert by stable primary key, overwriting seed-managed fields on rerun.
 - Seed-managed joins and gallery rows are fully reconciled for seeded destinations and listings so stale seed relationships are removed on rerun.
 - Rows not represented by the current seed source are left alone, which keeps non-seed content outside the seed sync path.
+
+## Shared Service Layer
+
+- Public read queries now live in `packages/services` for countries, country-scoped regions, country-scoped destinations, region listings, destination listings, and listing detail.
+- Public listing reads apply `status = published` and `deletedAt IS NULL` by default so callers do not need to remember lifecycle filters.
+- Country, region, and destination detail lookups are included in the shared query layer so the web app can build metadata, page headers, and 404 behavior without bypassing shared services.
+- Listing write services now own draft creation, copy/metadata edits, location edits, destination assignment, gallery replacement, publish/unpublish, trash, and restore behavior.
+- Listing destination assignment is country-scoped, but destination-to-region membership remains editorial metadata rather than a hard validation rule.
+- Gallery updates are replace-all operations that delete stale rows and recreate ordered gallery records with fresh IDs.
+- Service writes update `source`, `updatedBy`, and `updatedAt` consistently, while creation also populates `createdBy`.
+
+## Service Tests
+
+- `pnpm test:services` runs Node-based integration tests against fresh temp SQLite databases.
+- The service test suite covers public visibility filters, explicit destination linkage, listing detail hydration, audit/source stamping, slug conflicts, cross-country destination guards, gallery replacement, and lifecycle transitions.
 
 ## Notes for Future Agents
 

@@ -9,6 +9,7 @@
     "typecheck:web": "pnpm --filter @explorers-map/web typecheck",
     "lint": "pnpm -r --if-present lint",
     "typecheck": "pnpm -r --if-present typecheck",
+    "test:services": "pnpm --filter @explorers-map/services test",
     "db:generate": "drizzle-kit generate --config=drizzle.config.ts",
     "db:migrate": "drizzle-kit migrate --config=drizzle.config.ts",
     "db:push": "drizzle-kit push --config=drizzle.config.ts",

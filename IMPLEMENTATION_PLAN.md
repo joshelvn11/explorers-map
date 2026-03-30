@@ -99,29 +99,34 @@ Note:
 
 ## Phase 4 - Shared Queries and Service Layer
 
+Note:
+
+- [x] Country, region, and destination detail lookups ship alongside the Phase 4 browse queries so Phase 5 page metadata, headers, and 404 handling can stay on shared query modules.
+- [x] `create listing draft` currently means creating a fully populated listing row with `status = draft`, because the current MVP schema does not support sparse placeholder drafts.
+
 ### Agent Tasks
 
-- [ ] Implement read/query modules in `packages/services` for published public content:
-- [ ] countries browse queries
-- [ ] regions within country
-- [ ] destinations within country
-- [ ] listings within region
-- [ ] listings for destination
-- [ ] individual listing detail queries
-- [ ] Implement write/service modules for content operations:
-- [ ] create listing draft
-- [ ] update listing copy and metadata
-- [ ] set listing location and map fields
-- [ ] assign listing destinations
-- [ ] attach or reorder listing images
-- [ ] publish listing
-- [ ] unpublish listing
-- [ ] move listing to trash
-- [ ] restore listing from trash
-- [ ] Enforce business rules in the shared service layer instead of in UI or MCP handlers.
-- [ ] Ensure public read queries exclude `draft` and trashed records by default.
-- [ ] Ensure write operations populate audit metadata, `source`, and `updatedAt` consistently.
-- [ ] Add unit tests for key service-layer operations and guards.
+- [x] Implement read/query modules in `packages/services` for published public content:
+- [x] countries browse queries
+- [x] regions within country
+- [x] destinations within country
+- [x] listings within region
+- [x] listings for destination
+- [x] individual listing detail queries
+- [x] Implement write/service modules for content operations:
+- [x] create listing draft
+- [x] update listing copy and metadata
+- [x] set listing location and map fields
+- [x] assign listing destinations
+- [x] attach or reorder listing images
+- [x] publish listing
+- [x] unpublish listing
+- [x] move listing to trash
+- [x] restore listing from trash
+- [x] Enforce business rules in the shared service layer instead of in UI or MCP handlers.
+- [x] Ensure public read queries exclude `draft` and trashed records by default.
+- [x] Ensure write operations populate audit metadata, `source`, and `updatedAt` consistently.
+- [x] Add service-layer tests for key operations and guards.
 
 ### Human Required Steps
 
@@ -155,6 +160,10 @@ Note:
 
 ## Phase 6 - Standalone MCP Server
 
+Note:
+
+- [ ] MCP `create listing draft` should reuse the Phase 4 shared service semantics, which create a complete draft listing rather than a sparse placeholder row.
+
 ### Agent Tasks
 
 - [ ] Set up the standalone MCP server under `apps/mcp`.
@@ -183,11 +192,11 @@ Note:
 
 ### Agent Tasks
 
-- [ ] Implement trash-aware queries and restore workflows across shared services.
+- [ ] Extend shared lifecycle support with reusable trash-aware query helpers and broader restore/lifecycle consistency coverage across app, MCP, and scripts.
 - [ ] Add status-aware content utilities so draft and published content behavior stays consistent.
 - [ ] Add reusable helpers for audit metadata population, `source` defaults, and update timestamps.
 - [ ] Create internal scripts or maintenance commands for common content operations if useful.
-- [ ] Add coverage for soft delete, restore, publish, and unpublish behaviors.
+- [ ] Expand coverage for soft delete, restore, publish, and unpublish behaviors across the remaining runtime surfaces.
 - [ ] Verify seeded content, public pages, and MCP tools all respect the same lifecycle rules.
 - [ ] Add concise operational documentation for database setup, migrations, seeding, MCP usage, and content-state expectations.
 
