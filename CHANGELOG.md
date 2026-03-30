@@ -13,3 +13,5 @@ The format is based on Keep a Changelog.
 - Updated the seed source and validator to include tag IDs, listing image IDs and sort order, and explicit listing lifecycle/source fields.
 - Replaced local seed image placeholders with stable Lorem Picsum URLs for covers and gallery images.
 - Tightened the implementation plan checklist for later phases so seeding, audit metadata, source defaults, image ordering, and timestamps match the shipped schema.
+- Added a shared Phase 3 seed import service, normalized seed snapshot generation, and smoke verification for idempotent SQLite seeding.
+- Added a root `pnpm studio` shortcut for launching Drizzle Studio with the workspace config.

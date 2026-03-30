@@ -215,7 +215,10 @@
       "coverImage": "https://picsum.photos/seed/listing-durdle-door-cover/1600/900",
       "categorySlug": "natural-attraction",
       "source": "seed",
-      "deletedAt": null
+      "deletedAt": null,
+      "createdBy": null,
+      "updatedBy": null,
+      "googleMapsPlaceUrl": null
     },
     {
       "id": "listing-lulworth-cove",
@@ -231,7 +234,10 @@
       "coverImage": "https://picsum.photos/seed/listing-lulworth-cove-cover/1600/900",
       "categorySlug": "beach",
       "source": "seed",
-      "deletedAt": null
+      "deletedAt": null,
+      "createdBy": null,
+      "updatedBy": null,
+      "googleMapsPlaceUrl": null
     },
     {
       "id": "listing-old-harry-rocks",
@@ -247,7 +253,10 @@
       "coverImage": "https://picsum.photos/seed/listing-old-harry-rocks-cover/1600/900",
       "categorySlug": "viewpoint",
       "source": "seed",
-      "deletedAt": null
+      "deletedAt": null,
+      "createdBy": null,
+      "updatedBy": null,
+      "googleMapsPlaceUrl": null
     },
     {
       "id": "listing-golden-cap",
@@ -263,7 +272,10 @@
       "coverImage": "https://picsum.photos/seed/listing-golden-cap-cover/1600/900",
       "categorySlug": "mountain",
       "source": "seed",
-      "deletedAt": null
+      "deletedAt": null,
+      "createdBy": null,
+      "updatedBy": null,
+      "googleMapsPlaceUrl": null
     },
     {
       "id": "listing-beer-head",
@@ -279,7 +291,10 @@
       "coverImage": "https://picsum.photos/seed/listing-beer-head-cover/1600/900",
       "categorySlug": "viewpoint",
       "source": "seed",
-      "deletedAt": null
+      "deletedAt": null,
+      "createdBy": null,
+      "updatedBy": null,
+      "googleMapsPlaceUrl": null
     },
     {
       "id": "listing-branscombe-beach",
@@ -295,7 +310,10 @@
       "coverImage": "https://picsum.photos/seed/listing-branscombe-beach-cover/1600/900",
       "categorySlug": "beach",
       "source": "seed",
-      "deletedAt": null
+      "deletedAt": null,
+      "createdBy": null,
+      "updatedBy": null,
+      "googleMapsPlaceUrl": null
     },
     {
       "id": "listing-mam-tor",
@@ -311,7 +329,10 @@
       "coverImage": "https://picsum.photos/seed/listing-mam-tor-cover/1600/900",
       "categorySlug": "mountain",
       "source": "seed",
-      "deletedAt": null
+      "deletedAt": null,
+      "createdBy": null,
+      "updatedBy": null,
+      "googleMapsPlaceUrl": null
     },
     {
       "id": "listing-stanage-edge",
@@ -327,7 +348,10 @@
       "coverImage": "https://picsum.photos/seed/listing-stanage-edge-cover/1600/900",
       "categorySlug": "viewpoint",
       "source": "seed",
-      "deletedAt": null
+      "deletedAt": null,
+      "createdBy": null,
+      "updatedBy": null,
+      "googleMapsPlaceUrl": null
     },
     {
       "id": "listing-ladybower-reservoir",
@@ -343,7 +367,10 @@
       "coverImage": "https://picsum.photos/seed/listing-ladybower-reservoir-cover/1600/900",
       "categorySlug": "lake",
       "source": "seed",
-      "deletedAt": null
+      "deletedAt": null,
+      "createdBy": null,
+      "updatedBy": null,
+      "googleMapsPlaceUrl": null
     },
     {
       "id": "listing-monsal-trail",
@@ -359,7 +386,10 @@
       "coverImage": "https://picsum.photos/seed/listing-monsal-trail-cover/1600/900",
       "categorySlug": "trail",
       "source": "seed",
-      "deletedAt": null
+      "deletedAt": null,
+      "createdBy": null,
+      "updatedBy": null,
+      "googleMapsPlaceUrl": null
     },
     {
       "id": "listing-the-roaches",
@@ -375,7 +405,10 @@
       "coverImage": "https://picsum.photos/seed/listing-the-roaches-cover/1600/900",
       "categorySlug": "mountain",
       "source": "seed",
-      "deletedAt": null
+      "deletedAt": null,
+      "createdBy": null,
+      "updatedBy": null,
+      "googleMapsPlaceUrl": null
     },
     {
       "id": "listing-cheddar-gorge",
@@ -391,7 +424,10 @@
       "coverImage": "https://picsum.photos/seed/listing-cheddar-gorge-cover/1600/900",
       "categorySlug": "natural-attraction",
       "source": "seed",
-      "deletedAt": null
+      "deletedAt": null,
+      "createdBy": null,
+      "updatedBy": null,
+      "googleMapsPlaceUrl": null
     }
   ],
   "listingDestinations": [

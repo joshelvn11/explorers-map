@@ -3,9 +3,21 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
   "exports": {
     ".": "./index.ts",
     "./listings": "./listings.ts",
-    "./destinations": "./destinations.ts"
+    "./destinations": "./destinations.ts",
+    "./seed": "./seed.ts"
+  },
+  "dependencies": {
+    "@explorers-map/db": "workspace:*",
+    "drizzle-orm": "^0.45.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "typescript": "^5"
   }
 }

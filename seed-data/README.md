@@ -7,7 +7,7 @@ This folder is the editable source of truth for the app's initial curated conten
 - `index.mjs`
   The source dataset for countries, regions, destinations, listings, tags, images, and join records.
 - `generated/seed.snapshot.json`
-  A generated JSON snapshot written by `node scripts/seed.mjs` after validation passes.
+  A generated normalized JSON snapshot written by `pnpm seed` before database import.
 
 ## Current assumptions
 
@@ -32,7 +32,29 @@ This folder is the editable source of truth for the app's initial curated conten
 ## Running the validator
 
 ```bash
-node scripts/seed.mjs
+pnpm seed:validate
 ```
 
-This validates the dataset, writes the generated snapshot, and prints any warnings that are worth tightening up before database import.
+This validates the editable dataset, applies lifecycle defaults in memory, and prints counts and warnings without touching the database.
+
+## Importing into SQLite
+
+```bash
+pnpm seed
+```
+
+This validates the dataset, writes the generated snapshot, and imports the normalized data into the configured SQLite database through the shared seed service in `packages/services`.
+
+## Idempotent sync behavior
+
+- Seeded parent records are upserted by stable ID or slug.
+- Seed-managed joins and listing gallery rows are reconciled on rerun so stale seeded relationships are removed.
+- Records not represented by the current seed source are left untouched.
+
+## Smoke verification
+
+```bash
+pnpm seed:smoke
+```
+
+This creates a fresh temp SQLite database, runs migrations, imports the seed twice, and verifies counts, representative IDs, lifecycle defaults, sort order preservation, and key seeded relationships.

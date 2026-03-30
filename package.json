@@ -12,8 +12,10 @@
     "db:generate": "drizzle-kit generate --config=drizzle.config.ts",
     "db:migrate": "drizzle-kit migrate --config=drizzle.config.ts",
     "db:push": "drizzle-kit push --config=drizzle.config.ts",
-    "seed": "node scripts/seed.mjs",
-    "seed:validate": "node scripts/seed.mjs"
+    "studio": "drizzle-kit studio --config=drizzle.config.ts",
+    "seed": "node --experimental-strip-types scripts/seed.ts import",
+    "seed:validate": "node --experimental-strip-types scripts/seed.ts validate",
+    "seed:smoke": "node --experimental-strip-types scripts/seed-smoke.ts"
   },
   "devDependencies": {
     "drizzle-kit": "^0.31.10",

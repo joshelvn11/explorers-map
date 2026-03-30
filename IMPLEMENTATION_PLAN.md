@@ -78,16 +78,20 @@ This plan is intended for agent execution with human review at key checkpoints.
 
 ### Agent Tasks
 
-- [ ] Move or adapt the existing seed source into the shared workspace structure without losing the current content.
-- [ ] Connect the seed pipeline to the real Drizzle schema and SQLite database.
-- [ ] Implement idempotent seeding behavior suitable for development workflows.
-- [ ] Preserve stable seed IDs for entities that now carry explicit IDs in the seed source, including tags and listing images.
-- [ ] Seed countries, regions, destinations, categories, tags, listings, listing-destination links, listing images, and listing tags in dependency order.
-- [ ] Ensure seeded listing images persist explicit `sortOrder` values from the seed source.
-- [ ] Ensure seeded listings default to concrete lifecycle values, including `status`, `source`, nullable audit fields, and `deletedAt = null`.
-- [ ] Preserve support for placeholder image URLs during early development.
-- [ ] Keep the existing seed validation checks and extend them for any new schema constraints.
-- [ ] Add a smoke test or scripted verification that the seed completes successfully on a fresh database.
+- [x] Move or adapt the existing seed source into the shared workspace structure without losing the current content.
+- [x] Connect the seed pipeline to the real Drizzle schema and SQLite database.
+- [x] Implement idempotent seeding behavior suitable for development workflows.
+- [x] Preserve stable seed IDs for entities that now carry explicit IDs in the seed source, including tags and listing images.
+- [x] Seed countries, regions, destinations, categories, tags, listings, listing-destination links, listing images, and listing tags in dependency order.
+- [x] Ensure seeded listing images persist explicit `sortOrder` values from the seed source.
+- [x] Ensure seeded listings default to concrete lifecycle values, including `status`, `source`, nullable audit fields, and `deletedAt = null`.
+- [x] Preserve support for placeholder image URLs during early development.
+- [x] Keep the existing seed validation checks and extend them for any new schema constraints.
+- [x] Add a smoke test or scripted verification that the seed completes successfully on a fresh database.
+
+Note:
+
+- A limited shared seed-import service ships in Phase 3 so repository scripts already follow the brief's shared write-path direction before the broader Phase 4 service layer arrives.
 
 ### Human Required Steps
 

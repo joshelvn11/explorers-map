@@ -82,7 +82,21 @@ importers:
         specifier: ^5
         version: 5.9.3
 
-  packages/services: {}
+  packages/services:
+    dependencies:
+      '@explorers-map/db':
+        specifier: workspace:*
+        version: link:../db
+      drizzle-orm:
+        specifier: ^0.45.2
+        version: 0.45.2(@types/better-sqlite3@7.6.13)(better-sqlite3@12.8.0)
+    devDependencies:
+      '@types/node':
+        specifier: ^20
+        version: 20.19.37
+      typescript:
+        specifier: ^5
+        version: 5.9.3
 
   packages/utils: {}
 

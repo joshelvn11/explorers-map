@@ -32,8 +32,20 @@ pnpm lint
 pnpm typecheck
 pnpm db:generate
 pnpm db:migrate
+pnpm studio
+pnpm seed:validate
 pnpm seed
+pnpm seed:smoke
 ```
+
+Seed command behavior:
+
+- `pnpm seed:validate`
+  Validates the editable seed source and prints counts and warnings without writing to the database.
+- `pnpm seed`
+  Validates the seed source, writes `seed-data/generated/seed.snapshot.json`, and imports the normalized dataset into SQLite.
+- `pnpm seed:smoke`
+  Creates a fresh temp SQLite database, runs migrations, seeds twice, and verifies idempotent counts plus representative seeded records.
 
 ## Environment
 

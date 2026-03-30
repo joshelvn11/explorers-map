@@ -25,8 +25,23 @@ Expected flow:
 - The workspace root is configured.
 - `apps/web` is wired to resolve shared workspace packages.
 - `packages/db` now owns the initial Drizzle schema, SQLite path resolution, and migration workflow.
+- `packages/services` now owns the shared seed import pipeline used by repository scripts.
 - The shared database file defaults to `.data/explorers-map.sqlite` unless `EXPLORERS_MAP_SQLITE_PATH` overrides it.
 - Core data integrity for listings, scoped slugs, and join-table duplication is enforced in the schema layer.
+
+## Seed Pipeline
+
+- `seed-data/index.mjs` remains the editable seed source of truth.
+- `packages/services/seed.ts` validates the seed source, normalizes listing lifecycle defaults, resolves slug-based relationships to FK IDs, and imports the dataset inside one transaction.
+- `scripts/seed.ts` is the CLI entrypoint for validation-only and validate-plus-import flows.
+- `scripts/seed-smoke.ts` verifies the Phase 3 contract on a fresh temp SQLite database by running migrations, seeding twice, and checking representative records.
+
+## Seed Import Semantics
+
+- Phase 3 intentionally brings forward a narrow shared seed-import service so repository scripts already follow the brief's single shared write-path direction.
+- Seeded parent rows upsert by stable primary key, overwriting seed-managed fields on rerun.
+- Seed-managed joins and gallery rows are fully reconciled for seeded destinations and listings so stale seed relationships are removed on rerun.
+- Rows not represented by the current seed source are left alone, which keeps non-seed content outside the seed sync path.
 
 ## Notes for Future Agents
 
