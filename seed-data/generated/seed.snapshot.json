@@ -5,7 +5,7 @@
       "slug": "united-kingdom",
       "title": "United Kingdom",
       "description": "A curated starting point for discovering standout outdoor places across the United Kingdom, from iconic coastlines to upland walking country.",
-      "coverImage": "/images/seed/countries/united-kingdom/cover.jpg"
+      "coverImage": "https://picsum.photos/seed/country-united-kingdom-cover/1600/900"
     }
   ],
   "regions": [
@@ -15,7 +15,7 @@
       "slug": "dorset",
       "title": "Dorset",
       "description": "A dramatic stretch of England's south coast with limestone cliffs, sheltered coves, and some of the country's most recognizable seaside scenery.",
-      "coverImage": "/images/seed/regions/dorset/cover.jpg"
+      "coverImage": "https://picsum.photos/seed/region-dorset-cover/1600/900"
     },
     {
       "id": "region-devon",
@@ -23,7 +23,7 @@
       "slug": "devon",
       "title": "Devon",
       "description": "Rolling farmland, red cliffs, and wide estuaries make Devon a strong mix of classic coastal walks and quieter nature spots.",
-      "coverImage": "/images/seed/regions/devon/cover.jpg"
+      "coverImage": "https://picsum.photos/seed/region-devon-cover/1600/900"
     },
     {
       "id": "region-derbyshire",
@@ -31,7 +31,7 @@
       "slug": "derbyshire",
       "title": "Derbyshire",
       "description": "Derbyshire brings together gritstone edges, sweeping valleys, and some of the best-known hiking routes in central England.",
-      "coverImage": "/images/seed/regions/derbyshire/cover.jpg"
+      "coverImage": "https://picsum.photos/seed/region-derbyshire-cover/1600/900"
     },
     {
       "id": "region-staffordshire",
@@ -39,7 +39,7 @@
       "slug": "staffordshire",
       "title": "Staffordshire",
       "description": "Staffordshire's uplands and moorland edges offer a wilder feel, with rugged outcrops and walking routes close to the western Peak District.",
-      "coverImage": "/images/seed/regions/staffordshire/cover.jpg"
+      "coverImage": "https://picsum.photos/seed/region-staffordshire-cover/1600/900"
     },
     {
       "id": "region-somerset",
@@ -47,7 +47,7 @@
       "slug": "somerset",
       "title": "Somerset",
       "description": "From limestone gorges to open hills and wetlands, Somerset adds variety and a slightly softer landscape to the mix.",
-      "coverImage": "/images/seed/regions/somerset/cover.jpg"
+      "coverImage": "https://picsum.photos/seed/region-somerset-cover/1600/900"
     }
   ],
   "destinations": [
@@ -57,7 +57,7 @@
       "slug": "jurassic-coast",
       "title": "Jurassic Coast",
       "description": "A world-famous coastline of cliffs, coves, sea arches, and fossil-rich beaches stretching across Dorset and Devon.",
-      "coverImage": "/images/seed/destinations/jurassic-coast/cover.jpg"
+      "coverImage": "https://picsum.photos/seed/destination-jurassic-coast-cover/1600/900"
     },
     {
       "id": "destination-peak-district-national-park",
@@ -65,7 +65,7 @@
       "slug": "peak-district-national-park",
       "title": "Peak District National Park",
       "description": "A landscape of edges, reservoirs, moorland, and broad walking routes that feels both expansive and very accessible.",
-      "coverImage": "/images/seed/destinations/peak-district-national-park/cover.jpg"
+      "coverImage": "https://picsum.photos/seed/destination-peak-district-national-park-cover/1600/900"
     },
     {
       "id": "destination-mendip-hills-national-landscape",
@@ -73,7 +73,7 @@
       "slug": "mendip-hills-national-landscape",
       "title": "Mendip Hills National Landscape",
       "description": "A limestone landscape of dramatic gorges, hilltop viewpoints, caves, and open walking country in and around Somerset.",
-      "coverImage": "/images/seed/destinations/mendip-hills-national-landscape/cover.jpg"
+      "coverImage": "https://picsum.photos/seed/destination-mendip-hills-national-landscape-cover/1600/900"
     }
   ],
   "destinationRegions": [
@@ -130,58 +130,72 @@
   ],
   "tags": [
     {
+      "id": "tag-coastal",
       "slug": "coastal",
       "name": "Coastal"
     },
     {
+      "id": "tag-clifftop",
       "slug": "clifftop",
       "name": "Clifftop"
     },
     {
+      "id": "tag-sunrise",
       "slug": "sunrise",
       "name": "Sunrise"
     },
     {
+      "id": "tag-sunset",
       "slug": "sunset",
       "name": "Sunset"
     },
     {
+      "id": "tag-family-friendly",
       "slug": "family-friendly",
       "name": "Family Friendly"
     },
     {
+      "id": "tag-photography",
       "slug": "photography",
       "name": "Photography"
     },
     {
+      "id": "tag-dog-friendly",
       "slug": "dog-friendly",
       "name": "Dog Friendly"
     },
     {
+      "id": "tag-hiking",
       "slug": "hiking",
       "name": "Hiking"
     },
     {
+      "id": "tag-scramble",
       "slug": "scramble",
       "name": "Scramble"
     },
     {
+      "id": "tag-reservoir",
       "slug": "reservoir",
       "name": "Reservoir"
     },
     {
+      "id": "tag-rock-formations",
       "slug": "rock-formations",
       "name": "Rock Formations"
     },
     {
+      "id": "tag-iconic",
       "slug": "iconic",
       "name": "Iconic"
     },
     {
+      "id": "tag-short-walk",
       "slug": "short-walk",
       "name": "Short Walk"
     },
     {
+      "id": "tag-longer-route",
       "slug": "longer-route",
       "name": "Longer Route"
     }
@@ -191,157 +205,193 @@
       "id": "listing-durdle-door",
       "regionSlug": "dorset",
       "slug": "durdle-door",
+      "status": "published",
       "title": "Durdle Door",
       "shortDescription": "An iconic limestone arch above a curved bay on Dorset's south coast.",
       "description": "Durdle Door is one of the most recognizable coastal landmarks in the country, pairing a dramatic rock arch with a steep path down to the beach. It works well as both a quick scenic stop and part of a longer cliff walk along the coast.",
       "latitude": 50.6212,
       "longitude": -2.2763,
       "busynessRating": 5,
-      "coverImage": "/images/seed/listings/durdle-door/cover.jpg",
-      "categorySlug": "natural-attraction"
+      "coverImage": "https://picsum.photos/seed/listing-durdle-door-cover/1600/900",
+      "categorySlug": "natural-attraction",
+      "source": "seed",
+      "deletedAt": null
     },
     {
       "id": "listing-lulworth-cove",
       "regionSlug": "dorset",
       "slug": "lulworth-cove",
+      "status": "published",
       "title": "Lulworth Cove",
       "shortDescription": "A near-perfect horseshoe bay with calm water and striking geology.",
       "description": "Lulworth Cove is a sheltered natural bay known for its circular shape, clear water, and easy access from the village. It is a strong pick for visitors who want dramatic scenery without committing to a long hike.",
       "latitude": 50.6186,
       "longitude": -2.2474,
       "busynessRating": 5,
-      "coverImage": "/images/seed/listings/lulworth-cove/cover.jpg",
-      "categorySlug": "beach"
+      "coverImage": "https://picsum.photos/seed/listing-lulworth-cove-cover/1600/900",
+      "categorySlug": "beach",
+      "source": "seed",
+      "deletedAt": null
     },
     {
       "id": "listing-old-harry-rocks",
       "regionSlug": "dorset",
       "slug": "old-harry-rocks",
+      "status": "published",
       "title": "Old Harry Rocks",
       "shortDescription": "Chalk sea stacks and broad coastal views near Studland.",
       "description": "Old Harry Rocks offers a classic clifftop walk with open views across the sea and back toward the Isle of Purbeck. It feels especially rewarding at golden hour, when the chalk formations catch the light.",
       "latitude": 50.6403,
       "longitude": -1.9254,
       "busynessRating": 4,
-      "coverImage": "/images/seed/listings/old-harry-rocks/cover.jpg",
-      "categorySlug": "viewpoint"
+      "coverImage": "https://picsum.photos/seed/listing-old-harry-rocks-cover/1600/900",
+      "categorySlug": "viewpoint",
+      "source": "seed",
+      "deletedAt": null
     },
     {
       "id": "listing-golden-cap",
       "regionSlug": "dorset",
       "slug": "golden-cap",
+      "status": "published",
       "title": "Golden Cap",
       "shortDescription": "The highest point on England's south coast with sweeping cliff and sea views.",
       "description": "Golden Cap is a rewarding hill walk with a clear summit and broad views along the coastline. The climb feels substantial enough to be satisfying, but still accessible for a half-day outing.",
       "latitude": 50.728,
       "longitude": -2.8499,
       "busynessRating": 3,
-      "coverImage": "/images/seed/listings/golden-cap/cover.jpg",
-      "categorySlug": "mountain"
+      "coverImage": "https://picsum.photos/seed/listing-golden-cap-cover/1600/900",
+      "categorySlug": "mountain",
+      "source": "seed",
+      "deletedAt": null
     },
     {
       "id": "listing-beer-head",
       "regionSlug": "devon",
       "slug": "beer-head",
+      "status": "published",
       "title": "Beer Head",
       "shortDescription": "A high coastal viewpoint above white cliffs and open sea.",
       "description": "Beer Head gives you a quieter Jurassic Coast viewpoint with a big sense of space and strong cliff scenery. It works well for walkers who want dramatic views without the busier feel of some of the better-known hotspots.",
       "latitude": 50.6952,
       "longitude": -3.0905,
       "busynessRating": 2,
-      "coverImage": "/images/seed/listings/beer-head/cover.jpg",
-      "categorySlug": "viewpoint"
+      "coverImage": "https://picsum.photos/seed/listing-beer-head-cover/1600/900",
+      "categorySlug": "viewpoint",
+      "source": "seed",
+      "deletedAt": null
     },
     {
       "id": "listing-branscombe-beach",
       "regionSlug": "devon",
       "slug": "branscombe-beach",
+      "status": "published",
       "title": "Branscombe Beach",
       "shortDescription": "A quieter pebble beach backed by cliffs on the East Devon coast.",
       "description": "Branscombe Beach has a more relaxed, less developed feel than some of the more famous nearby coastal stops. It is a good choice for a slower visit, especially when paired with a clifftop walk or a stop in the village.",
       "latitude": 50.6906,
       "longitude": -3.1364,
       "busynessRating": 2,
-      "coverImage": "/images/seed/listings/branscombe-beach/cover.jpg",
-      "categorySlug": "beach"
+      "coverImage": "https://picsum.photos/seed/listing-branscombe-beach-cover/1600/900",
+      "categorySlug": "beach",
+      "source": "seed",
+      "deletedAt": null
     },
     {
       "id": "listing-mam-tor",
       "regionSlug": "derbyshire",
       "slug": "mam-tor",
+      "status": "published",
       "title": "Mam Tor",
       "shortDescription": "A standout ridge walk with panoramic views over the Hope Valley.",
       "description": "Mam Tor is one of the Peak District's best-known walks, combining easy access with a genuinely impressive sense of elevation. It is especially popular at sunrise and as part of a longer route along the Great Ridge.",
       "latitude": 53.3498,
       "longitude": -1.8097,
       "busynessRating": 5,
-      "coverImage": "/images/seed/listings/mam-tor/cover.jpg",
-      "categorySlug": "mountain"
+      "coverImage": "https://picsum.photos/seed/listing-mam-tor-cover/1600/900",
+      "categorySlug": "mountain",
+      "source": "seed",
+      "deletedAt": null
     },
     {
       "id": "listing-stanage-edge",
       "regionSlug": "derbyshire",
       "slug": "stanage-edge",
+      "status": "published",
       "title": "Stanage Edge",
       "shortDescription": "A long gritstone escarpment with one of the Peak District's most classic views.",
       "description": "Stanage Edge feels expansive and dramatic, with a ridge line that invites either a short viewpoint stop or a longer walk. Its broad views and distinctive rock formations make it especially strong for photography and sunset visits.",
       "latitude": 53.3508,
       "longitude": -1.6327,
       "busynessRating": 4,
-      "coverImage": "/images/seed/listings/stanage-edge/cover.jpg",
-      "categorySlug": "viewpoint"
+      "coverImage": "https://picsum.photos/seed/listing-stanage-edge-cover/1600/900",
+      "categorySlug": "viewpoint",
+      "source": "seed",
+      "deletedAt": null
     },
     {
       "id": "listing-ladybower-reservoir",
       "regionSlug": "derbyshire",
       "slug": "ladybower-reservoir",
+      "status": "published",
       "title": "Ladybower Reservoir",
       "shortDescription": "A large reservoir surrounded by hills, woodland, and scenic road approaches.",
       "description": "Ladybower Reservoir blends water, forest edges, and surrounding high ground into a very accessible landscape. It suits everything from a short stop at the shore to a longer day walking nearby ridges and trails.",
       "latitude": 53.3645,
       "longitude": -1.6948,
       "busynessRating": 4,
-      "coverImage": "/images/seed/listings/ladybower-reservoir/cover.jpg",
-      "categorySlug": "lake"
+      "coverImage": "https://picsum.photos/seed/listing-ladybower-reservoir-cover/1600/900",
+      "categorySlug": "lake",
+      "source": "seed",
+      "deletedAt": null
     },
     {
       "id": "listing-monsal-trail",
       "regionSlug": "derbyshire",
       "slug": "monsal-trail",
+      "status": "published",
       "title": "Monsal Trail",
       "shortDescription": "An easy-going traffic-free trail through dales, viaducts, and tunnels.",
       "description": "The Monsal Trail is a good example of a scenic route that works for a wide range of visitors, including walkers, families, and cyclists. The combination of tunnels, old railway structures, and limestone scenery makes it feel varied all the way through.",
       "latitude": 53.2419,
       "longitude": -1.7252,
       "busynessRating": 4,
-      "coverImage": "/images/seed/listings/monsal-trail/cover.jpg",
-      "categorySlug": "trail"
+      "coverImage": "https://picsum.photos/seed/listing-monsal-trail-cover/1600/900",
+      "categorySlug": "trail",
+      "source": "seed",
+      "deletedAt": null
     },
     {
       "id": "listing-the-roaches",
       "regionSlug": "staffordshire",
       "slug": "the-roaches",
+      "status": "published",
       "title": "The Roaches",
       "shortDescription": "A rugged gritstone ridge with a wilder, more exposed feel.",
       "description": "The Roaches delivers a more rugged atmosphere than many easier-access viewpoints, with jagged outcrops and a strong sense of elevation. It is a memorable option for hikers who want moorland character and rocky scenery.",
       "latitude": 53.1783,
       "longitude": -2.0277,
       "busynessRating": 3,
-      "coverImage": "/images/seed/listings/the-roaches/cover.jpg",
-      "categorySlug": "mountain"
+      "coverImage": "https://picsum.photos/seed/listing-the-roaches-cover/1600/900",
+      "categorySlug": "mountain",
+      "source": "seed",
+      "deletedAt": null
     },
     {
       "id": "listing-cheddar-gorge",
       "regionSlug": "somerset",
       "slug": "cheddar-gorge",
+      "status": "published",
       "title": "Cheddar Gorge",
       "shortDescription": "A dramatic limestone gorge with cliff walks and a strong sense of scale.",
       "description": "Cheddar Gorge is one of the most striking natural landscapes in southern England, combining steep limestone cliffs with accessible viewpoint routes above the gorge. It works well as a headline destination with a clear wow factor.",
       "latitude": 51.2755,
       "longitude": -2.7769,
       "busynessRating": 4,
-      "coverImage": "/images/seed/listings/cheddar-gorge/cover.jpg",
-      "categorySlug": "natural-attraction"
+      "coverImage": "https://picsum.photos/seed/listing-cheddar-gorge-cover/1600/900",
+      "categorySlug": "natural-attraction",
+      "source": "seed",
+      "deletedAt": null
     }
   ],
   "listingDestinations": [
@@ -408,44 +458,60 @@
   ],
   "listingImages": [
     {
+      "id": "listing-image-durdle-door-1",
       "regionSlug": "dorset",
       "listingSlug": "durdle-door",
-      "imageUrl": "/images/seed/listings/durdle-door/gallery-1.jpg"
+      "imageUrl": "https://picsum.photos/seed/listing-durdle-door-gallery-1/1600/900",
+      "sortOrder": 1
     },
     {
+      "id": "listing-image-durdle-door-2",
       "regionSlug": "dorset",
       "listingSlug": "durdle-door",
-      "imageUrl": "/images/seed/listings/durdle-door/gallery-2.jpg"
+      "imageUrl": "https://picsum.photos/seed/listing-durdle-door-gallery-2/1600/900",
+      "sortOrder": 2
     },
     {
+      "id": "listing-image-lulworth-cove-1",
       "regionSlug": "dorset",
       "listingSlug": "lulworth-cove",
-      "imageUrl": "/images/seed/listings/lulworth-cove/gallery-1.jpg"
+      "imageUrl": "https://picsum.photos/seed/listing-lulworth-cove-gallery-1/1600/900",
+      "sortOrder": 1
     },
     {
+      "id": "listing-image-mam-tor-1",
       "regionSlug": "derbyshire",
       "listingSlug": "mam-tor",
-      "imageUrl": "/images/seed/listings/mam-tor/gallery-1.jpg"
+      "imageUrl": "https://picsum.photos/seed/listing-mam-tor-gallery-1/1600/900",
+      "sortOrder": 1
     },
     {
+      "id": "listing-image-mam-tor-2",
       "regionSlug": "derbyshire",
       "listingSlug": "mam-tor",
-      "imageUrl": "/images/seed/listings/mam-tor/gallery-2.jpg"
+      "imageUrl": "https://picsum.photos/seed/listing-mam-tor-gallery-2/1600/900",
+      "sortOrder": 2
     },
     {
+      "id": "listing-image-stanage-edge-1",
       "regionSlug": "derbyshire",
       "listingSlug": "stanage-edge",
-      "imageUrl": "/images/seed/listings/stanage-edge/gallery-1.jpg"
+      "imageUrl": "https://picsum.photos/seed/listing-stanage-edge-gallery-1/1600/900",
+      "sortOrder": 1
     },
     {
+      "id": "listing-image-cheddar-gorge-1",
       "regionSlug": "somerset",
       "listingSlug": "cheddar-gorge",
-      "imageUrl": "/images/seed/listings/cheddar-gorge/gallery-1.jpg"
+      "imageUrl": "https://picsum.photos/seed/listing-cheddar-gorge-gallery-1/1600/900",
+      "sortOrder": 1
     },
     {
+      "id": "listing-image-cheddar-gorge-2",
       "regionSlug": "somerset",
       "listingSlug": "cheddar-gorge",
-      "imageUrl": "/images/seed/listings/cheddar-gorge/gallery-2.jpg"
+      "imageUrl": "https://picsum.photos/seed/listing-cheddar-gorge-gallery-2/1600/900",
+      "sortOrder": 2
     }
   ],
   "listingTags": [

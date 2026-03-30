@@ -1,5 +1,10 @@
 node_modules
 .pnpm-store
+.data/*
+!.data/.gitkeep
+.env
+.env.local
+.env.*.local
 
 apps/*/node_modules
 apps/*/.next
@@ -11,4 +16,3 @@ packages/*/dist
 *.db
 *.db-shm
 *.db-wal
-

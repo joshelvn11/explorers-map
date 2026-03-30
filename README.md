@@ -30,8 +30,14 @@ pnpm dev:web
 pnpm build:web
 pnpm lint
 pnpm typecheck
+pnpm db:generate
+pnpm db:migrate
 pnpm seed
 ```
+
+## Environment
+
+Copy `.env.example` to your local env file of choice and set `EXPLORERS_MAP_SQLITE_PATH` if you do not want the default repo-local SQLite file at `.data/explorers-map.sqlite`.
 
 ## Source of Truth
 

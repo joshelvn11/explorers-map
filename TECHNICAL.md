@@ -24,10 +24,13 @@ Expected flow:
 
 - The workspace root is configured.
 - `apps/web` is wired to resolve shared workspace packages.
-- Shared package directories currently contain placeholder exports and are ready for implementation work in later phases.
+- `packages/db` now owns the initial Drizzle schema, SQLite path resolution, and migration workflow.
+- The shared database file defaults to `.data/explorers-map.sqlite` unless `EXPLORERS_MAP_SQLITE_PATH` overrides it.
+- Core data integrity for listings, scoped slugs, and join-table duplication is enforced in the schema layer.
 
 ## Notes for Future Agents
 
 - Prefer package imports such as `@explorers-map/db` and `@explorers-map/services` over deep relative imports.
 - When adding new shared modules, expose them through the relevant package manifest.
 - Keep Next.js transpilation settings aligned with any shared package usage in `apps/web`.
+- Keep seed data, service rules, and MCP tools aligned with the DB constraints when later phases add writes and import flows.

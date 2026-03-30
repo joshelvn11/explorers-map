@@ -9,6 +9,7 @@ const __dirname = path.dirname(__filename);
 const projectRoot = path.resolve(__dirname, "..");
 const outputDir = path.join(projectRoot, "seed-data", "generated");
 const outputFile = path.join(outputDir, "seed.snapshot.json");
+const listingStatuses = new Set(["draft", "published"]);
 
 function assert(condition, message) {
   if (!condition) {
@@ -72,6 +73,7 @@ function validateRequiredEntityFields(data) {
   }
 
   for (const tag of data.tags) {
+    assertNonEmptyString(tag.id, "tag.id");
     assertNonEmptyString(tag.slug, "tag.slug");
     assertNonEmptyString(tag.name, "tag.name");
   }
@@ -80,15 +82,33 @@ function validateRequiredEntityFields(data) {
     assertNonEmptyString(listing.id, "listing.id");
     assertNonEmptyString(listing.regionSlug, "listing.regionSlug");
     assertNonEmptyString(listing.slug, "listing.slug");
+    assertNonEmptyString(listing.status, "listing.status");
     assertNonEmptyString(listing.title, "listing.title");
     assertNonEmptyString(listing.shortDescription, "listing.shortDescription");
     assertNonEmptyString(listing.description, "listing.description");
     assertNonEmptyString(listing.coverImage, "listing.coverImage");
     assertNonEmptyString(listing.categorySlug, "listing.categorySlug");
+    assertNonEmptyString(listing.source, "listing.source");
     assertNumberInRange(listing.latitude, -90, 90, `listing.latitude (${listing.slug})`);
     assertNumberInRange(listing.longitude, -180, 180, `listing.longitude (${listing.slug})`);
     assertNumberInRange(listing.busynessRating, 1, 5, `listing.busynessRating (${listing.slug})`);
     assert(Number.isInteger(listing.busynessRating), `listing.busynessRating (${listing.slug}) must be an integer`);
+    assert(
+      listingStatuses.has(listing.status),
+      `listing.status (${listing.slug}) must be one of: ${Array.from(listingStatuses).join(", ")}`,
+    );
+
+    if (listing.createdBy !== undefined && listing.createdBy !== null) {
+      assertNonEmptyString(listing.createdBy, `listing.createdBy (${listing.slug})`);
+    }
+
+    if (listing.updatedBy !== undefined && listing.updatedBy !== null) {
+      assertNonEmptyString(listing.updatedBy, `listing.updatedBy (${listing.slug})`);
+    }
+
+    if (listing.deletedAt !== undefined && listing.deletedAt !== null) {
+      assertNonEmptyString(listing.deletedAt, `listing.deletedAt (${listing.slug})`);
+    }
 
     if (listing.googleMapsPlaceUrl !== undefined) {
       assertNonEmptyString(listing.googleMapsPlaceUrl, `listing.googleMapsPlaceUrl (${listing.slug})`);
@@ -111,9 +131,12 @@ function validateRequiredEntityFields(data) {
   }
 
   for (const image of data.listingImages) {
+    assertNonEmptyString(image.id, "listingImages.id");
     assertNonEmptyString(image.regionSlug, "listingImages.regionSlug");
     assertNonEmptyString(image.listingSlug, "listingImages.listingSlug");
     assertNonEmptyString(image.imageUrl, "listingImages.imageUrl");
+    assertNumberInRange(image.sortOrder, 1, Number.MAX_SAFE_INTEGER, `listingImages.sortOrder (${image.id})`);
+    assert(Number.isInteger(image.sortOrder), `listingImages.sortOrder (${image.id}) must be an integer`);
   }
 
   for (const tagLink of data.listingTags) {
@@ -189,7 +212,9 @@ function validateUniqueness(data) {
     "destination slug within country",
   );
   validateUnique(data.categories, (category) => category.slug, "category slug");
+  validateUnique(data.tags, (tag) => tag.id, "tag id");
   validateUnique(data.tags, (tag) => tag.slug, "tag slug");
+  validateUnique(data.tags, (tag) => tag.name, "tag name");
   validateUnique(data.listings, (listing) => listing.id, "listing id");
   validateUnique(
     data.listings,
@@ -208,8 +233,18 @@ function validateUniqueness(data) {
   );
   validateUnique(
     data.listingImages,
+    (image) => image.id,
+    "listing image id",
+  );
+  validateUnique(
+    data.listingImages,
     (image) => makeScopedKey(image.regionSlug, image.listingSlug, image.imageUrl),
     "listing image",
+  );
+  validateUnique(
+    data.listingImages,
+    (image) => makeScopedKey(image.regionSlug, image.listingSlug, image.sortOrder),
+    "listing image sort order",
   );
   validateUnique(
     data.listingTags,

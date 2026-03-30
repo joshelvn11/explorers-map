@@ -35,7 +35,7 @@ This plan is intended for agent execution with human review at key checkpoints.
 - [x] Create `packages/utils` for shared helpers.
 - [x] Configure workspace-level package linking so `apps/web` and `apps/mcp` can import shared packages cleanly.
 - [x] Set up TypeScript pathing or package exports for shared imports.
-- [ ] Add base environment variable handling for SQLite path, Cloudflare storage configuration placeholders, and MCP configuration placeholders.
+- [x] Add base environment variable handling for SQLite path, Cloudflare storage configuration placeholders, and MCP configuration placeholders.
 - [x] Add root scripts for linting, typechecking, testing, database migration, and seeding.
 - [x] Add a short developer README section explaining the workspace layout and package responsibilities.
 
@@ -47,31 +47,32 @@ This plan is intended for agent execution with human review at key checkpoints.
 
 ### Agent Tasks
 
-- [ ] Implement the Drizzle schema in `packages/db` for:
-- [ ] `countries`
-- [ ] `regions`
-- [ ] `destinations`
-- [ ] `destination_regions`
-- [ ] `listings`
-- [ ] `listing_destinations`
-- [ ] `listing_images`
-- [ ] `tags`
-- [ ] `listing_tags`
-- [ ] Encode the agreed MVP fields for listings, including:
-- [ ] `status` with `draft` and `published`
-- [ ] `busynessRating`
-- [ ] `googleMapsPlaceUrl`
-- [ ] audit metadata (`createdBy`, `updatedBy`, `source`)
-- [ ] soft delete (`deletedAt`)
-- [ ] timestamps
-- [ ] Add appropriate uniqueness constraints and indexes for slugs and join tables.
-- [ ] Add migration files and verify the schema can be applied to SQLite cleanly.
-- [ ] Create a shared database client package for use by both `apps/web` and `apps/mcp`.
-- [ ] Document any schema assumptions that should remain stable for seed data and MCP tools.
+- [x] Implement the Drizzle schema in `packages/db` for:
+- [x] `countries`
+- [x] `regions`
+- [x] `destinations`
+- [x] `destination_regions`
+- [x] `categories`
+- [x] `listings`
+- [x] `listing_destinations`
+- [x] `listing_images`
+- [x] `tags`
+- [x] `listing_tags`
+- [x] Encode the agreed MVP fields for listings, including:
+- [x] `status` with `draft` and `published`
+- [x] `busynessRating`
+- [x] `googleMapsPlaceUrl`
+- [x] audit metadata (`createdBy`, `updatedBy`, `source`)
+- [x] soft delete (`deletedAt`)
+- [x] timestamps
+- [x] Add appropriate uniqueness constraints and indexes for slugs and join tables.
+- [x] Add migration files and verify the schema can be applied to SQLite cleanly.
+- [x] Create a shared database client package for use by both `apps/web` and `apps/mcp`.
+- [x] Document any schema assumptions that should remain stable for seed data and MCP tools.
 
 ### Human Required Steps
 
-- [ ] None.
+- [x] None.
 
 ## Phase 3 - Seed Pipeline and Initial Content Import
 
@@ -80,15 +81,17 @@ This plan is intended for agent execution with human review at key checkpoints.
 - [ ] Move or adapt the existing seed source into the shared workspace structure without losing the current content.
 - [ ] Connect the seed pipeline to the real Drizzle schema and SQLite database.
 - [ ] Implement idempotent seeding behavior suitable for development workflows.
+- [ ] Preserve stable seed IDs for entities that now carry explicit IDs in the seed source, including tags and listing images.
 - [ ] Seed countries, regions, destinations, categories, tags, listings, listing-destination links, listing images, and listing tags in dependency order.
-- [ ] Ensure seeded listings default to sensible `status`, `source`, audit, and trash values.
+- [ ] Ensure seeded listing images persist explicit `sortOrder` values from the seed source.
+- [ ] Ensure seeded listings default to concrete lifecycle values, including `status`, `source`, nullable audit fields, and `deletedAt = null`.
 - [ ] Preserve support for placeholder image URLs during early development.
 - [ ] Keep the existing seed validation checks and extend them for any new schema constraints.
 - [ ] Add a smoke test or scripted verification that the seed completes successfully on a fresh database.
 
 ### Human Required Steps
 
-- [ ] Improve seed content, image paths, Google Maps place links, and gallery coverage when ready.
+- [x] Improve seed content, image paths, Google Maps place links, and gallery coverage when ready.
 
 ## Phase 4 - Shared Queries and Service Layer
 
@@ -113,7 +116,7 @@ This plan is intended for agent execution with human review at key checkpoints.
 - [ ] restore listing from trash
 - [ ] Enforce business rules in the shared service layer instead of in UI or MCP handlers.
 - [ ] Ensure public read queries exclude `draft` and trashed records by default.
-- [ ] Ensure write operations populate audit metadata and `source` consistently.
+- [ ] Ensure write operations populate audit metadata, `source`, and `updatedAt` consistently.
 - [ ] Add unit tests for key service-layer operations and guards.
 
 ### Human Required Steps
@@ -178,7 +181,7 @@ This plan is intended for agent execution with human review at key checkpoints.
 
 - [ ] Implement trash-aware queries and restore workflows across shared services.
 - [ ] Add status-aware content utilities so draft and published content behavior stays consistent.
-- [ ] Add reusable helpers for audit metadata population and update timestamps.
+- [ ] Add reusable helpers for audit metadata population, `source` defaults, and update timestamps.
 - [ ] Create internal scripts or maintenance commands for common content operations if useful.
 - [ ] Add coverage for soft delete, restore, publish, and unpublish behaviors.
 - [ ] Verify seeded content, public pages, and MCP tools all respect the same lifecycle rules.

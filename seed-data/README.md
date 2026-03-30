@@ -13,14 +13,17 @@ This folder is the editable source of truth for the app's initial curated conten
 
 - Listings belong to one required region.
 - Listings can belong to zero or more destinations through `listingDestinations`.
+- Tags now carry stable `id` values so DB seeding can preserve deterministic records.
+- Listing gallery records now carry stable `id` values and explicit `sortOrder`.
 - Coordinates are the source of truth for map behavior.
 - Listings include a curated `busynessRating` from 1 to 5.
+- Listings now declare explicit `status`, `source`, and `deletedAt` values for lifecycle-aware seeding.
 - `googleMapsPlaceUrl` is optional and intended for richer Google place links later.
-- Image paths currently point at placeholder local paths under `/images/seed/`.
+- Images currently use stable Lorem Picsum placeholder URLs.
 
 ## Recommended improvements
 
-- Replace placeholder image paths with real local assets once the image set is ready.
+- Replace the Lorem Picsum placeholders with final production-ready image assets once the image set is ready.
 - Add `googleMapsPlaceUrl` values for listings where you want a direct place page link rather than a generated coordinates link.
 - Review descriptions and short descriptions for tone consistency once the UI is in place.
 - Expand gallery coverage so more listings have supporting imagery.
