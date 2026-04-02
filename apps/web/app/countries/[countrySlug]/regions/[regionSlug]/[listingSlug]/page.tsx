@@ -69,16 +69,24 @@ export default async function ListingPage({ params }: ListingPageProps) {
 
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-10 px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
-      <Breadcrumbs
-        items={[
-          { label: "Countries", href: getCountriesHref() },
-          { label: listing.country.title, href: getCountryHref(listing.country.slug) },
-          { label: "Regions", href: getCountryRegionsHref(listing.country.slug) },
-          { label: listing.region.title, href: getRegionHref(countrySlug, regionSlug) },
-          { label: "Listings", href: getRegionListingsHref(countrySlug, regionSlug) },
-          { label: listing.title },
-        ]}
-      />
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <Breadcrumbs
+          items={[
+            { label: "Countries", href: getCountriesHref() },
+            { label: listing.country.title, href: getCountryHref(listing.country.slug) },
+            { label: "Regions", href: getCountryRegionsHref(listing.country.slug) },
+            { label: listing.region.title, href: getRegionHref(countrySlug, regionSlug) },
+            { label: "Listings", href: getRegionListingsHref(countrySlug, regionSlug) },
+            { label: listing.title },
+          ]}
+        />
+        <Link
+          className="inline-flex items-center justify-center self-start rounded-full border border-stone-300 px-5 py-3 text-sm font-semibold text-stone-700 transition hover:border-stone-500 hover:text-stone-950"
+          href={getRegionListingsHref(countrySlug, regionSlug)}
+        >
+          Return to catalog
+        </Link>
+      </div>
 
       <section className="grid gap-8 lg:grid-cols-[minmax(0,1.4fr)_minmax(320px,0.8fr)]">
         <div className="space-y-6">
@@ -134,17 +142,11 @@ export default async function ListingPage({ params }: ListingPageProps) {
               >
                 Open in Google Maps
               </a>
-              <Link
-                className="inline-flex items-center justify-center rounded-full border border-stone-300 px-5 py-3 text-sm font-semibold text-stone-700 transition hover:border-stone-500 hover:text-stone-950"
-                href={getRegionListingsHref(countrySlug, regionSlug)}
-              >
-                Back to region catalog
-              </Link>
             </div>
           </div>
 
           <div className="rounded-[2rem] border border-stone-200 bg-white/85 p-6 shadow-sm">
-            <h2 className="font-serif text-2xl text-stone-950">Trip notes</h2>
+            <h2 className="font-serif text-2xl text-stone-950">Details</h2>
             <dl className="mt-4 grid gap-4 text-sm text-stone-700">
               <div>
                 <dt className="text-xs font-semibold tracking-[0.28em] uppercase text-stone-500">Coordinates</dt>
