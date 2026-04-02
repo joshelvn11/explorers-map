@@ -26,6 +26,7 @@ Read queries:
 - `listRegionsForCountry`
 - `getRegionBySlug`
 - `listDestinationsForCountry`
+- `listDestinationsForRegion`
 - `getDestinationBySlug`
 - `listListingsForRegion`
 - `listListingsForDestination`

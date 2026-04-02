@@ -13,6 +13,7 @@
 ## Public Read Queries
 
 - Country, region, and destination browse queries are country-scoped and sorted by title.
+- Region overview pages can now request linked destination snippets through a shared region-to-destination browse query instead of rebuilding that join in the web layer.
 - Country, region, and destination detail lookups return `null` on misses so page-level callers can render clean 404 behavior.
 - Region and destination listing queries return listing-card friendly data with category, region, and tag summaries already attached.
 - Listing detail returns country, region, category, ordered tags, ordered gallery images, explicit destination links, coordinates, busyness rating, and optional Google Maps metadata in one call.

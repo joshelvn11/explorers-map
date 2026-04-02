@@ -1,11 +1,13 @@
 import { asc, eq } from "drizzle-orm";
 
-import { countries, destinations, type DbInstance } from "@explorers-map/db";
+import { countries, destinationRegions, destinations, regions, type DbInstance } from "@explorers-map/db";
 
 import {
   loadDestinationRegions,
+  requireRegionRecord,
   resolveDb,
   resolveDestinationRecord,
+  type RegionLocator,
   type DestinationLocator,
 } from "./shared.ts";
 
@@ -55,6 +57,31 @@ export function listDestinationsForCountry(countrySlug: string, dbInstance?: DbI
     .all();
 }
 
+export function listDestinationsForRegion(locator: RegionLocator, dbInstance?: DbInstance): DestinationSummary[] {
+  const { db } = resolveDb(dbInstance);
+  const region = resolveRegionForDestinationList(locator, dbInstance);
+
+  if (!region) {
+    return [];
+  }
+
+  return db
+    .select({
+      countrySlug: countries.slug,
+      slug: destinations.slug,
+      title: destinations.title,
+      description: destinations.description,
+      coverImage: destinations.coverImage,
+    })
+    .from(destinationRegions)
+    .innerJoin(destinations, eq(destinationRegions.destinationId, destinations.id))
+    .innerJoin(regions, eq(destinationRegions.regionId, regions.id))
+    .innerJoin(countries, eq(destinations.countryId, countries.id))
+    .where(eq(destinationRegions.regionId, region.id))
+    .orderBy(asc(destinations.title))
+    .all();
+}
+
 export function getDestinationBySlug(locator: DestinationLocator, dbInstance?: DbInstance): DestinationDetail | null {
   const { db } = resolveDb(dbInstance);
   const destination = resolveDestinationRecord(db, locator);
@@ -91,4 +118,13 @@ function resolveDestinationCountry(countrySlug: string, dbInstance?: DbInstance)
     .all();
 
   return country ?? null;
+}
+
+function resolveRegionForDestinationList(locator: RegionLocator, dbInstance?: DbInstance) {
+  try {
+    const { db } = resolveDb(dbInstance);
+    return requireRegionRecord(db, locator);
+  } catch {
+    return null;
+  }
 }

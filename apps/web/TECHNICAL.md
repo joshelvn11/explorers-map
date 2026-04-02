@@ -33,6 +33,8 @@ These packages are transpiled via `transpilePackages` in `next.config.ts`.
 ## Route Notes
 
 - `/countries/[countrySlug]/regions/[regionSlug]/listings` is the single interactive catalog surface in MVP.
+- Region overview pages now preview both published listings and linked destination pages.
+- `/countries/[countrySlug]/regions/[regionSlug]/destinations` shows the full set of destination pages linked to the current region.
 - Destination pages consume the shared destination listing query and link every card to the canonical region-scoped listing URL.
 - Dynamic page metadata is built from shared detail queries for countries, regions, destinations, and listings.
 - Static params are generated from shared browse queries, so builds assume migrated and seeded SQLite data.

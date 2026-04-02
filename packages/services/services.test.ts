@@ -15,6 +15,7 @@ import {
   getRegionBySlug,
   listCountries,
   listDestinationsForCountry,
+  listDestinationsForRegion,
   listListingsForDestination,
   listListingsForRegion,
   listRegionsForCountry,
@@ -99,6 +100,28 @@ test("destination listings only include explicitly linked listings", (t) => {
   assert.ok(jurassicCoastListings.some((item) => item.slug === "beer-head"));
   assert.ok(!jurassicCoastListings.some((item) => item.slug === "mam-tor"));
   assert.ok(!jurassicCoastListings.some((item) => item.slug === "cheddar-gorge"));
+});
+
+test("region destination snippets only include destinations explicitly linked to that region", (t) => {
+  const dbInstance = createSeededTestDb(t);
+
+  const dorsetDestinations = listDestinationsForRegion(
+    { countrySlug: "united-kingdom", regionSlug: "dorset" },
+    dbInstance,
+  );
+  const staffordshireDestinations = listDestinationsForRegion(
+    { countrySlug: "united-kingdom", regionSlug: "staffordshire" },
+    dbInstance,
+  );
+
+  assert.deepEqual(
+    dorsetDestinations.map((item) => item.slug),
+    ["jurassic-coast"],
+  );
+  assert.deepEqual(
+    staffordshireDestinations.map((item) => item.slug),
+    ["peak-district-national-park"],
+  );
 });
 
 test("region catalog filters normalize invalid values and expose stable facets", (t) => {

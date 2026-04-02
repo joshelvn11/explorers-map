@@ -136,23 +136,23 @@ Note:
 
 ### Agent Tasks
 
-- [ ] Implement the App Router structure described in the brief under `apps/web`.
-- [ ] Build the published public browsing experience for:
-- [ ] countries index
-- [ ] country page
-- [ ] regions index within country
-- [ ] region detail page
-- [ ] destinations index within country
-- [ ] destination detail page
-- [ ] region listings catalog
-- [ ] listing detail page
-- [ ] Ensure destination pages only show listings explicitly linked to that destination.
-- [ ] Ensure listing detail pages remain canonically routed under regions.
-- [ ] Implement category, tag, destination, and busyness filtering where planned for MVP.
-- [ ] Generate map links from coordinates and use `googleMapsPlaceUrl` when present.
-- [ ] Add metadata generation for countries, regions, destinations, and listings.
-- [ ] Handle empty states, 404s, unpublished content behavior, and trashed content exclusion cleanly.
-- [ ] Keep the UI aligned with the visual-first, calm, exploratory brief.
+- [x] Implement the App Router structure described in the brief under `apps/web`.
+- [x] Build the published public browsing experience for:
+- [x] countries index
+- [x] country page
+- [x] regions index within country
+- [x] region detail page
+- [x] destinations index within country
+- [x] destination detail page
+- [x] region listings catalog
+- [x] listing detail page
+- [x] Ensure destination pages only show listings explicitly linked to that destination.
+- [x] Ensure listing detail pages remain canonically routed under regions.
+- [x] Implement category, tag, destination, and busyness filtering where planned for MVP.
+- [x] Generate map links from coordinates and use `googleMapsPlaceUrl` when present.
+- [x] Add metadata generation for countries, regions, destinations, and listings.
+- [x] Handle empty states, 404s, unpublished content behavior, and trashed content exclusion cleanly.
+- [x] Keep the UI aligned with the visual-first, calm, exploratory brief.
 
 ### Human Required Steps
 
@@ -163,24 +163,41 @@ Note:
 Note:
 
 - [ ] MCP `create listing draft` should reuse the Phase 4 shared service semantics, which create a complete draft listing rather than a sparse placeholder row.
+- [ ] The initial MCP workflow is personal editorial use through ChatGPT, not generic external automation.
+- [ ] MCP auth should ship in two stages: private API key first, OAuth later.
 
 ### Agent Tasks
 
 - [ ] Set up the standalone MCP server under `apps/mcp`.
 - [ ] Configure the MCP server to import shared database and service-layer code from workspace packages.
 - [ ] Implement curated task-shaped MCP tools rather than unrestricted CRUD, including:
-- [ ] create listing draft
-- [ ] update listing copy
-- [ ] set listing location
-- [ ] assign listing destinations
-- [ ] attach listing images
-- [ ] publish listing
-- [ ] move listing to trash
-- [ ] restore listing from trash
-- [ ] add or update destination records as needed
-- [ ] add or update region records as needed
+- [ ] fuzzy `find_region`
+- [ ] fuzzy `find_destination`
+- [ ] `list_listings` scoped to a region or destination
+- [ ] `get_listing`
+- [ ] `ensure_destination` so ChatGPT can reuse an existing destination or create one only when needed
+- [ ] `create_listing_draft`
+- [ ] `update_listing_copy`
+- [ ] `update_listing_metadata`
+- [ ] `set_listing_location`
+- [ ] `assign_listing_destinations`
+- [ ] `attach_listing_images`
+- [ ] `improve_region_listings`
+- [ ] `improve_destination_listings`
+- [ ] `publish_listing`
+- [ ] `move_listing_to_trash`
+- [ ] `restore_listing_from_trash`
+- [ ] Prefer lookup-and-improve flows over blind creation so ChatGPT checks for existing regions, destinations, and listings before creating new records.
+- [ ] Implement fuzzy matching for destination, region, and listing reads so slight naming differences still resolve to likely existing records.
+- [ ] Return structured match confidence or equivalent signals from fuzzy lookups so the assistant can avoid duplicate creation.
+- [ ] Ensure write tools default to draft behavior unless the user explicitly requests publish behavior.
 - [ ] Ensure MCP writes always set `source = mcp` and populate audit metadata where available.
+- [ ] Add simple private MCP authentication for MVP using a bearer token or API key.
+- [ ] Store the MVP MCP secret in environment configuration rather than hard-coding it.
+- [ ] Reject unauthenticated MCP requests and document the expected auth header format.
 - [ ] Add robust validation, structured success responses, and clear error handling for tool calls.
+- [ ] Add a small read-only context surface for ChatGPT, such as platform guide, data model guide, and editorial rules resources.
+- [ ] Add and maintain a repository document that can be used as baseline ChatGPT MCP context instructions.
 - [ ] Add local documentation for how to run the MCP server and how it shares code with the app.
 - [ ] Add smoke tests or scripted checks for the highest-value MCP tools.
 
@@ -203,6 +220,21 @@ Note:
 ### Human Required Steps
 
 - [ ] Review whether any additional operational safeguards are needed before real content editing begins.
+
+## Phase 8 - MCP OAuth Upgrade
+
+### Agent Tasks
+
+- [ ] Add OAuth-based authentication for the remote MCP server as the long-term ChatGPT connector auth model.
+- [ ] Keep the existing MCP tool surface compatible while replacing or superseding the temporary API key flow.
+- [ ] Implement token validation and any required session or principal mapping needed by the shared service layer.
+- [ ] Ensure OAuth-authenticated requests still populate audit metadata consistently.
+- [ ] Update MCP runtime documentation to describe the OAuth flow and any required setup.
+- [ ] Update context and interface documentation so the expected auth model for ChatGPT connector usage is clear.
+
+### Human Required Steps
+
+- [ ] Configure and approve the OAuth provider/app registration details needed for the remote ChatGPT connector setup.
 
 ## Deferred Until Later
 

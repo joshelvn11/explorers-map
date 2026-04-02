@@ -406,15 +406,33 @@ Future:
 - Core create/update logic should live in shared service-layer functions
 - The Next.js app and MCP server should both reuse the same shared database and service layer
 - A separate MCP server can act as the primary machine-write interface for LLM-driven content operations
+- The initial MCP use case is the project owner using ChatGPT as a personal editorial assistant
+- The MCP server should be designed for guided editorial workflows rather than broad raw CRUD access
 - The MCP layer should act as a thin adapter, not a second source of truth for validation or database writes
 - Prefer task-shaped tools such as:
+  - find region
+  - find destination
+  - list listings
+  - get listing
+  - ensure destination
   - create listing draft
   - update listing copy
+  - update listing metadata
   - set listing location
   - assign listing destinations
   - attach listing images
+  - improve region listings
+  - improve destination listings
 - Avoid exposing unrestricted raw CRUD tools to LLMs where possible
-- `FastMCP` or a similar framework is a suitable choice for the MCP server layer
+- Read tools should support fuzzy matching so the assistant can find likely existing regions, destinations, and listings even when names differ slightly
+- Fuzzy lookup responses should include enough context for the assistant to prefer existing records and avoid duplicate creation
+- Write tools should default to draft creation or draft-preserving updates unless the user explicitly asks to publish
+- The MCP surface should expose lightweight platform and editorial guidance so ChatGPT understands the data model and usage rules before taking action
+- The standalone MCP server is expected to be remotely reachable for ChatGPT connector use
+- MCP authentication should be implemented in two stages:
+  - Stage 1: a simple private bearer token or API key for personal development and early private use
+  - Stage 2: OAuth for the proper remote ChatGPT connector experience
+- The official TypeScript MCP SDK is the preferred implementation approach for this repository
 
 Recommended repository shape:
 
@@ -428,6 +446,16 @@ packages/
 ```
 
 The standalone MCP server is a separate process, but not a separate write implementation. It should import shared domain functions from `packages/services` and shared database access from `packages/db`.
+
+Example editorial flow:
+
+```
+ChatGPT request
+→ fuzzy lookup of region or destination
+→ inspect existing records
+→ create or improve draft listings
+→ optional explicit publish step
+```
 
 Example flow:
 
@@ -473,6 +501,8 @@ Next.js page
   - Admin dashboard
   - Content management
   - User contributions
+- MCP server auth should start with a simple private API key or bearer token for MVP
+- OAuth should be the target authentication model for remote ChatGPT connector use
 
 ---
 
@@ -662,6 +692,9 @@ export const listingDestinations = sqliteTable("listing_destinations", {
 - MCP should expose curated task-based tools rather than unrestricted database CRUD
 - No dedicated Next.js write API is required for MVP
 - Content should support draft/published lifecycle, audit metadata, and soft delete to trash
+- MCP-assisted editorial workflows should prefer lookup and improvement of existing records before creating new ones
+- Fuzzy matching should be used for region, destination, and listing lookups to reduce accidental duplicates caused by naming variation
+- MCP-driven creation should default to `draft` unless the user explicitly asks to publish
 - Required listing fields:
   - title
   - slug

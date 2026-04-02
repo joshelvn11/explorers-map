@@ -75,7 +75,7 @@ Expected flow:
 ## Public Web App MVP
 
 - The public app uses App Router server components backed directly by shared query modules; it does not introduce a parallel write or read API surface.
-- Region overview pages remain lighter browse surfaces, while `/countries/[countrySlug]/regions/[regionSlug]/listings` is the only interactive catalog route in MVP.
+- Region overview pages remain lighter browse surfaces, now previewing both published listings and linked destinations, while `/countries/[countrySlug]/regions/[regionSlug]/listings` remains the only interactive catalog route in MVP and `/countries/[countrySlug]/regions/[regionSlug]/destinations` provides the full region-linked destination index.
 - Destination pages remain curated and unfiltered, showing only listings explicitly linked to that destination while linking onward to canonical region-scoped listing pages.
 - Listing metadata prefers `googleMapsPlaceUrl` when present and otherwise falls back to generated Google Maps coordinate-search URLs.
 - The web app no longer depends on remote Google font fetches during build; typography uses local font stacks so offline or restricted-network builds can still succeed.

@@ -26,6 +26,10 @@ export function getRegionListingsHref(countrySlug: string, regionSlug: string) {
   return `/countries/${countrySlug}/regions/${regionSlug}/listings`;
 }
 
+export function getRegionDestinationsHref(countrySlug: string, regionSlug: string) {
+  return `/countries/${countrySlug}/regions/${regionSlug}/destinations`;
+}
+
 export function getDestinationHref(countrySlug: string, destinationSlug: string) {
   return `/countries/${countrySlug}/destinations/${destinationSlug}`;
 }

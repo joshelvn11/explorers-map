@@ -19,6 +19,8 @@ The format is based on Keep a Changelog.
 - Added typed service errors and a Node-based service test suite covering public visibility rules, lifecycle transitions, audit/source stamping, destination guards, and gallery replacement.
 - Added the Phase 5 public web MVP in `apps/web`, including country, region, destination, region-catalog, and canonical listing routes with metadata, 404 handling, and image-first browsing UI.
 - Added shared region catalog filtering in `packages/services` with URL-friendly category, tag, destination, and busyness filters plus stable public facet data for the web app.
+- Added shared region-linked destination queries and a second destination snippet on region overview pages.
+- Added a dedicated region destinations page so region overview destination snippets can drill into all destinations linked to that region.
 - Added `CHATGPT_MCP_CONTEXT.md` with reusable platform, editorial, and data-model instructions for future ChatGPT-driven MCP usage.
 
 ### Changed

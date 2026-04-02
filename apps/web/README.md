@@ -46,6 +46,7 @@ Shared packages are transpiled through Next.js so they can be imported directly 
   - `/countries/[countrySlug]`
   - `/countries/[countrySlug]/regions`
   - `/countries/[countrySlug]/regions/[regionSlug]`
+  - `/countries/[countrySlug]/regions/[regionSlug]/destinations`
   - `/countries/[countrySlug]/regions/[regionSlug]/listings`
   - `/countries/[countrySlug]/regions/[regionSlug]/[listingSlug]`
   - `/countries/[countrySlug]/destinations`
