@@ -22,9 +22,13 @@ The format is based on Keep a Changelog.
 - Added shared region-linked destination queries and a second destination snippet on region overview pages.
 - Added a dedicated region destinations page so region overview destination snippets can drill into all destinations linked to that region.
 - Added `CHATGPT_MCP_CONTEXT.md` with reusable platform, editorial, and data-model instructions for future ChatGPT-driven MCP usage.
+- Added planned MCP contract documentation in `apps/mcp/API.md`, covering the intended tool surface, shared result shapes, evidence rules, and editorial workflows.
 
 ### Changed
 
 - Refined the MCP plan around personal editorial use through ChatGPT rather than generic CRUD automation.
 - Updated the MCP implementation plan to emphasize fuzzy lookup, lookup-before-create flows, destination ensuring, and draft-first content creation.
 - Split the MCP authentication plan into two stages: private API key first for MVP and OAuth later for the proper remote ChatGPT connector phase.
+- Expanded the planned MCP tool surface to include region and destination creation workflows, including safer `ensure_*` patterns and duplicate-aware creation guidance.
+- Extended the planned MCP workflow with `find_listing` and `ensure_listing` so listing creation can follow the same duplicate-safe lookup-before-create pattern as regions and destinations.
+- Tightened the planned MCP editorial rules around evidence-first creation, ambiguity-stop behavior, explicit destination-region assignment, and refusal of placeholder-only listing drafts.

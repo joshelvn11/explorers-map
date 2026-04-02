@@ -165,31 +165,54 @@ Note:
 - [ ] MCP `create listing draft` should reuse the Phase 4 shared service semantics, which create a complete draft listing rather than a sparse placeholder row.
 - [ ] The initial MCP workflow is personal editorial use through ChatGPT, not generic external automation.
 - [ ] MCP auth should ship in two stages: private API key first, OAuth later.
+- [ ] MCP creation workflows should be evidence-first and should stop instead of inventing missing facts.
+- [ ] MCP fuzzy lookup workflows should stop on ambiguity and return candidate matches rather than guessing.
+- [ ] MCP should not support placeholder-only drafts in MVP because the current listing schema requires a complete draft row.
 
 ### Agent Tasks
 
 - [ ] Set up the standalone MCP server under `apps/mcp`.
 - [ ] Configure the MCP server to import shared database and service-layer code from workspace packages.
+- [ ] Add the shared service-layer support the MCP surface needs before wiring handlers:
+- [ ] `createRegion`
+- [ ] `createDestination`
+- [ ] `assignDestinationRegions`
+- [ ] editor-visible region and destination detail helpers if the current public reads are too narrow for MCP workflows
+- [ ] shared fuzzy matching helpers for regions, destinations, and listings with consistent scoring and candidate output
 - [ ] Implement curated task-shaped MCP tools rather than unrestricted CRUD, including:
+- [ ] `list_categories`
+- [ ] `list_regions`
 - [ ] fuzzy `find_region`
+- [ ] `get_region`
+- [ ] `ensure_region` so ChatGPT can reuse an existing region or create one only when needed
+- [ ] `create_region`
+- [ ] `list_destinations`
 - [ ] fuzzy `find_destination`
-- [ ] `list_listings` scoped to a region or destination
-- [ ] `get_listing`
+- [ ] `get_destination`
 - [ ] `ensure_destination` so ChatGPT can reuse an existing destination or create one only when needed
+- [ ] `create_destination`
+- [ ] `assign_destination_regions`
+- [ ] `list_listings` scoped to a region or destination
+- [ ] fuzzy `find_listing`
+- [ ] `get_listing`
+- [ ] `ensure_listing` so ChatGPT can reuse or flag likely existing listings before creating a new draft
 - [ ] `create_listing_draft`
 - [ ] `update_listing_copy`
 - [ ] `update_listing_metadata`
 - [ ] `set_listing_location`
 - [ ] `assign_listing_destinations`
 - [ ] `attach_listing_images`
-- [ ] `improve_region_listings`
-- [ ] `improve_destination_listings`
 - [ ] `publish_listing`
 - [ ] `move_listing_to_trash`
 - [ ] `restore_listing_from_trash`
 - [ ] Prefer lookup-and-improve flows over blind creation so ChatGPT checks for existing regions, destinations, and listings before creating new records.
 - [ ] Implement fuzzy matching for destination, region, and listing reads so slight naming differences still resolve to likely existing records.
 - [ ] Return structured match confidence or equivalent signals from fuzzy lookups so the assistant can avoid duplicate creation.
+- [ ] Ensure region and destination creation flows return existing-match information or explicit creation outcomes so ChatGPT can avoid duplicate records.
+- [ ] Ensure listing matching considers region scope, likely title similarity, and location evidence where available before creating new drafts.
+- [ ] Require non-empty structured `evidence[]` input for tools that create records or introduce new factual claims, validate it, and echo it back in structured responses without persisting it yet.
+- [ ] Accept optional explicit slugs on create and ensure tools, but if a slug is omitted derive it from the title and reject collisions rather than silently suffixing them.
+- [ ] Require complete listing-draft payloads for MCP creation, including `categorySlug`, coordinates, `busynessRating`, `coverImage`, `shortDescription`, and `description`.
 - [ ] Ensure write tools default to draft behavior unless the user explicitly requests publish behavior.
 - [ ] Ensure MCP writes always set `source = mcp` and populate audit metadata where available.
 - [ ] Add simple private MCP authentication for MVP using a bearer token or API key.
@@ -197,9 +220,12 @@ Note:
 - [ ] Reject unauthenticated MCP requests and document the expected auth header format.
 - [ ] Add robust validation, structured success responses, and clear error handling for tool calls.
 - [ ] Add a small read-only context surface for ChatGPT, such as platform guide, data model guide, and editorial rules resources.
+- [ ] Ensure fuzzy lookups and ensure tools follow the documented `MatchCandidate`, `FindResult`, `EnsureResult`, and `MutationResult` contracts.
+- [ ] Defer vague orchestration tools such as `improve_region_listings` and `improve_destination_listings` until they can be specified as explicit evidence-driven workflows.
 - [ ] Add and maintain a repository document that can be used as baseline ChatGPT MCP context instructions.
 - [ ] Add local documentation for how to run the MCP server and how it shares code with the app.
-- [ ] Add smoke tests or scripted checks for the highest-value MCP tools.
+- [ ] Add a dedicated `apps/mcp/API.md` reference describing the planned MCP resources, tool contracts, shared schemas, error behavior, and example editorial workflows.
+- [ ] Add smoke tests or scripted checks for the highest-value MCP tools, including fuzzy matching, ambiguity-stop behavior, evidence validation, duplicate protection, auth rejection, and structured error responses.
 
 ### Human Required Steps
 

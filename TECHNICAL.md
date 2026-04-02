@@ -59,13 +59,20 @@ Expected flow:
 - The initial MCP use case is personal editorial assistance through ChatGPT rather than broad external automation.
 - MCP should favor task-shaped editorial tools over generic CRUD.
 - Read-oriented MCP operations should support fuzzy matching for region, destination, and listing lookup so existing records can be found even when names vary slightly.
+- MCP fuzzy matching should stop on ambiguity and return candidate matches rather than guessing or auto-creating a nearby duplicate.
+- Region and destination creation should be exposed through explicit task-shaped tools such as `ensure_region`, `create_region`, `ensure_destination`, and `create_destination` rather than broad arbitrary create operations.
+- Destination-region assignment should also be exposed explicitly so a destination can be curated across one or more regions without blurring region ownership of listings.
+- Listing creation should also have an explicit matching step such as `find_listing` or `ensure_listing` so duplicate-safe creation workflows are symmetrical across the main content types.
 - MCP write operations should prefer lookup-and-improve flows before creating new rows.
+- MCP creation workflows should be evidence-first. If a new fact cannot be grounded confidently, the assistant should return no-op guidance instead of inventing data.
 - New MCP-created content should default to `draft` unless the caller explicitly requests publish behavior.
+- MCP should not support sparse or placeholder-only listing drafts in MVP because the existing listing schema requires a complete draft row.
 - MCP authentication is expected to follow a two-stage path:
   - private API key or bearer token for the early personal/private phase
   - OAuth for the long-term remote ChatGPT connector phase
 - The MCP surface should also provide lightweight context resources or equivalent guidance so ChatGPT understands the platform, data model, and editorial rules before taking action.
 - `CHATGPT_MCP_CONTEXT.md` is the root-level human-authored context document intended to guide ChatGPT usage of the Explorers Map MCP.
+- `apps/mcp/API.md` is the intended implementation contract for the planned MCP tool schemas, result shapes, and example editorial workflows.
 
 ## Service Tests
 

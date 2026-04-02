@@ -411,10 +411,15 @@ Future:
 - The MCP layer should act as a thin adapter, not a second source of truth for validation or database writes
 - Prefer task-shaped tools such as:
   - find region
+  - ensure region
+  - create region
   - find destination
+  - create destination
   - list listings
+  - find listing
   - get listing
   - ensure destination
+  - ensure listing
   - create listing draft
   - update listing copy
   - update listing metadata
@@ -426,6 +431,8 @@ Future:
 - Avoid exposing unrestricted raw CRUD tools to LLMs where possible
 - Read tools should support fuzzy matching so the assistant can find likely existing regions, destinations, and listings even when names differ slightly
 - Fuzzy lookup responses should include enough context for the assistant to prefer existing records and avoid duplicate creation
+- Region and destination creation tools should check fuzzy matches first and return likely existing candidates before creating new records where appropriate
+- Listing creation should also support an explicit ensure-or-match workflow so the assistant can detect likely duplicates before creating a new draft
 - Write tools should default to draft creation or draft-preserving updates unless the user explicitly asks to publish
 - The MCP surface should expose lightweight platform and editorial guidance so ChatGPT understands the data model and usage rules before taking action
 - The standalone MCP server is expected to be remotely reachable for ChatGPT connector use
