@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
+    "dev": "env EXPLORERS_MAP_WORKSPACE_ROOT=../.. next dev --webpack",
+    "build": "env EXPLORERS_MAP_WORKSPACE_ROOT=../.. next build --webpack",
+    "start": "env EXPLORERS_MAP_WORKSPACE_ROOT=../.. next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit"
   },
@@ -13,6 +13,7 @@
     "@explorers-map/db": "workspace:*",
     "@explorers-map/services": "workspace:*",
     "@explorers-map/utils": "workspace:*",
+    "better-sqlite3": "^12.8.0",
     "next": "16.2.1",
     "react": "19.2.4",
     "react-dom": "19.2.4"

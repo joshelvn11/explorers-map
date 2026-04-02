@@ -258,6 +258,34 @@ export function loadListingDestinations(executor: DbExecutor, listingId: string)
     .all();
 }
 
+export function loadListingDestinationsForListings(executor: DbExecutor, listingIds: string[]) {
+  const destinationsByListingId = new Map<string, Array<{ slug: string; title: string }>>();
+
+  if (listingIds.length === 0) {
+    return destinationsByListingId;
+  }
+
+  const rows = executor
+    .select({
+      listingId: listingDestinations.listingId,
+      slug: destinations.slug,
+      title: destinations.title,
+    })
+    .from(listingDestinations)
+    .innerJoin(destinations, eq(listingDestinations.destinationId, destinations.id))
+    .where(inArray(listingDestinations.listingId, listingIds))
+    .orderBy(asc(destinations.title))
+    .all();
+
+  for (const row of rows) {
+    const bucket = destinationsByListingId.get(row.listingId) ?? [];
+    bucket.push({ slug: row.slug, title: row.title });
+    destinationsByListingId.set(row.listingId, bucket);
+  }
+
+  return destinationsByListingId;
+}
+
 export function loadDestinationRegions(executor: DbExecutor, destinationId: string) {
   return executor
     .select({

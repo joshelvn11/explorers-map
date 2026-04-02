@@ -24,6 +24,7 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 - App Router pages
 - SEO metadata
 - Read-only MVP presentation layer
+- Region catalog filtering via shared services
 
 ## Shared Workspace Packages
 
@@ -39,11 +40,16 @@ Shared packages are transpiled through Next.js so they can be imported directly 
 
 - Keep public content reads aligned with the shared service and data-model rules in the root brief.
 - Do not introduce write-specific business logic here that belongs in shared services or MCP tools.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- The public route tree now includes:
+  - `/`
+  - `/countries`
+  - `/countries/[countrySlug]`
+  - `/countries/[countrySlug]/regions`
+  - `/countries/[countrySlug]/regions/[regionSlug]`
+  - `/countries/[countrySlug]/regions/[regionSlug]/listings`
+  - `/countries/[countrySlug]/regions/[regionSlug]/[listingSlug]`
+  - `/countries/[countrySlug]/destinations`
+  - `/countries/[countrySlug]/destinations/[destinationSlug]`
+- Build and dev flows expect the shared SQLite database to be migrated and seeded first because static params and page rendering read real content from shared services.
+- The production build script uses `next build --webpack` so the shared native SQLite dependency stays compatible with Next's build pipeline.
+- Remote images are configured for `picsum.photos` and an optional Cloudflare public asset base URL.

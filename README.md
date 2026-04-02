@@ -50,9 +50,17 @@ Seed command behavior:
 - `pnpm test:services`
   Runs the shared service-layer Node test suite against fresh temp SQLite databases seeded with the curated development dataset.
 
+Public app note:
+
+- The public Next.js app now reads countries, regions, destinations, and listings directly from the shared SQLite database during page rendering and static param generation.
+- Run `pnpm db:migrate` and `pnpm seed` before `pnpm dev:web` or `pnpm build:web` so the public routes have data available.
+
 ## Environment
 
 Copy `.env.example` to your local env file of choice and set `EXPLORERS_MAP_SQLITE_PATH` if you do not want the default repo-local SQLite file at `.data/explorers-map.sqlite`.
+
+- `EXPLORERS_MAP_PUBLIC_APP_URL`
+  Optional origin used as the metadata base for the public web app. Defaults to `http://localhost:3000`.
 
 ## Source of Truth
 

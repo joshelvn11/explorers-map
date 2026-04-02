@@ -11,6 +11,7 @@ import {
   getCountryBySlug,
   getDestinationBySlug,
   getListingDetail,
+  getRegionListingCatalog,
   getRegionBySlug,
   listCountries,
   listDestinationsForCountry,
@@ -98,6 +99,115 @@ test("destination listings only include explicitly linked listings", (t) => {
   assert.ok(jurassicCoastListings.some((item) => item.slug === "beer-head"));
   assert.ok(!jurassicCoastListings.some((item) => item.slug === "mam-tor"));
   assert.ok(!jurassicCoastListings.some((item) => item.slug === "cheddar-gorge"));
+});
+
+test("region catalog filters normalize invalid values and expose stable facets", (t) => {
+  const dbInstance = createSeededTestDb(t);
+
+  createListingDraft(
+    {
+      countrySlug: "united-kingdom",
+      regionSlug: "dorset",
+      slug: "hidden-bay",
+      title: "Hidden Bay",
+      shortDescription: "Hidden draft listing",
+      description: "Draft-only listing",
+      latitude: 50.61,
+      longitude: -2.19,
+      busynessRating: 1,
+      coverImage: "https://example.com/hidden-bay.jpg",
+      categorySlug: "beach",
+    },
+    { source: "manual", actorId: "editor-1" },
+    dbInstance,
+  );
+
+  trashListing(
+    { countrySlug: "united-kingdom", regionSlug: "dorset", listingSlug: "old-harry-rocks" },
+    { source: "manual", actorId: "editor-1" },
+    dbInstance,
+  );
+
+  const catalog = getRegionListingCatalog(
+    { countrySlug: "united-kingdom", regionSlug: "dorset" },
+    {
+      categorySlug: "natural-attraction",
+      tagSlug: "not-a-real-tag",
+      destinationSlug: "jurassic-coast",
+      busynessRating: 7,
+    },
+    dbInstance,
+  );
+
+  assert.deepEqual(catalog?.appliedFilters, {
+    categorySlug: "natural-attraction",
+    destinationSlug: "jurassic-coast",
+  });
+  assert.deepEqual(
+    catalog?.listings.map((item) => item.slug),
+    ["durdle-door"],
+  );
+  assert.deepEqual(
+    catalog?.facets.categories.map((item) => item.slug),
+    ["beach", "mountain", "natural-attraction"],
+  );
+  assert.ok(!catalog?.facets.tags.some((item) => item.slug === "sunset"));
+  assert.ok(catalog?.facets.destinations.some((item) => item.slug === "jurassic-coast" && item.count === 3));
+  assert.deepEqual(
+    catalog?.facets.busynessRatings.map((item) => item.rating),
+    [3, 5],
+  );
+});
+
+test("region catalog supports category, tag, destination, busyness, and combined filters", (t) => {
+  const dbInstance = createSeededTestDb(t);
+
+  const byCategory = getRegionListingCatalog(
+    { countrySlug: "united-kingdom", regionSlug: "derbyshire" },
+    { categorySlug: "mountain" },
+    dbInstance,
+  );
+  const byTag = getRegionListingCatalog(
+    { countrySlug: "united-kingdom", regionSlug: "derbyshire" },
+    { tagSlug: "family-friendly" },
+    dbInstance,
+  );
+  const byDestination = getRegionListingCatalog(
+    { countrySlug: "united-kingdom", regionSlug: "derbyshire" },
+    { destinationSlug: "peak-district-national-park" },
+    dbInstance,
+  );
+  const byBusyness = getRegionListingCatalog(
+    { countrySlug: "united-kingdom", regionSlug: "derbyshire" },
+    { busynessRating: 5 },
+    dbInstance,
+  );
+  const combined = getRegionListingCatalog(
+    { countrySlug: "united-kingdom", regionSlug: "derbyshire" },
+    { categorySlug: "mountain", tagSlug: "sunrise", destinationSlug: "peak-district-national-park", busynessRating: 5 },
+    dbInstance,
+  );
+
+  assert.deepEqual(
+    byCategory?.listings.map((item) => item.slug),
+    ["mam-tor"],
+  );
+  assert.deepEqual(
+    byTag?.listings.map((item) => item.slug),
+    ["ladybower-reservoir", "monsal-trail"],
+  );
+  assert.deepEqual(
+    byDestination?.listings.map((item) => item.slug),
+    ["ladybower-reservoir", "mam-tor", "monsal-trail", "stanage-edge"],
+  );
+  assert.deepEqual(
+    byBusyness?.listings.map((item) => item.slug),
+    ["mam-tor"],
+  );
+  assert.deepEqual(
+    combined?.listings.map((item) => item.slug),
+    ["mam-tor"],
+  );
 });
 
 test("listing detail hides draft and trashed records and returns related public data", (t) => {

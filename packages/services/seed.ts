@@ -18,7 +18,7 @@ import {
 } from "@explorers-map/db";
 
 import type { SeedData as SeedDataShape } from "../../seed-data/index.d.ts";
-// @ts-expect-error The runtime seed module is JavaScript; we cast it to the shared declaration shape below.
+// @ts-ignore The runtime seed module is JavaScript; we cast it to the shared declaration shape below.
 import { seedData as bundledSeedDataSource } from "../../seed-data/index.mjs";
 
 const currentTimestamp = sql`(unixepoch())`;

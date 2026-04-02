@@ -16,6 +16,7 @@ import {
   assertMutableListing,
   ensureDistinctValues,
   loadListingDestinations,
+  loadListingDestinationsForListings,
   loadListingImages,
   loadListingTags,
   mapSqliteError,
@@ -79,6 +80,60 @@ export type ListingDetail = ListingSummary & {
   };
   images: ListingImageSummary[];
   destinations: ListingDestinationSummary[];
+};
+
+export type RegionListingCatalogFilters = {
+  categorySlug?: string;
+  tagSlug?: string;
+  destinationSlug?: string;
+  busynessRating?: number;
+};
+
+export type RegionListingCatalogCategoryFacet = {
+  slug: string;
+  title: string;
+  count: number;
+};
+
+export type RegionListingCatalogTagFacet = {
+  slug: string;
+  name: string;
+  count: number;
+};
+
+export type RegionListingCatalogDestinationFacet = {
+  slug: string;
+  title: string;
+  count: number;
+};
+
+export type RegionListingCatalogBusynessFacet = {
+  rating: number;
+  count: number;
+};
+
+export type RegionListingCatalogResult = {
+  region: {
+    countrySlug: string;
+    slug: string;
+    title: string;
+    description: string;
+    coverImage: string;
+    country: {
+      slug: string;
+      title: string;
+      description: string;
+      coverImage: string;
+    };
+  };
+  appliedFilters: RegionListingCatalogFilters;
+  facets: {
+    categories: RegionListingCatalogCategoryFacet[];
+    tags: RegionListingCatalogTagFacet[];
+    destinations: RegionListingCatalogDestinationFacet[];
+    busynessRatings: RegionListingCatalogBusynessFacet[];
+  };
+  listings: ListingSummary[];
 };
 
 export type CreateListingDraftInput = {
@@ -215,6 +270,64 @@ export function listListingsForDestination(
     .all();
 
   return attachTagsToListings(db, rows);
+}
+
+export function getRegionListingCatalog(
+  locator: Pick<ListingLocator, "countrySlug" | "regionSlug">,
+  filters: RegionListingCatalogFilters = {},
+  dbInstance?: DbInstance,
+): RegionListingCatalogResult | null {
+  const { db } = resolveDb(dbInstance);
+  const region = requireRegionForPublicList(locator, dbInstance);
+
+  if (!region) {
+    return null;
+  }
+
+  const rows = db
+    .select({
+      id: listings.id,
+      slug: listings.slug,
+      title: listings.title,
+      shortDescription: listings.shortDescription,
+      coverImage: listings.coverImage,
+      busynessRating: listings.busynessRating,
+      latitude: listings.latitude,
+      longitude: listings.longitude,
+      googleMapsPlaceUrl: listings.googleMapsPlaceUrl,
+      categorySlug: listings.categorySlug,
+      categoryTitle: categories.title,
+      regionSlug: regions.slug,
+      regionTitle: regions.title,
+    })
+    .from(listings)
+    .innerJoin(categories, eq(listings.categorySlug, categories.slug))
+    .innerJoin(regions, eq(listings.regionId, regions.id))
+    .where(and(eq(listings.regionId, region.id), toPublicListingVisibilityCondition()))
+    .orderBy(asc(listings.title))
+    .all();
+
+  const entries = attachMetadataToRegionCatalogEntries(db, rows);
+  const appliedFilters = normalizeRegionCatalogFilters(filters, entries);
+
+  return {
+    region: {
+      countrySlug: region.countrySlug,
+      slug: region.slug,
+      title: region.title,
+      description: region.description,
+      coverImage: region.coverImage,
+      country: {
+        slug: region.countrySlug,
+        title: region.countryTitle,
+        description: region.countryDescription,
+        coverImage: region.countryCoverImage,
+      },
+    },
+    appliedFilters,
+    facets: buildRegionCatalogFacets(entries),
+    listings: filterRegionCatalogEntries(entries, appliedFilters).map(({ destinations: _destinations, ...listing }) => listing),
+  };
 }
 
 export function getListingDetail(locator: ListingLocator, dbInstance?: DbInstance): ListingDetail | null {
@@ -644,6 +757,168 @@ function attachTagsToListings(
     },
     tags: tagsByListingId.get(row.id) ?? [],
   }));
+}
+
+function attachMetadataToRegionCatalogEntries(
+  db: DbInstance["db"],
+  rows: Array<{
+    id: string;
+    slug: string;
+    title: string;
+    shortDescription: string;
+    coverImage: string;
+    busynessRating: number;
+    latitude: number;
+    longitude: number;
+    googleMapsPlaceUrl: string | null;
+    categorySlug: string;
+    categoryTitle: string;
+    regionSlug: string;
+    regionTitle: string;
+  }>,
+): Array<ListingSummary & { destinations: ListingDestinationSummary[] }> {
+  const tagsByListingId = loadListingTags(
+    db,
+    rows.map((row) => row.id),
+  );
+  const destinationsByListingId = loadListingDestinationsForListings(
+    db,
+    rows.map((row) => row.id),
+  );
+
+  return rows.map((row) => ({
+    id: row.id,
+    slug: row.slug,
+    title: row.title,
+    shortDescription: row.shortDescription,
+    coverImage: row.coverImage,
+    busynessRating: row.busynessRating,
+    latitude: row.latitude,
+    longitude: row.longitude,
+    googleMapsPlaceUrl: row.googleMapsPlaceUrl,
+    category: {
+      slug: row.categorySlug,
+      title: row.categoryTitle,
+    },
+    region: {
+      slug: row.regionSlug,
+      title: row.regionTitle,
+    },
+    tags: tagsByListingId.get(row.id) ?? [],
+    destinations: destinationsByListingId.get(row.id) ?? [],
+  }));
+}
+
+function normalizeRegionCatalogFilters(
+  filters: RegionListingCatalogFilters,
+  entries: Array<ListingSummary & { destinations: ListingDestinationSummary[] }>,
+): RegionListingCatalogFilters {
+  const nextFilters: RegionListingCatalogFilters = {};
+  const categorySlug = typeof filters.categorySlug === "string" ? filters.categorySlug.trim() : undefined;
+  const tagSlug = typeof filters.tagSlug === "string" ? filters.tagSlug.trim() : undefined;
+  const destinationSlug = typeof filters.destinationSlug === "string" ? filters.destinationSlug.trim() : undefined;
+  const busynessRating = filters.busynessRating;
+
+  if (categorySlug && entries.some((entry) => entry.category.slug === categorySlug)) {
+    nextFilters.categorySlug = categorySlug;
+  }
+
+  if (tagSlug && entries.some((entry) => entry.tags.some((tag) => tag.slug === tagSlug))) {
+    nextFilters.tagSlug = tagSlug;
+  }
+
+  if (destinationSlug && entries.some((entry) => entry.destinations.some((destination) => destination.slug === destinationSlug))) {
+    nextFilters.destinationSlug = destinationSlug;
+  }
+
+  if (
+    Number.isInteger(busynessRating) &&
+    busynessRating !== undefined &&
+    busynessRating >= 1 &&
+    busynessRating <= 5 &&
+    entries.some((entry) => entry.busynessRating === busynessRating)
+  ) {
+    nextFilters.busynessRating = busynessRating;
+  }
+
+  return nextFilters;
+}
+
+function filterRegionCatalogEntries(
+  entries: Array<ListingSummary & { destinations: ListingDestinationSummary[] }>,
+  filters: RegionListingCatalogFilters,
+) {
+  const categorySlug = filters.categorySlug;
+  const tagSlug = filters.tagSlug;
+  const destinationSlug = filters.destinationSlug;
+  const busynessRating = filters.busynessRating;
+
+  return entries.filter((entry) => {
+    if (categorySlug && entry.category.slug !== categorySlug) {
+      return false;
+    }
+
+    if (tagSlug && !entry.tags.some((tag) => tag.slug === tagSlug)) {
+      return false;
+    }
+
+    if (destinationSlug && !entry.destinations.some((destination) => destination.slug === destinationSlug)) {
+      return false;
+    }
+
+    if (busynessRating && entry.busynessRating !== busynessRating) {
+      return false;
+    }
+
+    return true;
+  });
+}
+
+function buildRegionCatalogFacets(entries: Array<ListingSummary & { destinations: ListingDestinationSummary[] }>) {
+  const categoryCounts = new Map<string, RegionListingCatalogCategoryFacet>();
+  const tagCounts = new Map<string, RegionListingCatalogTagFacet>();
+  const destinationCounts = new Map<string, RegionListingCatalogDestinationFacet>();
+  const busynessCounts = new Map<number, RegionListingCatalogBusynessFacet>();
+
+  for (const entry of entries) {
+    const categoryBucket = categoryCounts.get(entry.category.slug);
+    categoryCounts.set(entry.category.slug, {
+      slug: entry.category.slug,
+      title: entry.category.title,
+      count: (categoryBucket?.count ?? 0) + 1,
+    });
+
+    for (const tag of entry.tags) {
+      const tagBucket = tagCounts.get(tag.slug);
+      tagCounts.set(tag.slug, {
+        slug: tag.slug,
+        name: tag.name,
+        count: (tagBucket?.count ?? 0) + 1,
+      });
+    }
+
+    for (const destination of entry.destinations) {
+      const destinationBucket = destinationCounts.get(destination.slug);
+      destinationCounts.set(destination.slug, {
+        slug: destination.slug,
+        title: destination.title,
+        count: (destinationBucket?.count ?? 0) + 1,
+      });
+    }
+
+    const busynessBucket = busynessCounts.get(entry.busynessRating);
+    busynessCounts.set(entry.busynessRating, {
+      rating: entry.busynessRating,
+      count: (busynessBucket?.count ?? 0) + 1,
+    });
+  }
+
+  return {
+    categories: [...categoryCounts.values()].sort((left, right) => left.title.localeCompare(right.title)),
+    tags: [...tagCounts.values()].sort((left, right) => left.name.localeCompare(right.name)),
+    destinations: [...destinationCounts.values()].sort((left, right) => left.title.localeCompare(right.title)),
+    busynessRatings: [...busynessCounts.values()].sort((left, right) => left.rating - right.rating),
+  };
 }
 
 function ensureListingSlugAvailable(
