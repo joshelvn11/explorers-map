@@ -8,7 +8,8 @@
 
 - `seed.ts` remains the shared seed import path used by repository scripts.
 - `countries.ts`, `destinations.ts`, and `listings.ts` now provide the Phase 4 shared query and listing-service surface.
-- The package now owns both the public read contract for the web app and the listing write contract that future MCP tools should reuse.
+- `editorial.ts` now provides the MCP-facing editorial read, matching, ensure, and safe-creation surface.
+- The package now owns both the public read contract for the web app and the write and matching contract reused by the MCP server.
 
 ## Public Read Queries
 
@@ -27,6 +28,25 @@
 - `assignListingDestinations` is replace-all and validates that assigned destinations live in the same country as the listing.
 - `setListingImages` is replace-all and recreates ordered gallery rows with fresh UUIDs, removing stale gallery rows in the same transaction.
 - `publishListing`, `unpublishListing`, `trashListing`, and `restoreListing` own lifecycle transitions.
+
+## Editorial MCP Services
+
+- `listCategories` exposes the fixed curated categories used by listing validation.
+- `listRegionsForEditor`, `listDestinationsForEditor`, and `listListingsForEditor` expose editor-visible records that can include draft and trashed content when requested.
+- `getRegionForEditor`, `getDestinationForEditor`, and `getListingForEditor` return MCP-friendly record shapes with IDs and linked editorial metadata.
+- `createRegion`, `createDestination`, and `assignDestinationRegions` centralize non-listing editorial writes needed by the MCP server.
+- `findRegion`, `findDestination`, and `findListing` apply shared fuzzy matching with confidence and reason output.
+- `ensureRegion`, `ensureDestination`, and `ensureListing` reuse those matchers so MCP creation flows stop on candidate ambiguity instead of guessing.
+- `createListingDraftForEditor` derives the slug when omitted, validates evidence and related destination/image inputs up front, then reuses the existing listing write path.
+
+## Evidence And Matching Rules
+
+- Evidence items require non-empty `label` and `note`; optional `url` values must parse as valid URLs.
+- Region, destination, and listing create and ensure flows derive slugs from titles when no explicit slug is supplied.
+- Derived or explicit slug collisions raise `CONFLICT`; services never auto-suffix.
+- Name matching scores exact title and slug matches highest, then prefix and containment, then token overlap.
+- Listing matching can boost confidence when region scope, destination scope, or nearby coordinates support an existing candidate.
+- Find helpers return `exact_match`, `candidate_matches`, or `not_found` with shared `MatchCandidate` output fields.
 
 ## Validation and Error Rules
 
@@ -68,7 +88,10 @@
 - SQLite constraint failures inside the import transaction roll back the full seed write.
 - Service writes reject invalid state transitions such as editing or publishing trashed listings.
 - Service writes reject cross-country destination assignment and unknown category or parent lookups before mutating the database.
+- Editorial create services reject missing evidence with `INSUFFICIENT_EVIDENCE`.
+- Editorial ensure services stop on candidate matches rather than auto-creating nearby duplicates.
 
 ## Tests
 
 - `services.test.ts` provisions fresh temp SQLite databases, applies migrations, imports the shared seed dataset, and exercises the public query and listing write surface end to end.
+- `editorial.test.ts` covers editorial region and destination creation, editor-visible listing reads, evidence requirements, fuzzy matching, ensure flows, and slug-collision protection.

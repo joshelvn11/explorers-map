@@ -23,6 +23,10 @@ The format is based on Keep a Changelog.
 - Added a dedicated region destinations page so region overview destination snippets can drill into all destinations linked to that region.
 - Added `CHATGPT_MCP_CONTEXT.md` with reusable platform, editorial, and data-model instructions for future ChatGPT-driven MCP usage.
 - Added planned MCP contract documentation in `apps/mcp/API.md`, covering the intended tool surface, shared result shapes, evidence rules, and editorial workflows.
+- Added the Phase 6 standalone MCP server in `apps/mcp` with stateless Streamable HTTP transport, bearer-token auth, read-only context resources, and editorial tools for regions, destinations, and listings.
+- Added shared editorial services in `packages/services` for MCP-facing reads, fuzzy matching, evidence validation, `ensure_*` flows, safe region and destination creation, and duplicate-aware listing draft creation.
+- Added MCP package scripts, tests, and root shortcuts for MCP dev, typecheck, and test workflows.
+- Added automatic repo-root `.env` loading for the MCP dev and start scripts so local bearer-token setup works without manual shell export.
 
 ### Changed
 
@@ -32,3 +36,4 @@ The format is based on Keep a Changelog.
 - Expanded the planned MCP tool surface to include region and destination creation workflows, including safer `ensure_*` patterns and duplicate-aware creation guidance.
 - Extended the planned MCP workflow with `find_listing` and `ensure_listing` so listing creation can follow the same duplicate-safe lookup-before-create pattern as regions and destinations.
 - Tightened the planned MCP editorial rules around evidence-first creation, ambiguity-stop behavior, explicit destination-region assignment, and refusal of placeholder-only listing drafts.
+- Updated the MCP docs from planned-only status to implemented runtime guidance, including the `/mcp` endpoint, bearer auth header format, and the shipped Phase 6 tool and resource surface.

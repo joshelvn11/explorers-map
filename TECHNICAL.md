@@ -57,27 +57,35 @@ Expected flow:
 ## MCP Direction
 
 - The initial MCP use case is personal editorial assistance through ChatGPT rather than broad external automation.
-- MCP should favor task-shaped editorial tools over generic CRUD.
-- Read-oriented MCP operations should support fuzzy matching for region, destination, and listing lookup so existing records can be found even when names vary slightly.
-- MCP fuzzy matching should stop on ambiguity and return candidate matches rather than guessing or auto-creating a nearby duplicate.
-- Region and destination creation should be exposed through explicit task-shaped tools such as `ensure_region`, `create_region`, `ensure_destination`, and `create_destination` rather than broad arbitrary create operations.
-- Destination-region assignment should also be exposed explicitly so a destination can be curated across one or more regions without blurring region ownership of listings.
-- Listing creation should also have an explicit matching step such as `find_listing` or `ensure_listing` so duplicate-safe creation workflows are symmetrical across the main content types.
-- MCP write operations should prefer lookup-and-improve flows before creating new rows.
-- MCP creation workflows should be evidence-first. If a new fact cannot be grounded confidently, the assistant should return no-op guidance instead of inventing data.
-- New MCP-created content should default to `draft` unless the caller explicitly requests publish behavior.
-- MCP should not support sparse or placeholder-only listing drafts in MVP because the existing listing schema requires a complete draft row.
-- MCP authentication is expected to follow a two-stage path:
-  - private API key or bearer token for the early personal/private phase
-  - OAuth for the long-term remote ChatGPT connector phase
-- The MCP surface should also provide lightweight context resources or equivalent guidance so ChatGPT understands the platform, data model, and editorial rules before taking action.
-- `CHATGPT_MCP_CONTEXT.md` is the root-level human-authored context document intended to guide ChatGPT usage of the Explorers Map MCP.
-- `apps/mcp/API.md` is the intended implementation contract for the planned MCP tool schemas, result shapes, and example editorial workflows.
+- `apps/mcp` now implements a remote stateless Streamable HTTP MCP server on `/mcp` plus `GET /healthz`.
+- The runtime uses bearer-token auth first via `EXPLORERS_MAP_MCP_AUTH_TOKEN`; OAuth remains the later Phase 8 upgrade path.
+- MCP favors task-shaped editorial tools over generic CRUD.
+- Region, destination, and listing reads support fuzzy matching so existing records can be found even when names vary slightly.
+- Fuzzy matching stops on ambiguity by returning candidate matches rather than guessing or auto-creating a nearby duplicate.
+- Region and destination creation are exposed through explicit task-shaped tools such as `ensure_region`, `create_region`, `ensure_destination`, and `create_destination`.
+- Destination-region assignment is explicit so a destination can be curated across one or more regions without blurring region ownership of listings.
+- Listing creation follows the same duplicate-safe lookup-before-create pattern via `find_listing`, `ensure_listing`, and `create_listing_draft`.
+- MCP write operations prefer lookup-and-improve flows before creating new rows.
+- MCP creation workflows are evidence-first. If a new fact cannot be grounded confidently, the assistant should return no-op guidance instead of inventing data.
+- New MCP-created listings default to `draft` unless the caller explicitly invokes publish behavior.
+- MCP does not support sparse or placeholder-only listing drafts in MVP because the existing listing schema requires a complete draft row.
+- The MCP surface exposes lightweight context resources backed by `BRIEF.md`, `TECHNICAL.md`, and `CHATGPT_MCP_CONTEXT.md`.
+- `CHATGPT_MCP_CONTEXT.md` remains the root-level human-authored context document intended to guide ChatGPT usage of the Explorers Map MCP.
+- `apps/mcp/API.md` now documents the implemented Phase 6 tool schemas, result shapes, auth behavior, and editorial workflows.
 
 ## Service Tests
 
 - `pnpm test:services` runs Node-based integration tests against fresh temp SQLite databases.
 - The service test suite covers public visibility filters, explicit destination linkage, region catalog filters and facets, listing detail hydration, audit/source stamping, slug conflicts, cross-country destination guards, gallery replacement, and lifecycle transitions.
+- The editorial service suite also covers evidence-gated region/destination/listing creation, editor-visible listing reads, fuzzy matching, and ensure-flow duplicate protection.
+
+## MCP Runtime
+
+- `pnpm dev:mcp` starts the MCP server from `apps/mcp/server.ts`.
+- The MCP runtime creates a fresh `McpServer` and stateless `StreamableHTTPServerTransport` per request so there is no shared session state to coordinate.
+- All tool handlers delegate to shared services and convert domain errors into structured MCP tool errors.
+- Unauthenticated `/mcp` requests are rejected at the HTTP layer before the transport runs.
+- The MCP test suite covers auth rejection, resource discovery, resource reads, candidate-match behavior, insufficient-evidence handling, and duplicate-protection error responses.
 
 ## Public Web App MVP
 

@@ -1,8 +1,8 @@
 # Explorers Map MCP API
 
-This document describes the planned MCP surface for `apps/mcp`.
+This document describes the implemented MCP surface for `apps/mcp`.
 
-It is an implementation contract for the Phase 6 standalone MCP server. The server is not fully implemented yet, but this document defines the intended tools, shared schemas, and usage rules so the runtime can be built consistently.
+The server now runs as a remote stateless Streamable HTTP MCP server at `POST /mcp` with a `GET /healthz` health check.
 
 ## Purpose
 
@@ -19,6 +19,16 @@ The server should help ChatGPT:
 - create draft-first content
 - refuse unsupported or under-evidenced creation
 - work with strict editorial guardrails instead of unrestricted CRUD
+
+## Authentication
+
+All MCP requests require:
+
+```http
+Authorization: Bearer <EXPLORERS_MAP_MCP_AUTH_TOKEN>
+```
+
+Requests without a valid bearer token are rejected before tool execution with a structured JSON-RPC error and HTTP `401`.
 
 ## Core Rules
 
@@ -195,7 +205,7 @@ type ListingRecord = {
 
 ## Resources
 
-The server should expose a small read-only resource surface for ChatGPT:
+The server exposes a small read-only resource surface for ChatGPT:
 
 - `explorers-map://context/platform`
 - `explorers-map://context/data-model`
@@ -214,6 +224,11 @@ Expected structured error categories:
 - `UNAUTHENTICATED`
 
 Tool handlers should prefer structured result payloads for expected editorial outcomes such as candidate matches or insufficient evidence, and reserve hard errors for invalid or unauthorized calls.
+
+Current implementation detail:
+
+- invalid or unauthorized HTTP requests return structured JSON-RPC error bodies
+- tool and domain failures return MCP tool results with `isError: true` and structured `{ error: { code, message } }`
 
 ## Tool Reference
 

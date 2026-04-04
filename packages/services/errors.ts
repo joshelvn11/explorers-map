@@ -1,4 +1,10 @@
-export const serviceErrorCodes = ["NOT_FOUND", "CONFLICT", "INVALID_INPUT", "INVALID_STATE"] as const;
+export const serviceErrorCodes = [
+  "NOT_FOUND",
+  "CONFLICT",
+  "INVALID_INPUT",
+  "INVALID_STATE",
+  "INSUFFICIENT_EVIDENCE",
+] as const;
 
 export type ServiceErrorCode = (typeof serviceErrorCodes)[number];
 
@@ -15,4 +21,3 @@ export class ServiceError extends Error {
 export function isServiceError(value: unknown): value is ServiceError {
   return value instanceof ServiceError;
 }
-

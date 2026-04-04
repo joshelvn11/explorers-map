@@ -10,6 +10,7 @@
   "exports": {
     ".": "./index.ts",
     "./countries": "./countries.ts",
+    "./editorial": "./editorial.ts",
     "./errors": "./errors.ts",
     "./listings": "./listings.ts",
     "./destinations": "./destinations.ts",

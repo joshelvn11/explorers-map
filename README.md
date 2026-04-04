@@ -27,10 +27,13 @@ Common commands:
 
 ```bash
 pnpm dev:web
+pnpm dev:mcp
 pnpm build:web
 pnpm lint
 pnpm typecheck
+pnpm typecheck:mcp
 pnpm test:services
+pnpm test:mcp
 pnpm db:generate
 pnpm db:migrate
 pnpm studio
@@ -61,6 +64,19 @@ Copy `.env.example` to your local env file of choice and set `EXPLORERS_MAP_SQLI
 
 - `EXPLORERS_MAP_PUBLIC_APP_URL`
   Optional origin used as the metadata base for the public web app. Defaults to `http://localhost:3000`.
+- `EXPLORERS_MAP_MCP_HOST`
+  Optional bind host for the MCP server. Defaults to `127.0.0.1`.
+- `EXPLORERS_MAP_MCP_PORT`
+  Optional bind port for the MCP server. Defaults to `3001`.
+- `EXPLORERS_MAP_MCP_AUTH_TOKEN`
+  Required bearer token for the MCP server.
+
+MCP runtime note:
+
+- `pnpm dev:mcp` and `pnpm --filter @explorers-map/mcp start` automatically load the repo-root `.env` file when it exists.
+- Run `pnpm dev:mcp` after setting `EXPLORERS_MAP_MCP_AUTH_TOKEN` in `.env` or in your shell environment.
+- The server listens on `/mcp` and exposes `GET /healthz`.
+- All MCP requests must send `Authorization: Bearer <token>`.
 
 ## Source of Truth
 

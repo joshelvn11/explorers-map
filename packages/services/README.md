@@ -1,17 +1,19 @@
 # Services Package
 
-This package contains shared domain logic used by the public app, repository tooling, and the future MCP server.
+This package contains shared domain logic used by the public app, repository tooling, and the MCP server.
 
 ## Current Responsibilities
 
 - Shared seed validation, normalization, and import logic for Phase 3
 - Shared public read/query modules for countries, regions, destinations, and listings
 - Shared listing write/service modules for lifecycle, metadata, destination assignment, and gallery operations
+- Shared editorial service modules for MCP-facing category, region, destination, and listing reads, matching, ensure flows, and safe creation
 
 ## Exports
 
 - `@explorers-map/services`
 - `@explorers-map/services/countries`
+- `@explorers-map/services/editorial`
 - `@explorers-map/services/destinations`
 - `@explorers-map/services/listings`
 - `@explorers-map/services/errors`
@@ -43,6 +45,26 @@ Listing writes:
 - `unpublishListing`
 - `trashListing`
 - `restoreListing`
+
+Editorial MCP support:
+
+- `listCategories`
+- `listRegionsForEditor`
+- `findRegion`
+- `getRegionForEditor`
+- `ensureRegion`
+- `createRegion`
+- `listDestinationsForEditor`
+- `findDestination`
+- `getDestinationForEditor`
+- `ensureDestination`
+- `createDestination`
+- `assignDestinationRegions`
+- `listListingsForEditor`
+- `findListing`
+- `getListingForEditor`
+- `ensureListing`
+- `createListingDraftForEditor`
 
 ## Local Commands
 
