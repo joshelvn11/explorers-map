@@ -77,6 +77,7 @@ Local Docker commands:
 ```bash
 export EXPLORERS_MAP_ACTIONS_AUTH_TOKEN=change-me-actions-token
 export EXPLORERS_MAP_PUBLIC_APP_URL=http://localhost:3000
+export EXPLORERS_MAP_HOST_PORT=8080
 docker compose up --build
 ```
 
@@ -84,6 +85,7 @@ Runtime notes:
 
 - The compose stack mounts a named volume at `/app/data` so SQLite persists across container recreation.
 - The default container database path is `/app/data/explorers-map.sqlite`.
+- The web container listens on port `3000` internally, while Docker Compose maps it to `EXPLORERS_MAP_HOST_PORT` on the host, defaulting to `8080`.
 - The container health check uses `GET /api/actions/healthz`.
 - The compose file intentionally includes only the web app; the standalone MCP server is not containerized yet.
 

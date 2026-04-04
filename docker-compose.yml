@@ -5,7 +5,7 @@ services:
       dockerfile: Dockerfile
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "${EXPLORERS_MAP_HOST_PORT:-8080}:3000"
     environment:
       EXPLORERS_MAP_SQLITE_PATH: /app/data/explorers-map.sqlite
       EXPLORERS_MAP_PUBLIC_APP_URL: ${EXPLORERS_MAP_PUBLIC_APP_URL:-http://localhost:3000}

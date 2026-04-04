@@ -73,6 +73,7 @@ The repository root ships a web-only `Dockerfile` and `docker-compose.yml` for D
 - The container starts with `pnpm docker:start:web`.
 - Startup runs migrations, seeds only when the SQLite database is empty, and then launches `next start` on `0.0.0.0:3000`.
 - SQLite persistence is expected through the compose-mounted `/app/data` volume.
+- Docker Compose publishes the web app on `EXPLORERS_MAP_HOST_PORT`, defaulting to host port `8080`.
 - The container health check uses `/api/actions/healthz`.
 
 ## Key Documents

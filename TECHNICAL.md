@@ -120,6 +120,7 @@ Expected flow:
 - The container image is built from the workspace root so existing monorepo-relative scripts and package resolution continue to work.
 - Container startup runs `pnpm db:migrate`, checks whether the `countries` table is empty, seeds only on first boot, and then starts the Next.js web server.
 - Docker Compose persists SQLite state in a named volume mounted at `/app/data`.
+- Docker Compose maps the internal web port `3000` to a configurable host port via `EXPLORERS_MAP_HOST_PORT`, defaulting to `8080`.
 - The web container health check targets `GET /api/actions/healthz`.
 - The standalone MCP server is intentionally excluded from the compose stack for now.
 

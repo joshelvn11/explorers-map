@@ -37,6 +37,7 @@ The format is based on Keep a Changelog.
 
 - Changed the public web app from build-time DB-backed static params to runtime DB-backed rendering for country, region, destination, catalog, and listing pages so content updates no longer require rebuilding the image.
 - Changed the Actions route segment config exports to direct Next.js literals so production builds succeed under Next.js 16.
+- Changed Docker Compose to publish the web container on a configurable host port via `EXPLORERS_MAP_HOST_PORT`, defaulting to `8080`.
 - Refined the MCP plan around personal editorial use through ChatGPT rather than generic CRUD automation.
 - Updated the MCP implementation plan to emphasize fuzzy lookup, lookup-before-create flows, destination ensuring, and draft-first content creation.
 - Split the MCP authentication plan into two stages: private API key first for MVP and OAuth later for the proper remote ChatGPT connector phase.
