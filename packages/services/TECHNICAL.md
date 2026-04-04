@@ -10,6 +10,7 @@
 - `countries.ts`, `destinations.ts`, and `listings.ts` now provide the Phase 4 shared query and listing-service surface.
 - `editorial.ts` now provides the MCP-facing editorial read, matching, ensure, and safe-creation surface.
 - The package now owns both the public read contract for the web app and the write and matching contract reused by the MCP server.
+- A planned Phase 8-10 CMS rollout will extend this package with browser-auth actor context, RBAC enforcement, and CMS write paths so the web app can stay thin.
 
 ## Public Read Queries
 
@@ -28,6 +29,7 @@
 - `assignListingDestinations` is replace-all and validates that assigned destinations live in the same country as the listing.
 - `setListingImages` is replace-all and recreates ordered gallery rows with fresh UUIDs, removing stale gallery rows in the same transaction.
 - `publishListing`, `unpublishListing`, `trashListing`, and `restoreListing` own lifecycle transitions.
+- Listing tag mutation is not currently part of the shared write surface and is a planned CMS addition.
 
 ## Editorial MCP Services
 
@@ -38,6 +40,19 @@
 - `findRegion`, `findDestination`, and `findListing` apply shared fuzzy matching with confidence and reason output.
 - `ensureRegion`, `ensureDestination`, and `ensureListing` reuse those matchers so MCP creation flows stop on candidate ambiguity instead of guessing.
 - `createListingDraftForEditor` derives the slug when omitted, validates evidence and related destination/image inputs up front, then reuses the existing listing write path.
+
+## Planned CMS/Auth Services
+
+- Browser-authenticated CMS writes should reuse shared actor context and authorization helpers instead of defining role logic inside the web UI.
+- Planned roles are `admin`, `moderator`, and `viewer`.
+- `admin` should retain global content-management and user-management authority.
+- `moderator` should be limited to assigned regions for listings and should only be allowed to edit destinations when at least one linked region overlaps their assigned regions.
+- `moderator` destination-region edits should be constrained to assigned regions, and save operations should fail if the destination no longer overlaps any assigned region.
+- `viewer` should authenticate successfully but have no CMS write access.
+- Planned CMS additions should include shared country, region, destination, listing, and tag-write services with RBAC enforced in this package.
+- Shared services should own slug-edit validation for CMS-managed entities, with editable slugs but no redirect-history support in the first CMS phase.
+- Shared services should own the guard that prevents removal or demotion of the last remaining admin.
+- Shared services should preserve audit attribution for CMS content writes and admin-managed user changes where those records support it.
 
 ## Evidence And Matching Rules
 

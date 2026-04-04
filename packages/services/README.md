@@ -8,6 +8,7 @@ This package contains shared domain logic used by the public app, repository too
 - Shared public read/query modules for countries, regions, destinations, and listings
 - Shared listing write/service modules for lifecycle, metadata, destination assignment, and gallery operations
 - Shared editorial service modules for MCP-facing category, region, destination, and listing reads, matching, ensure flows, and safe creation
+- Planned future CMS/auth service responsibilities such as actor context, permission checks, and web-CMS write operations
 
 ## Exports
 
@@ -65,6 +66,13 @@ Editorial MCP support:
 - `getListingForEditor`
 - `ensureListing`
 - `createListingDraftForEditor`
+
+Planned CMS additions:
+
+- shared authenticated actor context and role helpers
+- RBAC-aware CMS operations for countries, regions, destinations, and listings
+- listing tag-write support
+- user-role-aware moderation scope helpers for admin and moderator flows
 
 ## Local Commands
 

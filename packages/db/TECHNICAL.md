@@ -10,6 +10,7 @@
 - Export a shared Drizzle client for Node-based consumers
 - Keep migration files in sync with the schema
 - Provide a stable path contract for the local SQLite database
+- Plan the later auth and moderation tables needed by the browser CMS rollout
 
 ## Data Model Notes
 
@@ -18,6 +19,9 @@
 - Listing slugs are unique within a region, while region and destination slugs are unique within a country.
 - Listing images include `sortOrder` so later reordering work does not require a migration.
 - Soft delete is represented by nullable `deletedAt`. Query-layer behavior stays outside this package.
+- The planned CMS/auth phases will add Better Auth-managed tables in the same SQLite database, plus moderator-region assignment data.
+- Better Auth should own the auth/session/account tables, while app-owned schema additions should carry CMS role data and moderator-region assignments.
+- The planned CMS/auth phases are also expected to extend audit tracking to countries, regions, and destinations so browser edits can record who changed them.
 
 ## Runtime Notes
 

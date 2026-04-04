@@ -56,12 +56,32 @@ Expected flow:
 - Listing destination assignment is country-scoped, but destination-to-region membership remains editorial metadata rather than a hard validation rule.
 - Gallery updates are replace-all operations that delete stale rows and recreate ordered gallery records with fresh IDs.
 - Service writes update `source`, `updatedBy`, and `updatedAt` consistently, while creation also populates `createdBy`.
+- A planned Phase 8-10 CMS rollout will extend the shared service layer with browser-auth actor context, RBAC checks, and CMS write authorization so the web UI does not become a second business-rules implementation.
+
+## Planned CMS/Auth Direction
+
+- The next major web-app expansion is a session-based CMS in `apps/web` using Better Auth for signed-in humans.
+- Browser auth is planned to live alongside the public web app and should remain separate from the existing bearer-token auth used by MCP and the Actions API.
+- Planned CMS mutations in the web app should use one transport pattern, favoring thin server actions over a mixed set of write adapters.
+- Open signup is planned, but new users should default to a `viewer` role with no CMS access.
+- Planned CMS roles are:
+  - `admin` for full CMS and user-management access
+  - `moderator` for region-scoped editorial access
+  - `viewer` for authenticated non-CMS accounts
+- Planned moderator scope is region-based and may span more than one region.
+- Planned destination authorization for moderators follows an overlap rule: a moderator may edit a destination when at least one linked destination region overlaps one of their assigned regions.
+- Moderator destination-region edits should stay constrained to the moderator's assigned regions, and moderators should not be able to save a destination that no longer overlaps any assigned region.
+- The first root admin account is planned as a one-time environment-backed bootstrap flow rather than a permanent alternate login path.
+- Bootstrap-admin behavior should be idempotent and should not rewrite existing admin records after initialization.
+- Better Auth should own auth/session/account persistence, while app-owned tables should carry CMS roles and moderator-region assignments.
+- The first CMS/auth phase should not hard-delete users, and user-management flows should protect against removing or demoting the last remaining admin.
+- Public anonymous browsing should remain unaffected while CMS routes are protected behind browser-session auth.
 
 ## MCP Direction
 
 - The initial MCP use case is personal editorial assistance through ChatGPT rather than broad external automation.
 - `apps/mcp` now implements a remote stateless Streamable HTTP MCP server on `/mcp` plus `GET /healthz`.
-- The runtime uses bearer-token auth first via `EXPLORERS_MAP_MCP_AUTH_TOKEN`; OAuth remains the later Phase 8 upgrade path.
+- The runtime uses bearer-token auth first via `EXPLORERS_MAP_MCP_AUTH_TOKEN`; OAuth remains the later Phase 12 upgrade path.
 - MCP favors task-shaped editorial tools over generic CRUD.
 - Region, destination, and listing reads support fuzzy matching so existing records can be found even when names vary slightly.
 - Fuzzy matching stops on ambiguity by returning candidate matches rather than guessing or auto-creating a nearby duplicate.
@@ -105,12 +125,14 @@ Expected flow:
 ## Public Web App MVP
 
 - The public app uses App Router server components backed directly by shared query modules, and it now also hosts a narrow authenticated Actions API surface for custom GPT integrations.
+- A future Phase 8-10 expansion will add session-based browser auth, signed-in account flows, and a protected CMS route family inside `apps/web`.
 - Region overview pages remain lighter browse surfaces, now previewing both published listings and linked destinations, while `/countries/[countrySlug]/regions/[regionSlug]/listings` remains the only interactive catalog route in MVP and `/countries/[countrySlug]/regions/[regionSlug]/destinations` provides the full region-linked destination index.
 - Destination pages remain curated and unfiltered, showing only listings explicitly linked to that destination while linking onward to canonical region-scoped listing pages.
 - Listing metadata prefers `googleMapsPlaceUrl` when present and otherwise falls back to generated Google Maps coordinate-search URLs.
 - The web app no longer depends on remote Google font fetches during build; typography uses local font stacks so offline or restricted-network builds can still succeed.
 - DB-backed public pages now opt into dynamic rendering so published content is read from the live runtime SQLite database instead of being baked into the build output.
 - The Actions API is implemented as thin route handlers that authenticate, validate HTTP inputs, map service errors to JSON responses, and then delegate all domain logic to `packages/services`.
+- The future CMS should follow the same architectural rule by keeping web auth/session handling in the app layer while delegating CMS authorization and content mutations to shared services.
 - The web app dev, build, and start scripts now auto-load the repo-root `.env` file so local Actions API auth behaves like the MCP runtime.
 - The Actions routes export direct segment-config literals (`runtime = "nodejs"` and `dynamic = "force-dynamic"`) because Next.js 16 build analysis rejects indirection there.
 

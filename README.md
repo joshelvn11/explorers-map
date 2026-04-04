@@ -5,7 +5,7 @@ Explorers Map is a curated discovery app for outdoor and nature-focused places.
 ## Repository Layout
 
 - `apps/web`
-  Next.js public app.
+  Next.js public app, current Actions API host, and planned home of the authenticated CMS.
 - `apps/mcp`
   Standalone MCP server for machine-driven content operations.
 - `packages/db`
@@ -58,6 +58,7 @@ Seed command behavior:
 Public app note:
 
 - The public Next.js app now reads countries, regions, destinations, and listings directly from the shared SQLite database during page rendering.
+- A future phase will also add session-based browser auth and a protected CMS inside `apps/web`.
 - Run `pnpm db:migrate` and `pnpm seed` before `pnpm dev:web` so the public routes have data available.
 - Production builds no longer require seeded SQLite content because DB-backed public routes now render dynamically against the runtime database.
 
@@ -103,6 +104,16 @@ Copy `.env.example` to your local env file of choice and set `EXPLORERS_MAP_SQLI
   Required bearer token for the MCP server.
 - `EXPLORERS_MAP_ACTIONS_AUTH_TOKEN`
   Required bearer token for the custom GPT Actions HTTP API under `apps/web`.
+- `BETTER_AUTH_SECRET`
+  Planned secret for the upcoming Better Auth browser-auth integration.
+- `BETTER_AUTH_URL`
+  Planned base URL for the upcoming Better Auth browser-auth integration.
+- `EXPLORERS_MAP_BOOTSTRAP_ADMIN_NAME`
+  Planned display name for the one-time bootstrap admin flow.
+- `EXPLORERS_MAP_BOOTSTRAP_ADMIN_EMAIL`
+  Planned email for the one-time bootstrap admin flow.
+- `EXPLORERS_MAP_BOOTSTRAP_ADMIN_PASSWORD`
+  Planned password for the one-time bootstrap admin flow.
 
 Container deployment note:
 
@@ -124,6 +135,13 @@ Actions API note:
 - The trimmed production GPT import contract is also served from `GET /api/actions/openapi.production.json`.
 - `pnpm dev:web`, `pnpm build:web`, and `pnpm --filter @explorers-map/web start` now automatically load the repo-root `.env` file when it exists.
 - The primary custom GPT workflow is list/search/get before create so duplicate-safe ensure flows can stop on ambiguity instead of inventing new records.
+- The current Actions bearer token is separate from the planned browser/session auth that will power the future CMS.
+
+Upcoming CMS/auth note:
+
+- The next major web-app expansion is a protected CMS in `apps/web` backed by Better Auth.
+- Planned browser auth is for signed-in humans and is separate from MCP token auth and Actions token auth.
+- Planned signup defaults new users to a non-CMS `viewer` role, while CMS access is reserved for `admin` and region-scoped `moderator` roles.
 
 ## Source of Truth
 

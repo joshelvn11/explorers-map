@@ -8,6 +8,7 @@ The format is based on Keep a Changelog.
 
 ### Added
 
+- Added a phased CMS and browser-auth roadmap to the planning docs, including role definitions, moderator scope rules, bootstrap-admin planning, and Phase 8-12 renumbering.
 - Added a web-only Docker deployment path with a root `Dockerfile`, `.dockerignore`, `docker-compose.yml`, persistent SQLite volume wiring, and first-boot migrate-plus-seed bootstrap behavior for Dockhand-style hosting.
 - Added the initial Drizzle schema, shared SQLite client, and migration workflow in `packages/db`.
 - Added repo-level DB scripts and environment scaffolding for the shared SQLite path and deferred Cloudflare/MCP config.

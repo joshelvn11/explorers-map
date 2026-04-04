@@ -12,6 +12,7 @@
 - Consumption of shared workspace packages
 - URL-driven region catalog filtering backed by shared services
 - Thin authenticated Actions API route handlers for custom GPT integrations
+- Planned future home for browser auth and protected CMS routes
 
 ## Shared Package Usage
 
@@ -28,6 +29,8 @@ These packages are transpiled via `transpilePackages` in `next.config.ts`.
 - Keep public reads aligned with shared service and schema rules.
 - Do not duplicate business write logic in the web layer.
 - Keep the Actions API narrow, auth-protected, OpenAPI-documented, and backed by shared services rather than direct DB writes.
+- Keep the planned CMS thin as well: auth/session handling can live here, but CMS validation, authorization, and writes should live in shared services.
+- Planned CMS writes should standardize on thin server actions rather than mixing multiple mutation patterns unless a later requirement clearly forces an exception.
 - Listing pages should remain canonically routed under regions.
 - Public reads should exclude draft and trashed records by default.
 - Destination pages are curated discovery surfaces and should not invent alternate listing parents.
@@ -40,6 +43,8 @@ These packages are transpiled via `transpilePackages` in `next.config.ts`.
 - Destination pages consume the shared destination listing query and link every card to the canonical region-scoped listing URL.
 - Dynamic page metadata is built from shared detail queries for countries, regions, destinations, and listings.
 - DB-backed public pages now use `dynamic = "force-dynamic"` so page content and metadata are read from the live runtime database instead of from build-time static params.
+- Planned later route families include `/sign-in`, `/sign-up`, `/account`, and `/cms/...`.
+- The planned CMS should gate `/cms/...` by session and role while leaving public browse routes unaffected.
 
 ## Runtime Notes
 
@@ -47,12 +52,16 @@ These packages are transpiled via `transpilePackages` in `next.config.ts`.
 - The production build uses webpack instead of Turbopack so the shared native SQLite dependency works during page-data collection and static generation.
 - Remote images are enabled for `picsum.photos` and optionally for the configured Cloudflare public asset host.
 - The Actions API lives under `/api/actions`, uses bearer auth via `EXPLORERS_MAP_ACTIONS_AUTH_TOKEN`, and serves its checked-in contract from `/api/actions/openapi.json`.
+- Planned browser auth should use Better Auth session cookies and remain separate from the existing bearer-token Actions auth.
+- Public browse routes should remain anonymous and continue working even after CMS session auth is added.
 - The web app also serves a trimmed production ChatGPT import contract from `/api/actions/openapi.production.json`.
 - Each Actions route exports direct `runtime = "nodejs"` and `dynamic = "force-dynamic"` literals so Next.js 16 accepts the route segment config during production builds.
 - Actions POST routes return `EnsureResult`-style payloads so custom GPT workflows can distinguish created, matched, candidate-match, and insufficient-evidence outcomes.
 - Actions listing reads include drafts by default but exclude trashed listings.
 - The web package dev, build, and start scripts auto-load the repo-root `.env` file when it exists.
 - The root `docker:start:web` bootstrap flow runs migrations, seeds only on an empty database, and then starts the app on `0.0.0.0:3000` for container deployment.
+- The planned CMS/auth rollout will also need Better Auth env vars plus bootstrap-admin env vars loaded into the same runtime.
+- The planned bootstrap-admin flow should run from a dedicated initialization path and remain idempotent rather than evaluating on every request.
 - Keep both checked-in schema files in sync when editing the Actions contract:
   - `apps/web/openapi/explorers-map-actions.openapi.json`
   - `apps/web/openapi/explorers-map-actions.production.openapi.json`

@@ -77,14 +77,14 @@ Explorers Map fills that gap by:
 
 ## Initial Scope
 
-The first version is intentionally simple:
+The first public version is intentionally simple:
 
-- No user accounts
+- Public browsing first
 - No reviews or ratings
 - No social features
 - No complex search
 
-It is purely a **read-only exploration tool**.
+It starts as a **read-first exploration tool**, with authenticated CMS and admin capabilities planned as the next major product step.
 
 ---
 
@@ -92,6 +92,7 @@ It is purely a **read-only exploration tool**.
 
 Over time, Explorers Map could evolve to include:
 
+- Authenticated CMS and editorial workflows
 - Saving and bookmarking places
 - User-submitted locations
 - Reviews and ratings
@@ -107,7 +108,7 @@ Over time, Explorers Map could evolve to include:
 - Create a clean, fast, and visually engaging directory of nature locations
 - Enable intuitive exploration through administrative regions and named destinations
 - Provide rich, structured data for each location
-- Ensure scalability for future features (user accounts, reviews, contributions)
+- Ensure scalability for the upcoming CMS/auth rollout and later features such as reviews and contributions
 
 ### Non-Goals (Initial Version)
 
@@ -509,11 +510,42 @@ Next.js page
 ### 8.6 Authentication
 
 - **Better Auth**
-- Not required at launch
-- Pre-wired for:
-  - Admin dashboard
-  - Content management
-  - User contributions
+- Planned for the next major web-app phase after the read-first MVP
+- Browser auth should live inside `apps/web` and use session-based authentication for signed-in humans
+- Initial auth scope should include:
+  - open email/password signup
+  - sign in
+  - sign out
+  - protected CMS routes
+  - admin-managed user roles
+- The default signup role should be `viewer`
+- Core auth only in the first CMS phase:
+  - no password reset yet
+  - no email verification yet
+- The first root admin user should be bootstrapped from environment-backed credentials as a one-time initialization path
+- Bootstrap-admin behavior should be idempotent:
+  - it should run only when no admin exists
+  - it should not overwrite an existing admin when environment values change later
+  - it should not run on every request
+- Planned CMS roles:
+  - `admin`
+    - full CMS access
+    - can create users
+    - can assign roles
+    - can manage countries, regions, destinations, and listings
+  - `moderator`
+    - tied to one or more assigned regions
+    - can manage listings in assigned regions
+    - can manage destinations when at least one linked destination region overlaps an assigned region
+    - may only change destination-region links within assigned regions
+    - may not save a destination with zero overlap to assigned regions
+  - `viewer`
+    - default signup role
+    - can authenticate
+    - has no CMS access
+- Core account-management constraints should include:
+  - never remove or demote the last remaining admin
+  - no hard delete of users in the first CMS/auth phase
 - MCP server auth should start with a simple private API key or bearer token for MVP
 - OAuth should be the target authentication model for remote ChatGPT connector use
 
@@ -631,23 +663,23 @@ export const listingDestinations = sqliteTable("listing_destinations", {
 
 ## 11. Future Enhancements
 
-### Phase 2
+### Near-Term Product Expansion
 
-- User accounts
+- Authenticated CMS for countries, regions, destinations, and listings
+- Role-based editorial permissions for admins and region-scoped moderators
+- Viewer accounts for future signed-in product features without CMS access
+- Password reset and email verification after the core auth rollout is stable
+
+### Later Enhancements
+
 - Save/bookmark locations
 - Reviews & ratings
-
-### Phase 3
-
 - Map-based browsing
 - Geolocation search
 - “Nearby places” feature
-
-### Phase 4
-
 - User submissions
 - Moderation system
-- Admin dashboard
+- Broader contributor workflows beyond the internal CMS
 
 ---
 
@@ -663,13 +695,14 @@ export const listingDestinations = sqliteTable("listing_destinations", {
 - Basic filtering (tags/categories)
 - Draft and published content states
 - Soft delete to trash for content records
+- Planned next-step authenticated CMS and web auth rollout
 
 **Excluded:**
 
-- Auth-required features
 - Maps (interactive)
 - Social features
 - Multilingual support
+- Password reset and email verification in the first CMS/auth phase
 
 ---
 
@@ -689,6 +722,11 @@ export const listingDestinations = sqliteTable("listing_destinations", {
 - Content records should support `draft` and `published` states
 - Content records should include audit metadata
 - Soft delete should move records to trash rather than permanently deleting them by default
+- Browser auth should use Better Auth when the CMS phase lands
+- Open signup should create `viewer` users by default
+- Moderators should be region-scoped and may cover more than one region
+- Moderators may edit a destination when at least one linked region overlaps their assigned regions
+- The bootstrap admin account should come from environment-backed credentials as a one-time initialization path
 
 ---
 
@@ -705,6 +743,7 @@ export const listingDestinations = sqliteTable("listing_destinations", {
 - MCP should expose curated task-based tools rather than unrestricted database CRUD
 - No dedicated Next.js write API is required for MVP
 - Content should support draft/published lifecycle, audit metadata, and soft delete to trash
+- CMS web mutations should use one thin web transport pattern and delegate authorization and persistence to shared services rather than mixing business logic across multiple web entrypoints
 - MCP-assisted editorial workflows should prefer lookup and improvement of existing records before creating new ones
 - Fuzzy matching should be used for region, destination, and listing lookups to reduce accidental duplicates caused by naming variation
 - MCP-driven creation should default to `draft` unless the user explicitly asks to publish
@@ -723,14 +762,20 @@ export const listingDestinations = sqliteTable("listing_destinations", {
   - destination links
   - image gallery
   - googleMapsPlaceUrl
+- Slugs for countries, regions, destinations, and listings should remain editable in the CMS
+- Slug edits should update the canonical URL immediately
+- Redirect history for old slugs is out of scope for the first CMS/auth phase
+- Audit attribution should extend to CMS edits for countries, regions, destinations, listings, and admin-managed user changes
+- Public browsing must remain available to anonymous users while CMS routes stay protected
+- Existing MCP and Actions bearer-token auth flows must remain separate from browser-session auth
 
 ---
 
 ## 15. Next Steps
 
-1. Finalize schema
-2. Finalize region and destination routing
-3. Set up Next.js + Drizzle + SQLite
-4. Build core pages (Countries → Regions / Destinations → Listings)
-5. Seed initial data
-6. Iterate on UI
+1. Implement browser auth and protected CMS foundations in `apps/web`
+2. Add admin user management and role assignment
+3. Add CMS flows for countries, regions, destinations, and listings
+4. Keep CMS writes centralized in shared services with RBAC enforcement
+5. Preserve the public browsing experience while the CMS surface lands
+6. Iterate on editorial UX and later account features
