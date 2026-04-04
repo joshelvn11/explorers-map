@@ -10,6 +10,7 @@
 - `countries.ts`, `destinations.ts`, and `listings.ts` now provide the Phase 4 shared query and listing-service surface.
 - `editorial.ts` now provides the MCP-facing editorial read, matching, ensure, and safe-creation surface.
 - `auth.ts` now provides shared CMS role lookup, actor-context assembly, moderator-region scope lookup, admin detection, and CMS write-context helpers.
+- `cms.ts` now provides Phase 9 admin CMS operations for users, countries, and regions.
 - The package now owns both the public read contract for the web app and the write and matching contract reused by the MCP server.
 - The package now also owns the Phase 8 browser-auth actor-context and CMS-role foundation so the web app can stay thin as the CMS expands.
 
@@ -47,11 +48,13 @@
 - Browser-authenticated CMS writes now have a shared actor-context and authorization foundation instead of defining role logic inside the web UI.
 - Current roles are `admin`, `moderator`, and `viewer`.
 - `getUserRole`, `ensureUserRole`, and `setUserRole` now manage app-owned CMS role rows that sit alongside Better Auth's own tables.
+- `setModeratorRegionAssignments` is now a shared replace-all helper so moderator-region reconciliation can stay inside one service-layer write path.
 - `listModeratorRegionAssignments` and `getAuthActorContext` expose moderator scope as shared domain data rather than page-local logic.
-- `assertCanAccessCms` and `createCmsWriteContext` now give later CMS server actions a single place to derive write authorization and audit attribution.
+- `assertCanAccessCms`, `requireAdminActor`, and `createCmsWriteContext` now give CMS server actions one place to derive authorization and audit attribution.
 - `admin` retains global CMS authority, `moderator` is prepared for assigned-region editorial scope, and `viewer` authenticates successfully but has no CMS access.
-- Later CMS additions should still implement shared country, region, destination, listing, and tag-write services with RBAC enforced in this package.
-- Shared services should still own slug-edit validation for CMS-managed entities, the guard that prevents removal or demotion of the last remaining admin, and audit attribution for later CMS content writes.
+- `updateCmsUserAccess` now applies role changes plus moderator-region reconciliation atomically, rejects moderator saves with zero regions, and prevents demotion of the last remaining admin.
+- `createCountryForCms`, `updateCountryForCms`, `createRegionForCms`, and `updateRegionForCms` now own Phase 9 admin-only country and region persistence with shared slug derivation and conflict rules.
+- Later CMS additions should still implement shared destination, listing, and tag-write services with RBAC enforced in this package.
 
 ## Evidence And Matching Rules
 
@@ -110,3 +113,4 @@
 - `services.test.ts` provisions fresh temp SQLite databases, applies migrations, imports the shared seed dataset, and exercises the public query and listing write surface end to end.
 - `editorial.test.ts` covers editorial region and destination creation, editor-visible listing reads, evidence requirements, fuzzy matching, ensure flows, and slug-collision protection.
 - `auth.test.ts` covers CMS role creation, moderator-region actor context, CMS write-context gating, and admin detection.
+- `cms.test.ts` covers Phase 9 user access management, last-admin protection, and admin country/region slug behavior.

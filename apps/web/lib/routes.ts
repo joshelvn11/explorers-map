@@ -39,6 +39,42 @@ export function getCmsHref() {
   return "/cms";
 }
 
+export function getCmsUsersHref() {
+  return "/cms/users";
+}
+
+export function getCmsNewUserHref() {
+  return "/cms/users/new";
+}
+
+export function getCmsUserHref(userId: string) {
+  return `/cms/users/${userId}`;
+}
+
+export function getCmsCountriesHref() {
+  return "/cms/countries";
+}
+
+export function getCmsNewCountryHref() {
+  return "/cms/countries/new";
+}
+
+export function getCmsCountryHref(countrySlug: string) {
+  return `/cms/countries/${countrySlug}`;
+}
+
+export function getCmsRegionsHref() {
+  return "/cms/regions";
+}
+
+export function getCmsNewRegionHref() {
+  return "/cms/regions/new";
+}
+
+export function getCmsRegionHref(countrySlug: string, regionSlug: string) {
+  return `/cms/regions/${countrySlug}/${regionSlug}`;
+}
+
 export function getCountryRegionsHref(countrySlug: string) {
   return `/countries/${countrySlug}/regions`;
 }

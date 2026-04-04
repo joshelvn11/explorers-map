@@ -22,6 +22,13 @@
       "when": 1775327658105,
       "tag": "0002_acoustic_the_executioner",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1775336142255,
+      "tag": "0003_tan_alice",
+      "breakpoints": true
     }
   ]
 }

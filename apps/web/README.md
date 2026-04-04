@@ -31,6 +31,7 @@ The web app dev script also runs the shared DB migrations and the idempotent boo
 - Narrow authenticated HTTP Actions API for private custom GPT integrations
 - Better Auth browser-session auth for signed-in humans
 - Protected CMS shell routes for admins and moderators
+- Admin-only CMS routes for user, country, and region management
 - Signed-in account surfaces for authenticated users
 
 ## Shared Workspace Packages
@@ -73,6 +74,9 @@ Shared packages are transpiled through Next.js so they can be imported directly 
   - `/sign-out`
   - `/account`
   - `/cms`
+  - `/cms/users`
+  - `/cms/countries`
+  - `/cms/regions`
 - `pnpm dev` and `pnpm dev:web` now migrate the shared SQLite database automatically before the dev server starts.
 - Local dev still expects `pnpm seed` when you want a fresh database populated with the curated public browsing content.
 - Production builds no longer require seeded SQLite content because DB-backed public routes render from the runtime database.
@@ -81,6 +85,7 @@ Shared packages are transpiled through Next.js so they can be imported directly 
 - The footer now shows a build marker. In Docker deployments it comes from the image's generated `.build-info.json`; in local dev it falls back to `local-dev`.
 - The Actions API expects `EXPLORERS_MAP_ACTIONS_AUTH_TOKEN` to be set before use.
 - Browser auth requires `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, and optional bootstrap-admin env values for the one-time admin initializer.
+- Phase 9 admin-created users receive an initial password set inside the CMS; password reset and first-login password change flows remain out of scope for now.
 - Production runtime requires `BETTER_AUTH_SECRET`, but the Docker/Next build step no longer needs the real secret because auth uses a build-only placeholder during `next build` and reads the real secret only at runtime.
 - `proxy.ts` performs optimistic cookie checks for `/account` and `/cms`, while page and layout code still enforce server-side session and role checks.
 

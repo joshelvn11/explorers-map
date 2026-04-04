@@ -165,6 +165,8 @@ export const cmsUserRoles = sqliteTable(
       .primaryKey()
       .references(() => user.id, { onDelete: "cascade", onUpdate: "cascade" }),
     role: text("role", { enum: cmsRoleValues }).notNull().default("viewer"),
+    createdBy: text("created_by").references(() => user.id, { onDelete: "set null", onUpdate: "cascade" }),
+    updatedBy: text("updated_by").references(() => user.id, { onDelete: "set null", onUpdate: "cascade" }),
     createdAt: integer("created_at", { mode: "timestamp" }).notNull().default(currentTimestamp),
     updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().default(currentTimestamp),
   },
@@ -180,6 +182,7 @@ export const moderatorRegionAssignments = sqliteTable(
     regionId: text("region_id")
       .notNull()
       .references(() => regions.id, { onDelete: "cascade", onUpdate: "cascade" }),
+    assignedBy: text("assigned_by").references(() => user.id, { onDelete: "set null", onUpdate: "cascade" }),
     createdAt: integer("created_at", { mode: "timestamp" }).notNull().default(currentTimestamp),
   },
   (table) => [

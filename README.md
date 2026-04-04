@@ -59,7 +59,7 @@ Seed command behavior:
 Public app note:
 
 - The public Next.js app now reads countries, regions, destinations, and listings directly from the shared SQLite database during page rendering.
-- The web app now also includes Better Auth browser sessions, signed-in account pages, and a protected CMS shell.
+- The web app now also includes Better Auth browser sessions, signed-in account pages, a protected CMS shell, and Phase 9 admin tooling for users, countries, and regions.
 - `pnpm dev:web` now runs `pnpm db:migrate` and the idempotent bootstrap-admin initializer before Next.js starts.
 - Run `pnpm seed` before `pnpm dev:web` only when you need to populate a fresh local database with the curated development content.
 - Production builds no longer require seeded SQLite content because DB-backed public routes now render dynamically against the runtime database.
@@ -147,7 +147,8 @@ Browser auth note:
 
 - Browser auth in `apps/web` is for signed-in humans and is separate from MCP token auth and Actions token auth.
 - Open signup now defaults new users to a non-CMS `viewer` role.
-- `/account` is available to any signed-in user, while `/cms` is currently reserved for `admin` and region-scoped `moderator` roles.
+- `/account` is available to any signed-in user, while `/cms` is reserved for `admin` and region-scoped `moderator` roles.
+- Phase 9 adds admin-only CMS routes for `/cms/users`, `/cms/countries`, and `/cms/regions`, plus create/edit subroutes for those records.
 - `pnpm auth:bootstrap-admin` runs the explicit one-time bootstrap-admin initializer, and the same initializer also runs during `pnpm docker:start:web`.
 - `pnpm dev:web` now also runs the same bootstrap-admin initializer after migrations so local auth/CMS work starts from a migrated schema.
 

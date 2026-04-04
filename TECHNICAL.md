@@ -29,6 +29,7 @@ Expected flow:
 - `packages/services` now owns the shared seed import pipeline used by repository scripts plus the shared public query and listing write services used by future app and MCP entrypoints.
 - `apps/web` now also serves a narrow machine-facing Actions API for custom GPT integrations, backed by the same shared service layer as the public app and MCP runtime.
 - `apps/web` now also owns Better Auth browser-session handling, signed-in account routes, an idempotent bootstrap-admin initializer, and a protected CMS shell.
+- `apps/web` now also hosts the first real Phase 9 CMS surface: role-aware shell navigation plus admin-only user, country, and region management pages backed by thin server actions.
 - The shared database file defaults to `.data/explorers-map.sqlite` unless `EXPLORERS_MAP_SQLITE_PATH` overrides it.
 - Docker deployment now also supports a persistent runtime DB at `/app/data/explorers-map.sqlite` via container environment configuration.
 - Core data integrity for listings, scoped slugs, and join-table duplication is enforced in the schema layer.
@@ -58,6 +59,7 @@ Expected flow:
 - Gallery updates are replace-all operations that delete stale rows and recreate ordered gallery records with fresh IDs.
 - Service writes update `source`, `updatedBy`, and `updatedAt` consistently, while creation also populates `createdBy`.
 - The shared service layer now includes browser-auth actor context, CMS role lookup, moderator-region scope lookup, and CMS write-context helpers so later CMS work can reuse one authorization path.
+- The shared service layer now also includes Phase 9 admin CMS operations for listing users, updating roles plus moderator-region assignments atomically, and creating or editing countries and regions with shared slug validation.
 
 ## CMS/Auth Direction
 
@@ -136,6 +138,8 @@ Expected flow:
 - The Actions routes export direct segment-config literals (`runtime = "nodejs"` and `dynamic = "force-dynamic"`) because Next.js 16 build analysis rejects indirection there.
 - The auth route tree now includes `/api/auth/[...all]`, `/sign-in`, `/sign-up`, `/sign-out`, `/account`, and `/cms`.
 - `proxy.ts` performs optimistic cookie-based redirects for `/account` and `/cms`, while the protected pages and layouts still do authoritative server-side session and role checks.
+- The CMS route tree now also includes admin-only `/cms/users`, `/cms/users/new`, `/cms/users/[userId]`, `/cms/countries`, `/cms/countries/new`, `/cms/countries/[countrySlug]`, `/cms/regions`, `/cms/regions/new`, and `/cms/regions/[countrySlug]/[regionSlug]`.
+- `/cms` remains accessible to admins and moderators, but a dedicated admin guard now redirects moderators away from the Phase 9 admin-only CMS sections back to `/cms`.
 - The browser-auth tests cover signup, signin, signout, viewer-default role creation, proxy protection, bootstrap-admin idempotency, and the separation between browser sessions and Actions bearer auth.
 
 ## Docker Deployment

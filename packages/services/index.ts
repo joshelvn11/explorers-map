@@ -1,4 +1,5 @@
 export * from "./countries.ts";
+export * from "./cms.ts";
 export * from "./editorial.ts";
 export * from "./errors.ts";
 export * from "./auth.ts";

@@ -1,3 +1,4 @@
+import { CmsShell } from "../../components/cms-shell";
 import { requireCmsActor } from "../../lib/session";
 
 export default async function CmsLayout({
@@ -7,7 +8,7 @@ export default async function CmsLayout({
   children: React.ReactNode;
   params: Promise<unknown>;
 }>) {
-  await requireCmsActor("/cms");
+  const actor = await requireCmsActor("/cms");
 
-  return children;
+  return <CmsShell actor={actor}>{children}</CmsShell>;
 }

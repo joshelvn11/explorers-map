@@ -297,33 +297,33 @@ Note:
 
 ### Human Required Steps
 
-- [ ] Choose secure production values for the Better Auth secret and bootstrap-admin credentials.
-- [ ] Review the signup experience and confirm the viewer-default behavior before broader deployment.
+- [x] Choose secure production values for the Better Auth secret and bootstrap-admin credentials.
+- [x] Review the signup experience and confirm the viewer-default behavior before broader deployment.
 
 ## Phase 9 - CMS Shell and Admin User Management
 
 Note:
 
-- [ ] `admin` should have full CMS access and full user-management access.
-- [ ] `viewer` can authenticate but should have no CMS access in this phase.
-- [ ] Moderator-region assignment should support one or more assigned regions per moderator.
+- [x] `admin` should have full CMS access and full user-management access.
+- [x] `viewer` can authenticate but should have no CMS access in this phase.
+- [x] Moderator-region assignment should support one or more assigned regions per moderator.
 
 ### Agent Tasks
 
-- [ ] Add the protected CMS shell in `apps/web`, including shared navigation, layout, and role-aware entry points.
-- [ ] Add admin-only user management screens and supporting shared services.
-- [ ] Implement admin create-user flows.
-- [ ] Implement admin role-assignment flows for `admin`, `moderator`, and `viewer`.
-- [ ] Implement moderator-region assignment management.
-- [ ] Ensure removing or changing moderator role also reconciles moderator-region assignments cleanly.
-- [ ] Prevent removal or demotion of the last remaining admin.
-- [ ] Keep first-phase user management non-destructive by avoiding hard delete flows for users.
-- [ ] Add admin-only create and edit flows for countries and regions.
-- [ ] Support editable slugs for countries and regions and document that slug changes update canonical URLs immediately without redirect history in v1.
-- [ ] Keep CMS server actions thin by delegating validation, authorization, and persistence to shared services.
-- [ ] Ensure admin-managed user changes are attributable to the acting admin through shared audit metadata where supported.
-- [ ] Add tests for admin-only user management, role changes, moderator-region assignment, and admin-only country/region management.
-- [ ] Update local and root documentation to describe the planned CMS shell and admin responsibilities.
+- [x] Add the protected CMS shell in `apps/web`, including shared navigation, layout, and role-aware entry points.
+- [x] Add admin-only user management screens and supporting shared services.
+- [x] Implement admin create-user flows.
+- [x] Implement admin role-assignment flows for `admin`, `moderator`, and `viewer`.
+- [x] Implement moderator-region assignment management.
+- [x] Ensure removing or changing moderator role also reconciles moderator-region assignments cleanly.
+- [x] Prevent removal or demotion of the last remaining admin.
+- [x] Keep first-phase user management non-destructive by avoiding hard delete flows for users.
+- [x] Add admin-only create and edit flows for countries and regions.
+- [x] Support editable slugs for countries and regions and document that slug changes update canonical URLs immediately without redirect history in v1.
+- [x] Keep CMS server actions thin by delegating validation, authorization, and persistence to shared services.
+- [x] Ensure admin-managed user changes are attributable to the acting admin through shared audit metadata where supported.
+- [x] Add tests for admin-only user management, role changes, moderator-region assignment, and admin-only country/region management.
+- [x] Update local and root documentation to describe the planned CMS shell and admin responsibilities.
 
 ### Human Required Steps
 
@@ -337,15 +337,19 @@ Note:
 - [ ] `moderator` should be able to edit destinations when at least one linked destination region overlaps an assigned region.
 - [ ] `admin` remains the only role with global content-management access.
 - [ ] Countries, regions, and destinations remain admin-managed records without draft/published lifecycle in this phase.
+- [ ] Sequence Phase 10 work as destinations first, then listings, because listing editing depends on destination assignment UI and the shared moderator-overlap rules.
+- [ ] Keep browser-auth account and session concerns inside `apps/web`; shared services should continue to own CMS authorization, validation, and persistence rather than importing Better Auth into `packages/services`.
 
 ### Agent Tasks
 
+- [ ] Add the shared schema and migration support needed so destination CMS edits can record acting-user audit attribution before destination edit flows ship.
 - [ ] Add CMS create and edit flows for destinations with moderator-scoped authorization backed by shared services.
 - [ ] Add CMS create and edit flows for listings, including copy, metadata, location, destination links, images, tags, and lifecycle controls.
 - [ ] Extend the shared service layer to support RBAC-aware CMS operations for countries, regions, destinations, and listings.
 - [ ] Add shared authorization helpers enforcing admin-only operations and moderator region scoping.
 - [ ] Add listing tag-write support in shared services so the CMS can manage listing tags instead of remaining read-only there.
 - [ ] Ensure listing image management remains URL-based and reorderable while the upload workflow is still deferred.
+- [ ] Keep Phase 10 web mutations on the same thin server-action pattern established in Phase 9, with `apps/web` handling browser-auth integration and shared services handling authorization plus persistence.
 - [ ] Ensure moderators cannot manage listings outside assigned regions.
 - [ ] Ensure moderators cannot perform admin-only actions such as country, region, or user management.
 - [ ] Ensure moderators may edit a destination only while it retains at least one overlapping assigned region, and restrict moderator destination-region edits to their own assigned regions.

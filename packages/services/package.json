@@ -10,6 +10,7 @@
   "exports": {
     ".": "./index.ts",
     "./auth": "./auth.ts",
+    "./cms": "./cms.ts",
     "./countries": "./countries.ts",
     "./editorial": "./editorial.ts",
     "./errors": "./errors.ts",

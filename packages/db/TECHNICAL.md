@@ -22,6 +22,7 @@
 - Listing images include `sortOrder` so later reordering work does not require a migration.
 - Soft delete is represented by nullable `deletedAt`. Query-layer behavior stays outside this package.
 - Better Auth should own the auth/session/account tables, while app-owned schema additions should carry CMS role data and moderator-region assignments.
+- Phase 9 extends those app-owned CMS tables with nullable actor-attribution columns for admin-managed role changes and moderator-region assignments.
 - `rate_limit` now uses a generated Better Auth `id` plus a unique `key`, which lets Better Auth keep database-backed rate limiting in SQLite without bypassing the shared migration flow.
 - Browser-auth rollout still leaves content audit tracking for countries, regions, and destinations as later CMS work.
 

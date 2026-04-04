@@ -14,6 +14,7 @@
 - Thin authenticated Actions API route handlers for custom GPT integrations
 - Better Auth browser-session handling
 - Signed-in account routes and a protected CMS shell
+- Thin CMS server actions and admin-only CMS screens for users, countries, and regions
 
 ## Shared Package Usage
 
@@ -46,6 +47,8 @@ These packages are transpiled via `transpilePackages` in `next.config.ts`.
 - DB-backed public pages now use `dynamic = "force-dynamic"` so page content and metadata are read from the live runtime database instead of from build-time static params.
 - Browser-auth route families now include `/sign-in`, `/sign-up`, `/sign-out`, `/account`, and `/cms`.
 - `/cms` is now gated by session and role while public browse routes remain unaffected.
+- Phase 9 adds a CMS shell layout with role-aware navigation plus admin-only `/cms/users`, `/cms/countries`, and `/cms/regions` route families.
+- A dedicated admin guard now redirects moderators away from the Phase 9 admin-only pages back to `/cms`.
 
 ## Runtime Notes
 
@@ -69,6 +72,8 @@ These packages are transpiled via `transpilePackages` in `next.config.ts`.
 - `proxy.ts` only performs optimistic cookie checks for `/account` and `/cms`; authoritative session and role gating still happens in server helpers used by the protected pages and layouts.
 - Browser-auth signup currently defaults every new user to an app-owned `viewer` role via Better Auth database hooks.
 - The account page is available to any signed-in user, while the CMS shell currently allows only `admin` and `moderator`.
+- Phase 9 user creation stays web-owned because Better Auth lives in `apps/web`; the CMS uses a small auth adapter there to create the browser-auth account and then immediately hands role and moderator-assignment persistence to shared services.
+- CMS mutations now use thin server actions under `app/cms/actions.ts`, while shared services own authorization, slug validation, last-admin protection, and country/region persistence.
 - Production builds may run without `BETTER_AUTH_SECRET` present because the auth layer now uses a build-only placeholder secret during `next build`; the real secret is still mandatory in the running production container.
 - Keep both checked-in schema files in sync when editing the Actions contract:
   - `apps/web/openapi/explorers-map-actions.openapi.json`

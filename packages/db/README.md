@@ -7,6 +7,7 @@ This package contains the shared SQLite client, Drizzle schema, and migrations u
 - Define the shared relational schema for MVP content
 - Define the Better Auth-owned auth/session/account/rate-limit tables in the same SQLite database
 - Define app-owned CMS role and moderator-region assignment tables
+- Track admin attribution for Phase 9 user-role and moderator-region assignment changes
 - Export the shared DB client used by workspace runtimes
 - Store generated migrations under `packages/db/migrations`
 
