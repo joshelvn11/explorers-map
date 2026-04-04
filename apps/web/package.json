@@ -12,9 +12,11 @@
     "test": "node --experimental-strip-types --test ./*.test.ts"
   },
   "dependencies": {
+    "@better-auth/drizzle-adapter": "^1.5.6",
     "@explorers-map/db": "workspace:*",
     "@explorers-map/services": "workspace:*",
     "@explorers-map/utils": "workspace:*",
+    "better-auth": "^1.5.6",
     "better-sqlite3": "^12.8.0",
     "next": "16.2.1",
     "react": "19.2.4",

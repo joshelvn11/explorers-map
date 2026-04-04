@@ -9,6 +9,7 @@
   },
   "exports": {
     ".": "./index.ts",
+    "./auth": "./auth.ts",
     "./countries": "./countries.ts",
     "./editorial": "./editorial.ts",
     "./errors": "./errors.ts",

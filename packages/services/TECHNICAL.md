@@ -9,8 +9,9 @@
 - `seed.ts` remains the shared seed import path used by repository scripts.
 - `countries.ts`, `destinations.ts`, and `listings.ts` now provide the Phase 4 shared query and listing-service surface.
 - `editorial.ts` now provides the MCP-facing editorial read, matching, ensure, and safe-creation surface.
+- `auth.ts` now provides shared CMS role lookup, actor-context assembly, moderator-region scope lookup, admin detection, and CMS write-context helpers.
 - The package now owns both the public read contract for the web app and the write and matching contract reused by the MCP server.
-- A planned Phase 8-10 CMS rollout will extend this package with browser-auth actor context, RBAC enforcement, and CMS write paths so the web app can stay thin.
+- The package now also owns the Phase 8 browser-auth actor-context and CMS-role foundation so the web app can stay thin as the CMS expands.
 
 ## Public Read Queries
 
@@ -41,18 +42,16 @@
 - `ensureRegion`, `ensureDestination`, and `ensureListing` reuse those matchers so MCP creation flows stop on candidate ambiguity instead of guessing.
 - `createListingDraftForEditor` derives the slug when omitted, validates evidence and related destination/image inputs up front, then reuses the existing listing write path.
 
-## Planned CMS/Auth Services
+## CMS/Auth Services
 
-- Browser-authenticated CMS writes should reuse shared actor context and authorization helpers instead of defining role logic inside the web UI.
-- Planned roles are `admin`, `moderator`, and `viewer`.
-- `admin` should retain global content-management and user-management authority.
-- `moderator` should be limited to assigned regions for listings and should only be allowed to edit destinations when at least one linked region overlaps their assigned regions.
-- `moderator` destination-region edits should be constrained to assigned regions, and save operations should fail if the destination no longer overlaps any assigned region.
-- `viewer` should authenticate successfully but have no CMS write access.
-- Planned CMS additions should include shared country, region, destination, listing, and tag-write services with RBAC enforced in this package.
-- Shared services should own slug-edit validation for CMS-managed entities, with editable slugs but no redirect-history support in the first CMS phase.
-- Shared services should own the guard that prevents removal or demotion of the last remaining admin.
-- Shared services should preserve audit attribution for CMS content writes and admin-managed user changes where those records support it.
+- Browser-authenticated CMS writes now have a shared actor-context and authorization foundation instead of defining role logic inside the web UI.
+- Current roles are `admin`, `moderator`, and `viewer`.
+- `getUserRole`, `ensureUserRole`, and `setUserRole` now manage app-owned CMS role rows that sit alongside Better Auth's own tables.
+- `listModeratorRegionAssignments` and `getAuthActorContext` expose moderator scope as shared domain data rather than page-local logic.
+- `assertCanAccessCms` and `createCmsWriteContext` now give later CMS server actions a single place to derive write authorization and audit attribution.
+- `admin` retains global CMS authority, `moderator` is prepared for assigned-region editorial scope, and `viewer` authenticates successfully but has no CMS access.
+- Later CMS additions should still implement shared country, region, destination, listing, and tag-write services with RBAC enforced in this package.
+- Shared services should still own slug-edit validation for CMS-managed entities, the guard that prevents removal or demotion of the last remaining admin, and audit attribution for later CMS content writes.
 
 ## Evidence And Matching Rules
 
@@ -70,7 +69,7 @@
 - Busyness rating must stay on the editorial `1` to `5` integer scale.
 - Latitude and longitude remain the source of truth for map behavior and are validated for real-world bounds.
 - Trashed listings cannot be edited, published, or unpublished until restored.
-- Service-layer validation errors raise `ServiceError` values with `NOT_FOUND`, `CONFLICT`, `INVALID_INPUT`, or `INVALID_STATE` codes.
+- Service-layer validation and authorization errors raise `ServiceError` values with `NOT_FOUND`, `CONFLICT`, `INVALID_INPUT`, `INVALID_STATE`, `FORBIDDEN`, or `INSUFFICIENT_EVIDENCE` codes.
 
 ## Audit and Lifecycle Semantics
 
@@ -110,3 +109,4 @@
 
 - `services.test.ts` provisions fresh temp SQLite databases, applies migrations, imports the shared seed dataset, and exercises the public query and listing write surface end to end.
 - `editorial.test.ts` covers editorial region and destination creation, editor-visible listing reads, evidence requirements, fuzzy matching, ensure flows, and slug-collision protection.
+- `auth.test.ts` covers CMS role creation, moderator-region actor context, CMS write-context gating, and admin detection.

@@ -3,6 +3,7 @@ export const serviceErrorCodes = [
   "CONFLICT",
   "INVALID_INPUT",
   "INVALID_STATE",
+  "FORBIDDEN",
   "INSUFFICIENT_EVIDENCE",
 ] as const;
 

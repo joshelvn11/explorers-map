@@ -271,29 +271,29 @@ Note:
 
 Note:
 
-- [ ] Better Auth is the planned browser-auth solution for signed-in humans using the web app.
-- [ ] Browser auth should stay separate from the existing bearer-token auth used by MCP and the Actions API.
-- [ ] Open signup should create `viewer` users by default.
-- [ ] The initial browser-auth scope is intentionally narrow: signup, signin, signout, protected sessions, route protection, and shared role checks.
-- [ ] Password reset and email verification are intentionally deferred until after the core CMS/auth rollout.
-- [ ] The first admin account should be bootstrapped from environment-backed credentials as a one-time initialization path when no admin exists.
-- [ ] Browser-driven CMS mutations should prefer one web transport pattern, using thin server actions over shared services rather than a mixed mutation architecture.
+- [x] Better Auth is the planned browser-auth solution for signed-in humans using the web app.
+- [x] Browser auth should stay separate from the existing bearer-token auth used by MCP and the Actions API.
+- [x] Open signup should create `viewer` users by default.
+- [x] The initial browser-auth scope is intentionally narrow: signup, signin, signout, protected sessions, route protection, and shared role checks.
+- [x] Password reset and email verification are intentionally deferred until after the core CMS/auth rollout.
+- [x] The first admin account should be bootstrapped from environment-backed credentials as a one-time initialization path when no admin exists.
+- [x] Browser-driven CMS mutations should prefer one web transport pattern, using thin server actions over shared services rather than a mixed mutation architecture.
 
 ### Agent Tasks
 
-- [ ] Add Better Auth to `apps/web` with email/password authentication and session handling.
-- [ ] Add the required auth schema and migration support in the shared SQLite database.
-- [ ] Keep auth ownership explicit: Better Auth owns auth/session/account tables, while app-owned schema additions carry CMS roles and moderator-region assignments.
-- [ ] Add the shared auth configuration, session helpers, and server-side current-user lookup needed by the web app.
-- [ ] Add web auth routes and pages for signup, signin, and signout.
-- [ ] Add a signed-in account surface for authenticated non-admin users.
-- [ ] Protect the planned CMS route family so unauthenticated users and non-CMS roles cannot access it.
-- [ ] Add shared role and actor-context plumbing in `packages/services` so future CMS writes can authorize through shared logic rather than through UI-only checks.
-- [ ] Add bootstrap-admin initialization using environment-backed credentials when no admin exists yet, and make it idempotent so later env changes do not rewrite an existing admin.
-- [ ] Add basic signup abuse protection such as rate limiting if practical within the phase, while still deferring CAPTCHA and email verification.
-- [ ] Add tests for signup, signin, signout, session protection, role gating, and bootstrap-admin idempotency.
-- [ ] Add tests confirming public anonymous browsing remains unchanged and current MCP/Actions bearer-token auth remains unaffected by browser-session auth.
-- [ ] Add documentation for the planned browser-auth env vars and role model.
+- [x] Add Better Auth to `apps/web` with email/password authentication and session handling.
+- [x] Add the required auth schema and migration support in the shared SQLite database.
+- [x] Keep auth ownership explicit: Better Auth owns auth/session/account tables, while app-owned schema additions carry CMS roles and moderator-region assignments.
+- [x] Add the shared auth configuration, session helpers, and server-side current-user lookup needed by the web app.
+- [x] Add web auth routes and pages for signup, signin, and signout.
+- [x] Add a signed-in account surface for authenticated non-admin users.
+- [x] Protect the planned CMS route family so unauthenticated users and non-CMS roles cannot access it.
+- [x] Add shared role and actor-context plumbing in `packages/services` so future CMS writes can authorize through shared logic rather than through UI-only checks.
+- [x] Add bootstrap-admin initialization using environment-backed credentials when no admin exists yet, and make it idempotent so later env changes do not rewrite an existing admin.
+- [x] Add basic signup abuse protection such as rate limiting if practical within the phase, while still deferring CAPTCHA and email verification.
+- [x] Add tests for signup, signin, signout, session protection, role gating, and bootstrap-admin idempotency.
+- [x] Add tests confirming public anonymous browsing remains unchanged and current MCP/Actions bearer-token auth remains unaffected by browser-session auth.
+- [x] Add documentation for the planned browser-auth env vars and role model.
 
 ### Human Required Steps
 

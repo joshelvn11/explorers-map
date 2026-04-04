@@ -33,10 +33,15 @@ The format is based on Keep a Changelog.
 - Added a checked-in OpenAPI 3.1 contract for the Actions API plus `/api/actions/openapi.json`, route tests, and custom-GPT usage docs.
 - Updated the web app dev, build, and start scripts to auto-load the repo-root `.env` file so Actions API auth works from the same local env setup as the MCP server.
 - Added a second production GPT import schema plus `/api/actions/openapi.production.json`, using `https://explorersmap.org` and omitting utility endpoints from the ChatGPT-facing action list.
+- Added the Phase 8 browser-auth foundation in `apps/web`, including Better Auth email/password sessions, `/api/auth/[...all]`, `/sign-in`, `/sign-up`, `/sign-out`, `/account`, and a protected `/cms` shell.
+- Added shared Phase 8 auth services for CMS role rows, moderator-region assignments, actor-context lookup, CMS access checks, and CMS write-context helpers.
+- Added idempotent bootstrap-admin initialization from environment-backed credentials plus a root `pnpm auth:bootstrap-admin` command and container-startup integration.
+- Added auth migrations and tests covering signup, signin, signout, viewer-default role creation, proxy protection, bootstrap-admin idempotency, and separation from Actions bearer auth.
 
 ### Changed
 
 - Changed the public web app from build-time DB-backed static params to runtime DB-backed rendering for country, region, destination, catalog, and listing pages so content updates no longer require rebuilding the image.
+- Changed `pnpm dev:web` / `pnpm dev` in `apps/web` to run shared DB migrations and bootstrap-admin initialization before Next.js starts, which keeps older local SQLite files compatible with the new auth tables.
 - Changed the Actions route segment config exports to direct Next.js literals so production builds succeed under Next.js 16.
 - Changed Docker Compose to publish the web container on a configurable host port via `EXPLORERS_MAP_HOST_PORT`, defaulting to `8080`.
 - Refined the MCP plan around personal editorial use through ChatGPT rather than generic CRUD automation.

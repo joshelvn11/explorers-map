@@ -62,6 +62,7 @@ type ErrorCode =
   | "NOT_FOUND"
   | "CONFLICT"
   | "INVALID_STATE"
+  | "FORBIDDEN"
   | "INSUFFICIENT_EVIDENCE"
   | "INTERNAL_ERROR";
 
@@ -275,6 +276,8 @@ function mapServiceErrorStatus(code: string) {
       return 409;
     case "INVALID_STATE":
       return 409;
+    case "FORBIDDEN":
+      return 403;
     case "INSUFFICIENT_EVIDENCE":
       return 422;
     default:

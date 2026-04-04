@@ -12,6 +12,8 @@ import {
 
 export const listingStatusValues = ["draft", "published"] as const;
 export type ListingStatus = (typeof listingStatusValues)[number];
+export const cmsRoleValues = ["admin", "moderator", "viewer"] as const;
+export type CmsRole = (typeof cmsRoleValues)[number];
 
 const currentTimestamp = sql`(unixepoch())`;
 
@@ -66,6 +68,123 @@ export const destinations = sqliteTable(
   (table) => [
     uniqueIndex("destinations_country_slug_unique").on(table.countryId, table.slug),
     index("destinations_country_id_idx").on(table.countryId),
+  ],
+);
+
+export const user = sqliteTable(
+  "user",
+  {
+    id: text("id").primaryKey(),
+    name: text("name").notNull(),
+    email: text("email").notNull(),
+    emailVerified: integer("email_verified", { mode: "boolean" }).notNull().default(false),
+    image: text("image"),
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull().default(currentTimestamp),
+    updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().default(currentTimestamp),
+  },
+  (table) => [uniqueIndex("user_email_unique").on(table.email)],
+);
+
+export const session = sqliteTable(
+  "session",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade", onUpdate: "cascade" }),
+    token: text("token").notNull(),
+    expiresAt: integer("expires_at", { mode: "timestamp" }).notNull(),
+    ipAddress: text("ip_address"),
+    userAgent: text("user_agent"),
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull().default(currentTimestamp),
+    updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().default(currentTimestamp),
+  },
+  (table) => [
+    uniqueIndex("session_token_unique").on(table.token),
+    index("session_user_id_idx").on(table.userId),
+    index("session_expires_at_idx").on(table.expiresAt),
+  ],
+);
+
+export const account = sqliteTable(
+  "account",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade", onUpdate: "cascade" }),
+    accountId: text("account_id").notNull(),
+    providerId: text("provider_id").notNull(),
+    accessToken: text("access_token"),
+    refreshToken: text("refresh_token"),
+    idToken: text("id_token"),
+    accessTokenExpiresAt: integer("access_token_expires_at", { mode: "timestamp" }),
+    refreshTokenExpiresAt: integer("refresh_token_expires_at", { mode: "timestamp" }),
+    scope: text("scope"),
+    password: text("password"),
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull().default(currentTimestamp),
+    updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().default(currentTimestamp),
+  },
+  (table) => [
+    uniqueIndex("account_provider_account_unique").on(table.providerId, table.accountId),
+    index("account_user_id_idx").on(table.userId),
+  ],
+);
+
+export const verification = sqliteTable(
+  "verification",
+  {
+    id: text("id").primaryKey(),
+    identifier: text("identifier").notNull(),
+    value: text("value").notNull(),
+    expiresAt: integer("expires_at", { mode: "timestamp" }).notNull(),
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull().default(currentTimestamp),
+    updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().default(currentTimestamp),
+  },
+  (table) => [
+    index("verification_identifier_idx").on(table.identifier),
+    index("verification_expires_at_idx").on(table.expiresAt),
+  ],
+);
+
+export const rateLimit = sqliteTable(
+  "rate_limit",
+  {
+    id: text("id").primaryKey(),
+    key: text("key").notNull(),
+    count: integer("count").notNull().default(0),
+    lastRequest: integer("last_request").notNull(),
+  },
+  (table) => [uniqueIndex("rate_limit_key_unique").on(table.key)],
+);
+
+export const cmsUserRoles = sqliteTable(
+  "cms_user_roles",
+  {
+    userId: text("user_id")
+      .primaryKey()
+      .references(() => user.id, { onDelete: "cascade", onUpdate: "cascade" }),
+    role: text("role", { enum: cmsRoleValues }).notNull().default("viewer"),
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull().default(currentTimestamp),
+    updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().default(currentTimestamp),
+  },
+  (table) => [check("cms_user_roles_role_check", sql`${table.role} in ('admin', 'moderator', 'viewer')`)],
+);
+
+export const moderatorRegionAssignments = sqliteTable(
+  "moderator_region_assignments",
+  {
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade", onUpdate: "cascade" }),
+    regionId: text("region_id")
+      .notNull()
+      .references(() => regions.id, { onDelete: "cascade", onUpdate: "cascade" }),
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull().default(currentTimestamp),
+  },
+  (table) => [
+    primaryKey({ columns: [table.userId, table.regionId] }),
+    index("moderator_region_assignments_region_id_idx").on(table.regionId),
   ],
 );
 
@@ -208,6 +327,7 @@ export const regionsRelations = relations(regions, ({ one, many }) => ({
   }),
   destinationRegions: many(destinationRegions),
   listings: many(listings),
+  moderatorRegionAssignments: many(moderatorRegionAssignments),
 }));
 
 export const destinationsRelations = relations(destinations, ({ one, many }) => ({
@@ -217,6 +337,48 @@ export const destinationsRelations = relations(destinations, ({ one, many }) => 
   }),
   destinationRegions: many(destinationRegions),
   listingDestinations: many(listingDestinations),
+}));
+
+export const userRelations = relations(user, ({ one, many }) => ({
+  sessions: many(session),
+  accounts: many(account),
+  cmsRole: one(cmsUserRoles, {
+    fields: [user.id],
+    references: [cmsUserRoles.userId],
+  }),
+  moderatorRegionAssignments: many(moderatorRegionAssignments),
+}));
+
+export const sessionRelations = relations(session, ({ one }) => ({
+  user: one(user, {
+    fields: [session.userId],
+    references: [user.id],
+  }),
+}));
+
+export const accountRelations = relations(account, ({ one }) => ({
+  user: one(user, {
+    fields: [account.userId],
+    references: [user.id],
+  }),
+}));
+
+export const cmsUserRolesRelations = relations(cmsUserRoles, ({ one }) => ({
+  user: one(user, {
+    fields: [cmsUserRoles.userId],
+    references: [user.id],
+  }),
+}));
+
+export const moderatorRegionAssignmentsRelations = relations(moderatorRegionAssignments, ({ one }) => ({
+  user: one(user, {
+    fields: [moderatorRegionAssignments.userId],
+    references: [user.id],
+  }),
+  region: one(regions, {
+    fields: [moderatorRegionAssignments.regionId],
+    references: [regions.id],
+  }),
 }));
 
 export const destinationRegionsRelations = relations(destinationRegions, ({ one }) => ({

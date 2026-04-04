@@ -16,11 +16,13 @@ export const metadata: Metadata = {
 
 export default function RootLayout({
   children,
+  params: _params,
 }: Readonly<{
   children: React.ReactNode;
+  params: Promise<unknown>;
 }>) {
   return (
-    <html lang="en" className="h-full">
+    <html lang="en" className="h-full" data-scroll-behavior="smooth">
       <body className="min-h-full bg-[radial-gradient(circle_at_top,#fdf7ef,transparent_36%),linear-gradient(180deg,#f6f0e7_0%,#f8f4ee_38%,#fcfaf7_100%)] text-stone-950">
         <div className="relative flex min-h-screen flex-col">
           <SiteHeader />

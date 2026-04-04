@@ -3,6 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { createDb, getResolvedSqlitePath } from "../packages/db/index.ts";
+import { initializeBootstrapAdmin } from "../apps/web/lib/bootstrap-admin.ts";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -68,7 +69,7 @@ function startWebServer() {
   });
 }
 
-function main() {
+async function main() {
   console.log("Running database migrations...");
   runCommand("pnpm", ["db:migrate"]);
 
@@ -81,8 +82,18 @@ function main() {
     console.log(`Database already initialized with ${countryCount} countr${countryCount === 1 ? "y" : "ies"}. Skipping seed.`);
   }
 
+  console.log("Checking bootstrap admin initialization...");
+  const bootstrapDb = createDb(getResolvedSqlitePath());
+
+  try {
+    const bootstrapResult = await initializeBootstrapAdmin(bootstrapDb);
+    console.log(`Bootstrap admin status: ${bootstrapResult.status}`);
+  } finally {
+    bootstrapDb.sqlite.close();
+  }
+
   console.log("Starting web server...");
   startWebServer();
 }
 
-main();
+await main();

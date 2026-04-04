@@ -38,6 +38,7 @@ pnpm test:mcp
 pnpm docker:start:web
 pnpm db:generate
 pnpm db:migrate
+pnpm auth:bootstrap-admin
 pnpm studio
 pnpm seed:validate
 pnpm seed
@@ -58,8 +59,9 @@ Seed command behavior:
 Public app note:
 
 - The public Next.js app now reads countries, regions, destinations, and listings directly from the shared SQLite database during page rendering.
-- A future phase will also add session-based browser auth and a protected CMS inside `apps/web`.
-- Run `pnpm db:migrate` and `pnpm seed` before `pnpm dev:web` so the public routes have data available.
+- The web app now also includes Better Auth browser sessions, signed-in account pages, and a protected CMS shell.
+- `pnpm dev:web` now runs `pnpm db:migrate` and the idempotent bootstrap-admin initializer before Next.js starts.
+- Run `pnpm seed` before `pnpm dev:web` only when you need to populate a fresh local database with the curated development content.
 - Production builds no longer require seeded SQLite content because DB-backed public routes now render dynamically against the runtime database.
 
 ## Docker Deployment
@@ -89,6 +91,7 @@ Runtime notes:
 - The web container listens on port `3000` internally, while Docker Compose maps it to `EXPLORERS_MAP_HOST_PORT` on the host, defaulting to `8080`.
 - The container health check uses `GET /api/actions/healthz`.
 - The compose file intentionally includes only the web app; the standalone MCP server is not containerized yet.
+- Container startup now also runs the idempotent bootstrap-admin initializer after migrations and optional seeding.
 
 ## Environment
 
@@ -105,15 +108,15 @@ Copy `.env.example` to your local env file of choice and set `EXPLORERS_MAP_SQLI
 - `EXPLORERS_MAP_ACTIONS_AUTH_TOKEN`
   Required bearer token for the custom GPT Actions HTTP API under `apps/web`.
 - `BETTER_AUTH_SECRET`
-  Planned secret for the upcoming Better Auth browser-auth integration.
+  Required secret for Better Auth browser-session signing in production.
 - `BETTER_AUTH_URL`
-  Planned base URL for the upcoming Better Auth browser-auth integration.
+  Base URL for Better Auth browser-session routes. Defaults locally to `http://localhost:3000`.
 - `EXPLORERS_MAP_BOOTSTRAP_ADMIN_NAME`
-  Planned display name for the one-time bootstrap admin flow.
+  Display name for the one-time bootstrap admin flow.
 - `EXPLORERS_MAP_BOOTSTRAP_ADMIN_EMAIL`
-  Planned email for the one-time bootstrap admin flow.
+  Email for the one-time bootstrap admin flow.
 - `EXPLORERS_MAP_BOOTSTRAP_ADMIN_PASSWORD`
-  Planned password for the one-time bootstrap admin flow.
+  Password for the one-time bootstrap admin flow.
 
 Container deployment note:
 
@@ -135,13 +138,15 @@ Actions API note:
 - The trimmed production GPT import contract is also served from `GET /api/actions/openapi.production.json`.
 - `pnpm dev:web`, `pnpm build:web`, and `pnpm --filter @explorers-map/web start` now automatically load the repo-root `.env` file when it exists.
 - The primary custom GPT workflow is list/search/get before create so duplicate-safe ensure flows can stop on ambiguity instead of inventing new records.
-- The current Actions bearer token is separate from the planned browser/session auth that will power the future CMS.
+- The current Actions bearer token remains fully separate from browser/session auth.
 
-Upcoming CMS/auth note:
+Browser auth note:
 
-- The next major web-app expansion is a protected CMS in `apps/web` backed by Better Auth.
-- Planned browser auth is for signed-in humans and is separate from MCP token auth and Actions token auth.
-- Planned signup defaults new users to a non-CMS `viewer` role, while CMS access is reserved for `admin` and region-scoped `moderator` roles.
+- Browser auth in `apps/web` is for signed-in humans and is separate from MCP token auth and Actions token auth.
+- Open signup now defaults new users to a non-CMS `viewer` role.
+- `/account` is available to any signed-in user, while `/cms` is currently reserved for `admin` and region-scoped `moderator` roles.
+- `pnpm auth:bootstrap-admin` runs the explicit one-time bootstrap-admin initializer, and the same initializer also runs during `pnpm docker:start:web`.
+- `pnpm dev:web` now also runs the same bootstrap-admin initializer after migrations so local auth/CMS work starts from a migrated schema.
 
 ## Source of Truth
 

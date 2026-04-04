@@ -19,6 +19,7 @@ pnpm dev
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
 The web app dev, build, and start scripts automatically load the repo-root `.env` file when it exists.
+The web app dev script also runs the shared DB migrations and the idempotent bootstrap-admin initializer before Next.js starts.
 
 ## Scope
 
@@ -28,9 +29,9 @@ The web app dev, build, and start scripts automatically load the repo-root `.env
 - Read-first MVP presentation layer
 - Region catalog filtering via shared services
 - Narrow authenticated HTTP Actions API for private custom GPT integrations
-- Planned session-based browser auth via Better Auth
-- Planned protected CMS routes for admins and moderators
-- Planned signed-in account surfaces for authenticated users
+- Better Auth browser-session auth for signed-in humans
+- Protected CMS shell routes for admins and moderators
+- Signed-in account surfaces for authenticated users
 
 ## Shared Workspace Packages
 
@@ -47,8 +48,8 @@ Shared packages are transpiled through Next.js so they can be imported directly 
 - Keep public content reads aligned with the shared service and data-model rules in the root brief.
 - Do not introduce write-specific business logic here that belongs in shared services or MCP tools.
 - The Actions API under `/api/actions` is an exception to the earlier no-Next.js-API assumption, but it must stay thin and delegate all domain logic to shared services.
-- A later phase is planned to add `/sign-in`, `/sign-up`, `/account`, and `/cms/...` routes for browser-auth and CMS workflows.
-- The planned CMS/auth expansion should keep auth/session concerns in the web app while delegating CMS business rules and write validation to shared services.
+- Browser auth now lives under `/api/auth`, `/sign-in`, `/sign-up`, `/sign-out`, and `/account`.
+- The current CMS/auth foundation keeps auth/session concerns in the web app while delegating role lookup and CMS authorization helpers to shared services.
 - The public route tree now includes:
   - `/`
   - `/countries`
@@ -65,17 +66,21 @@ Shared packages are transpiled through Next.js so they can be imported directly 
   - `/api/actions/openapi.json`
   - `/api/actions/openapi.production.json`
   - `/api/actions/v1/...`
-- Planned later route families include:
+- The browser-auth route tree now includes:
+  - `/api/auth/[...all]`
   - `/sign-in`
   - `/sign-up`
+  - `/sign-out`
   - `/account`
-  - `/cms/...`
-- Local dev flows still expect the shared SQLite database to be migrated and seeded first so the public pages have content to render.
+  - `/cms`
+- `pnpm dev` and `pnpm dev:web` now migrate the shared SQLite database automatically before the dev server starts.
+- Local dev still expects `pnpm seed` when you want a fresh database populated with the curated public browsing content.
 - Production builds no longer require seeded SQLite content because DB-backed public routes render from the runtime database.
 - The production build script uses `next build --webpack` so the shared native SQLite dependency stays compatible with Next's build pipeline.
 - Remote images are configured for `picsum.photos` and an optional Cloudflare public asset base URL.
 - The Actions API expects `EXPLORERS_MAP_ACTIONS_AUTH_TOKEN` to be set before use.
-- Planned browser auth will also require Better Auth env configuration and bootstrap-admin env values once the CMS phases begin.
+- Browser auth requires `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, and optional bootstrap-admin env values for the one-time admin initializer.
+- `proxy.ts` performs optimistic cookie checks for `/account` and `/cms`, while page and layout code still enforce server-side session and role checks.
 
 ## Container Deployment
 
@@ -83,6 +88,7 @@ The repository root ships a web-only `Dockerfile` and `docker-compose.yml` for D
 
 - The container starts with `pnpm docker:start:web`.
 - Startup runs migrations, seeds only when the SQLite database is empty, and then launches `next start` on `0.0.0.0:3000`.
+- Startup also runs the idempotent bootstrap-admin initializer after migrations and optional seeding.
 - SQLite persistence is expected through the compose-mounted `/app/data` volume.
 - Docker Compose publishes the web app on `EXPLORERS_MAP_HOST_PORT`, defaulting to host port `8080`.
 - The container health check uses `/api/actions/healthz`.

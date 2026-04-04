@@ -2,12 +2,41 @@ export const siteName = "Explorers Map";
 export const siteDescription =
   "A calm, visual guide to standout outdoor places, from dramatic coastlines to quiet trails and named destinations worth exploring.";
 
+function appendReturnTo(path: string, returnTo?: string) {
+  if (!returnTo) {
+    return path;
+  }
+
+  const params = new URLSearchParams({ returnTo });
+  return `${path}?${params.toString()}`;
+}
+
 export function getCountryHref(countrySlug: string) {
   return `/countries/${countrySlug}`;
 }
 
 export function getCountriesHref() {
   return "/countries";
+}
+
+export function getSignInHref(returnTo?: string) {
+  return appendReturnTo("/sign-in", returnTo);
+}
+
+export function getSignUpHref(returnTo?: string) {
+  return appendReturnTo("/sign-up", returnTo);
+}
+
+export function getSignOutHref() {
+  return "/sign-out";
+}
+
+export function getAccountHref() {
+  return "/account";
+}
+
+export function getCmsHref() {
+  return "/cms";
 }
 
 export function getCountryRegionsHref(countrySlug: string) {

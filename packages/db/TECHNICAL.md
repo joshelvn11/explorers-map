@@ -7,10 +7,12 @@
 ## Current Responsibilities
 
 - Define the MVP relational schema for countries, regions, destinations, listings, tags, categories, images, and join tables
+- Define Better Auth-owned `user`, `session`, `account`, `verification`, and `rate_limit` tables
+- Define app-owned `cms_user_roles` and `moderator_region_assignments` tables
 - Export a shared Drizzle client for Node-based consumers
 - Keep migration files in sync with the schema
 - Provide a stable path contract for the local SQLite database
-- Plan the later auth and moderation tables needed by the browser CMS rollout
+- Support the browser CMS rollout in the same SQLite database
 
 ## Data Model Notes
 
@@ -19,9 +21,9 @@
 - Listing slugs are unique within a region, while region and destination slugs are unique within a country.
 - Listing images include `sortOrder` so later reordering work does not require a migration.
 - Soft delete is represented by nullable `deletedAt`. Query-layer behavior stays outside this package.
-- The planned CMS/auth phases will add Better Auth-managed tables in the same SQLite database, plus moderator-region assignment data.
 - Better Auth should own the auth/session/account tables, while app-owned schema additions should carry CMS role data and moderator-region assignments.
-- The planned CMS/auth phases are also expected to extend audit tracking to countries, regions, and destinations so browser edits can record who changed them.
+- `rate_limit` now uses a generated Better Auth `id` plus a unique `key`, which lets Better Auth keep database-backed rate limiting in SQLite without bypassing the shared migration flow.
+- Browser-auth rollout still leaves content audit tracking for countries, regions, and destinations as later CMS work.
 
 ## Runtime Notes
 
@@ -35,3 +37,4 @@
 - Scoped slug collisions are rejected by unique indexes.
 - Join-table duplicates are rejected by composite primary keys.
 - Foreign-key failures surface when parent records are missing.
+- Better Auth runtime assumptions still depend on the auth tables matching the generated schema shape, especially the `rate_limit` model and the snake_case timestamp columns.

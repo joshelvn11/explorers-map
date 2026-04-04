@@ -8,11 +8,12 @@ This package contains shared domain logic used by the public app, repository too
 - Shared public read/query modules for countries, regions, destinations, and listings
 - Shared listing write/service modules for lifecycle, metadata, destination assignment, and gallery operations
 - Shared editorial service modules for MCP-facing category, region, destination, and listing reads, matching, ensure flows, and safe creation
-- Planned future CMS/auth service responsibilities such as actor context, permission checks, and web-CMS write operations
+- Shared CMS/auth service responsibilities such as actor context, permission checks, and CMS write-context helpers
 
 ## Exports
 
 - `@explorers-map/services`
+- `@explorers-map/services/auth`
 - `@explorers-map/services/countries`
 - `@explorers-map/services/editorial`
 - `@explorers-map/services/destinations`
@@ -67,12 +68,17 @@ Editorial MCP support:
 - `ensureListing`
 - `createListingDraftForEditor`
 
-Planned CMS additions:
+Current CMS/auth additions:
 
 - shared authenticated actor context and role helpers
+- viewer, moderator, and admin role lookup and persistence helpers
+- moderator-region scope helpers for admin and moderator flows
+- CMS write-context helpers that convert an authorized actor into the existing shared write-context shape
+
+Planned CMS additions:
+
 - RBAC-aware CMS operations for countries, regions, destinations, and listings
 - listing tag-write support
-- user-role-aware moderation scope helpers for admin and moderator flows
 
 ## Local Commands
 

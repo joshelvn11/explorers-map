@@ -28,6 +28,7 @@ Expected flow:
 - `packages/db` now owns the initial Drizzle schema, SQLite path resolution, and migration workflow.
 - `packages/services` now owns the shared seed import pipeline used by repository scripts plus the shared public query and listing write services used by future app and MCP entrypoints.
 - `apps/web` now also serves a narrow machine-facing Actions API for custom GPT integrations, backed by the same shared service layer as the public app and MCP runtime.
+- `apps/web` now also owns Better Auth browser-session handling, signed-in account routes, an idempotent bootstrap-admin initializer, and a protected CMS shell.
 - The shared database file defaults to `.data/explorers-map.sqlite` unless `EXPLORERS_MAP_SQLITE_PATH` overrides it.
 - Docker deployment now also supports a persistent runtime DB at `/app/data/explorers-map.sqlite` via container environment configuration.
 - Core data integrity for listings, scoped slugs, and join-table duplication is enforced in the schema layer.
@@ -56,26 +57,22 @@ Expected flow:
 - Listing destination assignment is country-scoped, but destination-to-region membership remains editorial metadata rather than a hard validation rule.
 - Gallery updates are replace-all operations that delete stale rows and recreate ordered gallery records with fresh IDs.
 - Service writes update `source`, `updatedBy`, and `updatedAt` consistently, while creation also populates `createdBy`.
-- A planned Phase 8-10 CMS rollout will extend the shared service layer with browser-auth actor context, RBAC checks, and CMS write authorization so the web UI does not become a second business-rules implementation.
+- The shared service layer now includes browser-auth actor context, CMS role lookup, moderator-region scope lookup, and CMS write-context helpers so later CMS work can reuse one authorization path.
 
-## Planned CMS/Auth Direction
+## CMS/Auth Direction
 
-- The next major web-app expansion is a session-based CMS in `apps/web` using Better Auth for signed-in humans.
-- Browser auth is planned to live alongside the public web app and should remain separate from the existing bearer-token auth used by MCP and the Actions API.
-- Planned CMS mutations in the web app should use one transport pattern, favoring thin server actions over a mixed set of write adapters.
-- Open signup is planned, but new users should default to a `viewer` role with no CMS access.
-- Planned CMS roles are:
+- `apps/web` now uses Better Auth for signed-in humans with email/password auth, session cookies, and `/api/auth/[...all]` route handling.
+- Browser auth lives alongside the public web app and remains fully separate from the existing bearer-token auth used by MCP and the Actions API.
+- Open signup is now live, and new users default to a `viewer` role with no CMS access.
+- Current CMS roles are:
   - `admin` for full CMS and user-management access
   - `moderator` for region-scoped editorial access
   - `viewer` for authenticated non-CMS accounts
-- Planned moderator scope is region-based and may span more than one region.
-- Planned destination authorization for moderators follows an overlap rule: a moderator may edit a destination when at least one linked destination region overlaps one of their assigned regions.
-- Moderator destination-region edits should stay constrained to the moderator's assigned regions, and moderators should not be able to save a destination that no longer overlaps any assigned region.
-- The first root admin account is planned as a one-time environment-backed bootstrap flow rather than a permanent alternate login path.
-- Bootstrap-admin behavior should be idempotent and should not rewrite existing admin records after initialization.
-- Better Auth should own auth/session/account persistence, while app-owned tables should carry CMS roles and moderator-region assignments.
-- The first CMS/auth phase should not hard-delete users, and user-management flows should protect against removing or demoting the last remaining admin.
-- Public anonymous browsing should remain unaffected while CMS routes are protected behind browser-session auth.
+- Moderator scope is region-based and may span more than one region once assignments are managed in the CMS.
+- The first root admin account now uses a one-time environment-backed bootstrap flow rather than a permanent alternate login path.
+- Bootstrap-admin behavior is idempotent, runs only from explicit init paths, and does not rewrite existing admins after initialization.
+- Better Auth owns auth/session/account persistence, while app-owned tables carry CMS roles and moderator-region assignments.
+- Public anonymous browsing remains unaffected while `/account` and `/cms` are protected behind browser-session auth.
 
 ## MCP Direction
 
@@ -125,22 +122,27 @@ Expected flow:
 ## Public Web App MVP
 
 - The public app uses App Router server components backed directly by shared query modules, and it now also hosts a narrow authenticated Actions API surface for custom GPT integrations.
-- A future Phase 8-10 expansion will add session-based browser auth, signed-in account flows, and a protected CMS route family inside `apps/web`.
+- Session-based browser auth, signed-in account flows, and the first protected CMS route family now live inside `apps/web`.
 - Region overview pages remain lighter browse surfaces, now previewing both published listings and linked destinations, while `/countries/[countrySlug]/regions/[regionSlug]/listings` remains the only interactive catalog route in MVP and `/countries/[countrySlug]/regions/[regionSlug]/destinations` provides the full region-linked destination index.
 - Destination pages remain curated and unfiltered, showing only listings explicitly linked to that destination while linking onward to canonical region-scoped listing pages.
 - Listing metadata prefers `googleMapsPlaceUrl` when present and otherwise falls back to generated Google Maps coordinate-search URLs.
 - The web app no longer depends on remote Google font fetches during build; typography uses local font stacks so offline or restricted-network builds can still succeed.
 - DB-backed public pages now opt into dynamic rendering so published content is read from the live runtime SQLite database instead of being baked into the build output.
 - The Actions API is implemented as thin route handlers that authenticate, validate HTTP inputs, map service errors to JSON responses, and then delegate all domain logic to `packages/services`.
-- The future CMS should follow the same architectural rule by keeping web auth/session handling in the app layer while delegating CMS authorization and content mutations to shared services.
+- The CMS shell follows the same architectural rule by keeping web auth/session handling in the app layer while delegating role lookup and CMS authorization primitives to shared services.
 - The web app dev, build, and start scripts now auto-load the repo-root `.env` file so local Actions API auth behaves like the MCP runtime.
+- The web app dev startup now also runs the shared migration flow and bootstrap-admin initializer before launching Next.js, which keeps existing local SQLite files compatible after schema changes such as Phase 8 auth tables.
 - The Actions routes export direct segment-config literals (`runtime = "nodejs"` and `dynamic = "force-dynamic"`) because Next.js 16 build analysis rejects indirection there.
+- The auth route tree now includes `/api/auth/[...all]`, `/sign-in`, `/sign-up`, `/sign-out`, `/account`, and `/cms`.
+- `proxy.ts` performs optimistic cookie-based redirects for `/account` and `/cms`, while the protected pages and layouts still do authoritative server-side session and role checks.
+- The browser-auth tests cover signup, signin, signout, viewer-default role creation, proxy protection, bootstrap-admin idempotency, and the separation between browser sessions and Actions bearer auth.
 
 ## Docker Deployment
 
 - The repository root now contains a web-only `Dockerfile`, `.dockerignore`, and `docker-compose.yml`.
 - The container image is built from the workspace root so existing monorepo-relative scripts and package resolution continue to work.
 - Container startup runs `pnpm db:migrate`, checks whether the `countries` table is empty, seeds only on first boot, and then starts the Next.js web server.
+- Container startup also runs the explicit bootstrap-admin initializer after migrations and optional seeding.
 - Docker Compose persists SQLite state in a named volume mounted at `/app/data`.
 - Docker Compose maps the internal web port `3000` to a configurable host port via `EXPLORERS_MAP_HOST_PORT`, defaulting to `8080`.
 - The web container health check targets `GET /api/actions/healthz`.
