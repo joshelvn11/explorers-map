@@ -8,6 +8,7 @@
     "build:web": "pnpm --filter @explorers-map/web build",
     "lint:web": "pnpm --filter @explorers-map/web lint",
     "typecheck:web": "pnpm --filter @explorers-map/web typecheck",
+    "test:web": "pnpm --filter @explorers-map/web test",
     "typecheck:mcp": "pnpm --filter @explorers-map/mcp typecheck",
     "lint": "pnpm -r --if-present lint",
     "typecheck": "pnpm -r --if-present typecheck",

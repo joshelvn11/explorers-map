@@ -396,7 +396,8 @@ Future:
 ### 8.2 Backend
 
 - Next.js app reads directly from the database through shared query and service modules
-- No dedicated Next.js CRUD API is required for MVP
+- No broad dedicated Next.js CRUD API is required for MVP
+- A narrow authenticated Actions API inside the Next.js app is allowed for private custom GPT and ChatGPT Actions workflows when an OpenAPI-described HTTP surface is required
 - The web app and standalone MCP server should live in the same repository and share database/domain code
 
 ---
@@ -406,9 +407,12 @@ Future:
 - Core create/update logic should live in shared service-layer functions
 - The Next.js app and MCP server should both reuse the same shared database and service layer
 - A separate MCP server can act as the primary machine-write interface for LLM-driven content operations
+- The Next.js app may also expose a narrow authenticated HTTP Actions surface for custom GPT use, but it should remain a thin adapter over the same shared services and duplicate-safe editorial rules
 - The initial MCP use case is the project owner using ChatGPT as a personal editorial assistant
+- The initial Actions API use case is the project owner using ChatGPT Actions for a private custom GPT
 - The MCP server should be designed for guided editorial workflows rather than broad raw CRUD access
 - The MCP layer should act as a thin adapter, not a second source of truth for validation or database writes
+- The Actions API should follow the same principle and avoid becoming a second write implementation
 - Prefer task-shaped tools such as:
   - find region
   - ensure region
@@ -436,9 +440,11 @@ Future:
 - Write tools should default to draft creation or draft-preserving updates unless the user explicitly asks to publish
 - The MCP surface should expose lightweight platform and editorial guidance so ChatGPT understands the data model and usage rules before taking action
 - The standalone MCP server is expected to be remotely reachable for ChatGPT connector use
+- The custom GPT Actions API should publish OpenAPI documentation and concise GPT usage instructions so ChatGPT can call it predictably
 - MCP authentication should be implemented in two stages:
   - Stage 1: a simple private bearer token or API key for personal development and early private use
   - Stage 2: OAuth for the proper remote ChatGPT connector experience
+- The initial Actions API auth model can use a private bearer token or API key for personal use
 - The official TypeScript MCP SDK is the preferred implementation approach for this repository
 
 Recommended repository shape:

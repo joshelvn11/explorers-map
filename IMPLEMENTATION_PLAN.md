@@ -231,7 +231,43 @@ Note:
 
 - [x] Decide whether the MCP server is strictly local/internal for MVP or needs additional authentication and deployment hardening beyond a trusted internal setup.
 
-## Phase 7 - Content Lifecycle, Trash, and Operational Polish
+## Phase 7 - Actions HTTP API for Custom GPT
+
+Note:
+
+- [x] This phase is a deliberate exception to the earlier “no dedicated Next.js CRUD API” wording. The web app remains public/read-first, but now also hosts a narrow authenticated machine-facing Actions surface under `apps/web`.
+- [x] The Actions API is intended for private custom GPT and ChatGPT Actions use, not for broad public CRUD.
+- [x] The Actions API must stay a thin adapter over shared services and must not introduce direct DB writes in route handlers.
+- [x] Actions reads default to editor-visible draft inclusion while excluding trashed listings.
+- [x] Actions creation flows must remain duplicate-safe, evidence-first, and draft-first.
+
+### Agent Tasks
+
+- [x] Add an authenticated Actions API namespace under `apps/web/app/api/actions`.
+- [x] Add `GET /api/actions/healthz`.
+- [x] Add `GET /api/actions/openapi.json`.
+- [x] Add `GET /api/actions/v1/countries`.
+- [x] Add `GET /api/actions/v1/countries/[countrySlug]`.
+- [x] Add `GET /api/actions/v1/categories`.
+- [x] Add region endpoints for list, search, get, and duplicate-safe create.
+- [x] Add destination endpoints for list, search, get, and duplicate-safe create.
+- [x] Add listing endpoints for region list, destination list, search, get, and duplicate-safe draft create.
+- [x] Keep route handlers thin and route all business behavior through existing shared services.
+- [x] Add separate bearer-token auth for the Actions API.
+- [x] Reuse existing fuzzy matching, ensure flows, evidence rules, and draft-only listing creation semantics.
+- [x] Add a checked-in OpenAPI 3.1 schema at `apps/web/openapi/explorers-map-actions.openapi.json`.
+- [x] Serve the same Actions contract from `/api/actions/openapi.json`.
+- [x] Mark mutating endpoints as consequential in the OpenAPI contract.
+- [x] Add HTTP Actions API documentation in `apps/web/API.md`.
+- [x] Add root-level `CHATGPT_ACTIONS_CONTEXT.md` guidance for custom GPT usage.
+- [x] Add route and integration tests covering auth rejection, schema serving, read/search/get behavior, duplicate-safe create flows, and trash exclusion.
+
+### Human Required Steps
+
+- [ ] Configure the deployed host and bearer token in the custom GPT Actions setup.
+- [ ] Review whether this private Actions surface needs additional deployment hardening before broader use.
+
+## Phase 8 - Content Lifecycle, Trash, and Operational Polish
 
 ### Agent Tasks
 
@@ -247,7 +283,7 @@ Note:
 
 - [ ] Review whether any additional operational safeguards are needed before real content editing begins.
 
-## Phase 8 - MCP OAuth Upgrade
+## Phase 9 - MCP OAuth Upgrade
 
 ### Agent Tasks
 

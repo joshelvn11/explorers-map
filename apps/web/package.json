@@ -2,12 +2,14 @@
   "name": "@explorers-map/web",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "scripts": {
-    "dev": "env EXPLORERS_MAP_WORKSPACE_ROOT=../.. next dev --webpack",
-    "build": "env EXPLORERS_MAP_WORKSPACE_ROOT=../.. next build --webpack",
-    "start": "env EXPLORERS_MAP_WORKSPACE_ROOT=../.. next start",
+    "dev": "env EXPLORERS_MAP_WORKSPACE_ROOT=../.. node ./scripts/run-next.mjs dev --webpack",
+    "build": "env EXPLORERS_MAP_WORKSPACE_ROOT=../.. node ./scripts/run-next.mjs build --webpack",
+    "start": "env EXPLORERS_MAP_WORKSPACE_ROOT=../.. node ./scripts/run-next.mjs start",
     "lint": "eslint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "node --experimental-strip-types --test ./*.test.ts"
   },
   "dependencies": {
     "@explorers-map/db": "workspace:*",

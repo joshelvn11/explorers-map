@@ -39,9 +39,11 @@ This project is currently a single repository. The intended implementation shape
 Important architectural rules:
 
 - The public web app is read-first for MVP.
-- No dedicated Next.js CRUD API is required for MVP.
+- No broad dedicated Next.js CRUD API is required for MVP.
+- A narrow authenticated Actions API inside `apps/web` is allowed for custom GPT and ChatGPT Actions use cases when an OpenAPI-described HTTP surface is required.
 - The MCP server is the primary machine-write interface for content operations.
 - Shared service-layer functions are the single write path for MCP tools and scripts.
+- The Actions API must stay a thin adapter over shared service-layer functions rather than becoming a second write implementation.
 - The app and MCP server should share code through workspace packages, not duplicate business logic.
 - SQLite is the chosen database for MVP.
 - Cloudflare S3-compatible object storage is the chosen production image host.
@@ -239,6 +241,22 @@ When implementing MCP functionality:
 - Keep tool validation strict and responses structured.
 - Track source and audit metadata consistently.
 - Do not bypass the shared service layer with raw DB writes unless the brief is explicitly changed.
+
+## Working With The Actions API
+
+When implementing the custom GPT / ChatGPT Actions HTTP surface:
+
+- Keep the HTTP surface narrow, authenticated, and OpenAPI-documented.
+- Prefer list, search, and get flows before create flows so GPTs can avoid duplicates.
+- Reuse the same duplicate-safe ensure and fuzzy matching logic already used by MCP where possible.
+- Keep create flows evidence-first and stop on ambiguity instead of guessing.
+- Do not introduce raw CRUD endpoints or direct DB writes in `apps/web` route handlers.
+- Keep both Actions schema variants in sync:
+  - `apps/web/openapi/explorers-map-actions.openapi.json`
+  - `apps/web/openapi/explorers-map-actions.production.openapi.json`
+- Keep the served schema routes aligned with those checked-in files:
+  - `/api/actions/openapi.json`
+  - `/api/actions/openapi.production.json`
 
 ## Working With Content Lifecycle
 

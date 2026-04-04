@@ -765,7 +765,7 @@ export function findListing(input: ListingFindInput, dbInstance?: DbInstance): F
     })
     .from(listings)
     .innerJoin(regions, eq(listings.regionId, regions.id))
-    .where(eq(regions.countryId, country.id))
+    .where(and(eq(regions.countryId, country.id), isNull(listings.deletedAt)))
     .orderBy(asc(listings.title))
     .all();
 

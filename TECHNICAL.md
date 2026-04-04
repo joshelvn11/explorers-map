@@ -5,6 +5,7 @@
 This repository is organized as a pnpm workspace.
 
 - `apps/web` contains the Next.js public application.
+- `apps/web` now also hosts the authenticated custom GPT Actions HTTP surface under `/api/actions`.
 - `apps/mcp` contains the standalone MCP server.
 - `packages/db` is intended to own SQLite and Drizzle concerns.
 - `packages/services` is intended to own shared read/write domain logic.
@@ -26,6 +27,7 @@ Expected flow:
 - `apps/web` now renders the public MVP route tree for countries, regions, destinations, region catalogs, and canonical listing detail pages.
 - `packages/db` now owns the initial Drizzle schema, SQLite path resolution, and migration workflow.
 - `packages/services` now owns the shared seed import pipeline used by repository scripts plus the shared public query and listing write services used by future app and MCP entrypoints.
+- `apps/web` now also serves a narrow machine-facing Actions API for custom GPT integrations, backed by the same shared service layer as the public app and MCP runtime.
 - The shared database file defaults to `.data/explorers-map.sqlite` unless `EXPLORERS_MAP_SQLITE_PATH` overrides it.
 - Core data integrity for listings, scoped slugs, and join-table duplication is enforced in the schema layer.
 
@@ -73,6 +75,18 @@ Expected flow:
 - `CHATGPT_MCP_CONTEXT.md` remains the root-level human-authored context document intended to guide ChatGPT usage of the Explorers Map MCP.
 - `apps/mcp/API.md` now documents the implemented Phase 6 tool schemas, result shapes, auth behavior, and editorial workflows.
 
+## Actions API Direction
+
+- The web app now exposes `GET /api/actions/openapi.json`, `GET /api/actions/healthz`, and the Phase 7 `/api/actions/v1/...` editorial HTTP endpoints for custom GPT Actions use.
+- Actions auth uses a separate bearer token via `EXPLORERS_MAP_ACTIONS_AUTH_TOKEN`.
+- The Actions surface is intentionally narrow: create, list, search, and get only for countries, categories, regions, destinations, and listings.
+- All Actions writes reuse existing shared `ensure_*` and listing draft creation services so duplicate protection, evidence validation, and draft-first behavior stay consistent with MCP.
+- Actions listing reads include drafts by default but exclude trashed listings unless future work expands that surface explicitly.
+- The checked-in OpenAPI document lives at `apps/web/openapi/explorers-map-actions.openapi.json`, and the runtime serves the same contract from `/api/actions/openapi.json`.
+- A second checked-in GPT-facing production schema lives at `apps/web/openapi/explorers-map-actions.production.openapi.json`, and the runtime serves it from `/api/actions/openapi.production.json`.
+- Future schema changes must update both schema files so the general runtime contract and the trimmed ChatGPT import contract do not drift.
+- `CHATGPT_ACTIONS_CONTEXT.md` is the root-level GPT instruction document for this HTTP surface.
+
 ## Service Tests
 
 - `pnpm test:services` runs Node-based integration tests against fresh temp SQLite databases.
@@ -89,12 +103,14 @@ Expected flow:
 
 ## Public Web App MVP
 
-- The public app uses App Router server components backed directly by shared query modules; it does not introduce a parallel write or read API surface.
+- The public app uses App Router server components backed directly by shared query modules, and it now also hosts a narrow authenticated Actions API surface for custom GPT integrations.
 - Region overview pages remain lighter browse surfaces, now previewing both published listings and linked destinations, while `/countries/[countrySlug]/regions/[regionSlug]/listings` remains the only interactive catalog route in MVP and `/countries/[countrySlug]/regions/[regionSlug]/destinations` provides the full region-linked destination index.
 - Destination pages remain curated and unfiltered, showing only listings explicitly linked to that destination while linking onward to canonical region-scoped listing pages.
 - Listing metadata prefers `googleMapsPlaceUrl` when present and otherwise falls back to generated Google Maps coordinate-search URLs.
 - The web app no longer depends on remote Google font fetches during build; typography uses local font stacks so offline or restricted-network builds can still succeed.
 - Public pages call shared queries during static param generation, so migrated and seeded SQLite data is expected before `pnpm build:web`.
+- The Actions API is implemented as thin route handlers that authenticate, validate HTTP inputs, map service errors to JSON responses, and then delegate all domain logic to `packages/services`.
+- The web app dev, build, and start scripts now auto-load the repo-root `.env` file so local Actions API auth behaves like the MCP runtime.
 
 ## Notes for Future Agents
 

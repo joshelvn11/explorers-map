@@ -27,6 +27,10 @@ The format is based on Keep a Changelog.
 - Added shared editorial services in `packages/services` for MCP-facing reads, fuzzy matching, evidence validation, `ensure_*` flows, safe region and destination creation, and duplicate-aware listing draft creation.
 - Added MCP package scripts, tests, and root shortcuts for MCP dev, typecheck, and test workflows.
 - Added automatic repo-root `.env` loading for the MCP dev and start scripts so local bearer-token setup works without manual shell export.
+- Added a Phase 7 Actions HTTP API under `apps/web` for custom GPT use, including authenticated list/search/get/create endpoints for countries, categories, regions, destinations, and listings.
+- Added a checked-in OpenAPI 3.1 contract for the Actions API plus `/api/actions/openapi.json`, route tests, and custom-GPT usage docs.
+- Updated the web app dev, build, and start scripts to auto-load the repo-root `.env` file so Actions API auth works from the same local env setup as the MCP server.
+- Added a second production GPT import schema plus `/api/actions/openapi.production.json`, using `https://explorersmap.org` and omitting utility endpoints from the ChatGPT-facing action list.
 
 ### Changed
 
@@ -37,3 +41,4 @@ The format is based on Keep a Changelog.
 - Extended the planned MCP workflow with `find_listing` and `ensure_listing` so listing creation can follow the same duplicate-safe lookup-before-create pattern as regions and destinations.
 - Tightened the planned MCP editorial rules around evidence-first creation, ambiguity-stop behavior, explicit destination-region assignment, and refusal of placeholder-only listing drafts.
 - Updated the MCP docs from planned-only status to implemented runtime guidance, including the `/mcp` endpoint, bearer auth header format, and the shipped Phase 6 tool and resource surface.
+- Updated the brief and implementation plan so the earlier no-Next.js-CRUD assumption now explicitly allows a narrow authenticated Actions API inside `apps/web` as a deliberate exception for private custom GPT workflows.

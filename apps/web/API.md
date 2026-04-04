@@ -1,0 +1,134 @@
+# Explorers Map Actions API
+
+This document describes the HTTP Actions API implemented inside `apps/web` for private custom GPT and ChatGPT Actions usage.
+
+The runtime serves:
+
+- `GET /api/actions/healthz`
+- `GET /api/actions/openapi.json`
+- `GET /api/actions/openapi.production.json`
+- `GET` and `POST` endpoints under `/api/actions/v1/...`
+
+## Purpose
+
+This API gives a custom GPT a small OpenAPI-described HTTP surface for:
+
+- reading current countries, categories, regions, destinations, and listings
+- searching existing content before writing
+- creating new regions, destinations, and listing drafts only when no safe existing match exists
+
+The API is intentionally narrow. It is not broad CRUD.
+
+## Authentication
+
+All `/api/actions/v1/...` endpoints require:
+
+```http
+Authorization: Bearer <EXPLORERS_MAP_ACTIONS_AUTH_TOKEN>
+```
+
+Unauthenticated requests return HTTP `401` with:
+
+```json
+{
+  "error": {
+    "code": "UNAUTHENTICATED",
+    "message": "Missing or invalid bearer token."
+  }
+}
+```
+
+`/api/actions/healthz` and `/api/actions/openapi.json` are intentionally unauthenticated.
+`/api/actions/openapi.production.json` is also intentionally unauthenticated so it can be imported directly into a custom GPT.
+
+## Core Rules
+
+- Always list, search, or get existing content before creating anything.
+- Regions, destinations, and listings use duplicate-safe ensure flows rather than blind creation.
+- Create flows require non-empty `evidence[]`.
+- Ambiguous matches stop with `candidate_matches` instead of guessing.
+- New listings are created as `draft` only.
+- Listing reads include drafts but exclude trashed content.
+- All write logic stays in shared services. Route handlers do not write to the DB directly.
+
+## Endpoint Groups
+
+### Reference
+
+- `GET /api/actions/v1/countries`
+- `GET /api/actions/v1/countries/{countrySlug}`
+- `GET /api/actions/v1/categories`
+
+### Regions
+
+- `GET /api/actions/v1/countries/{countrySlug}/regions`
+- `GET /api/actions/v1/countries/{countrySlug}/regions/search?query=...&limit=...`
+- `GET /api/actions/v1/countries/{countrySlug}/regions/{regionSlug}`
+- `POST /api/actions/v1/countries/{countrySlug}/regions`
+
+### Destinations
+
+- `GET /api/actions/v1/countries/{countrySlug}/destinations`
+- `GET /api/actions/v1/countries/{countrySlug}/destinations/search?query=...&regionSlug=...&limit=...`
+- `GET /api/actions/v1/countries/{countrySlug}/destinations/{destinationSlug}`
+- `POST /api/actions/v1/countries/{countrySlug}/destinations`
+
+### Listings
+
+- `GET /api/actions/v1/countries/{countrySlug}/regions/{regionSlug}/listings`
+- `GET /api/actions/v1/countries/{countrySlug}/destinations/{destinationSlug}/listings`
+- `GET /api/actions/v1/countries/{countrySlug}/listings/search?query=...&regionSlug=...&destinationSlug=...&latitude=...&longitude=...&limit=...`
+- `GET /api/actions/v1/countries/{countrySlug}/regions/{regionSlug}/listings/{listingSlug}`
+- `POST /api/actions/v1/countries/{countrySlug}/regions/{regionSlug}/listings`
+
+## Create Response Shape
+
+All create endpoints return ensure-style payloads:
+
+```json
+{
+  "status": "matched | created | candidate_matches | insufficient_evidence",
+  "confidence": 0.98,
+  "reasons": ["..."],
+  "record": {},
+  "candidates": [],
+  "evidence": [],
+  "warnings": []
+}
+```
+
+Response semantics:
+
+- HTTP `201` when `status = "created"`
+- HTTP `200` when a record was matched, or when creation stopped safely because of candidate matches or insufficient evidence
+
+## Recommended GPT Workflow
+
+1. Call `listCountries` and `listCategories` when you need canonical slugs.
+2. Use search and get endpoints to inspect current regions, destinations, and listings.
+3. For new content, call the matching `POST` ensure endpoint with `evidence[]`.
+4. If the API returns `candidate_matches`, stop and review candidates instead of retrying with a slightly different title.
+5. If the API returns `insufficient_evidence`, gather evidence before trying again.
+6. Treat listing creation as draft-only. There are no publish or trash endpoints in this phase.
+
+## OpenAPI
+
+- Checked-in contract:
+  `apps/web/openapi/explorers-map-actions.openapi.json`
+- Checked-in production GPT contract:
+  `apps/web/openapi/explorers-map-actions.production.openapi.json`
+- Served contract:
+  `GET /api/actions/openapi.json`
+- Served production GPT contract:
+  `GET /api/actions/openapi.production.json`
+
+Schema intent:
+
+- `explorers-map-actions.openapi.json`
+  Full local/runtime contract, including utility endpoints such as health and schema discovery.
+- `explorers-map-actions.production.openapi.json`
+  Trimmed ChatGPT-facing contract for live import on `https://explorersmap.org`, omitting utility endpoints so the GPT only sees editorial actions.
+
+Maintenance rule:
+
+- Future Actions contract changes must be reflected in both checked-in schema files and both served schema routes.

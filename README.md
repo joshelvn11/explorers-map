@@ -31,6 +31,7 @@ pnpm dev:mcp
 pnpm build:web
 pnpm lint
 pnpm typecheck
+pnpm test:web
 pnpm typecheck:mcp
 pnpm test:services
 pnpm test:mcp
@@ -70,6 +71,8 @@ Copy `.env.example` to your local env file of choice and set `EXPLORERS_MAP_SQLI
   Optional bind port for the MCP server. Defaults to `3001`.
 - `EXPLORERS_MAP_MCP_AUTH_TOKEN`
   Required bearer token for the MCP server.
+- `EXPLORERS_MAP_ACTIONS_AUTH_TOKEN`
+  Required bearer token for the custom GPT Actions HTTP API under `apps/web`.
 
 MCP runtime note:
 
@@ -77,6 +80,16 @@ MCP runtime note:
 - Run `pnpm dev:mcp` after setting `EXPLORERS_MAP_MCP_AUTH_TOKEN` in `.env` or in your shell environment.
 - The server listens on `/mcp` and exposes `GET /healthz`.
 - All MCP requests must send `Authorization: Bearer <token>`.
+
+Actions API note:
+
+- `apps/web` now also hosts a narrow authenticated HTTP API for custom GPT Actions under `/api/actions`.
+- The checked-in OpenAPI contract lives at `apps/web/openapi/explorers-map-actions.openapi.json`.
+- The production GPT import contract lives at `apps/web/openapi/explorers-map-actions.production.openapi.json`.
+- The runtime serves the same contract from `GET /api/actions/openapi.json`.
+- The trimmed production GPT import contract is also served from `GET /api/actions/openapi.production.json`.
+- `pnpm dev:web`, `pnpm build:web`, and `pnpm --filter @explorers-map/web start` now automatically load the repo-root `.env` file when it exists.
+- The primary custom GPT workflow is list/search/get before create so duplicate-safe ensure flows can stop on ambiguity instead of inventing new records.
 
 ## Source of Truth
 

@@ -17,7 +17,6 @@ import {
   getCountryHref,
   getCountryRegionsHref,
   getDestinationHref,
-  getRegionDestinationsHref,
   getRegionHref,
 } from "../../../../../../lib/routes";
 
