@@ -1,0 +1,29 @@
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      EXPLORERS_MAP_SQLITE_PATH: /app/data/explorers-map.sqlite
+      EXPLORERS_MAP_PUBLIC_APP_URL: ${EXPLORERS_MAP_PUBLIC_APP_URL:-http://localhost:3000}
+      EXPLORERS_MAP_ACTIONS_AUTH_TOKEN: ${EXPLORERS_MAP_ACTIONS_AUTH_TOKEN}
+    volumes:
+      - explorers-map-data:/app/data
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3000/api/actions/healthz').then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+volumes:
+  explorers-map-data:

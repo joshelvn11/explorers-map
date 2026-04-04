@@ -14,6 +14,8 @@ export const metadata = buildMetadata({
     "Start with a country, then move through regions, destinations, and hand-picked outdoor places worth exploring.",
 });
 
+export const dynamic = "force-dynamic";
+
 export default function HomePage() {
   const countries = listCountries();
 

@@ -2,9 +2,7 @@ import { notFound } from "next/navigation";
 
 import {
   getRegionBySlug,
-  listCountries,
   listDestinationsForRegion,
-  listRegionsForCountry,
 } from "@explorers-map/services";
 
 import { Breadcrumbs } from "../../../../../../components/breadcrumbs";
@@ -24,14 +22,7 @@ type RegionDestinationsPageProps = {
   params: Promise<{ countrySlug: string; regionSlug: string }>;
 };
 
-export async function generateStaticParams() {
-  return listCountries().flatMap((country) =>
-    listRegionsForCountry(country.slug).map((region) => ({
-      countrySlug: country.slug,
-      regionSlug: region.slug,
-    })),
-  );
-}
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: RegionDestinationsPageProps) {
   const { countrySlug, regionSlug } = await params;

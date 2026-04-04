@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 
-import { getRegionListingCatalog, listCountries, listRegionsForCountry } from "@explorers-map/services";
+import { getRegionListingCatalog } from "@explorers-map/services";
 
 import { Breadcrumbs } from "../../../../../../components/breadcrumbs";
 import { CatalogFilters } from "../../../../../../components/catalog-filters";
@@ -23,14 +23,7 @@ type RegionListingsPageProps = {
   searchParams: Promise<RouteSearchParams>;
 };
 
-export async function generateStaticParams() {
-  return listCountries().flatMap((country) =>
-    listRegionsForCountry(country.slug).map((region) => ({
-      countrySlug: country.slug,
-      regionSlug: region.slug,
-    })),
-  );
-}
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: RegionListingsPageProps) {
   const { countrySlug, regionSlug } = await params;

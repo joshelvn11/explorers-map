@@ -2,8 +2,6 @@ import { notFound } from "next/navigation";
 
 import {
   getDestinationBySlug,
-  listCountries,
-  listDestinationsForCountry,
   listListingsForDestination,
 } from "@explorers-map/services";
 
@@ -24,14 +22,7 @@ type DestinationPageProps = {
   params: Promise<{ countrySlug: string; destinationSlug: string }>;
 };
 
-export async function generateStaticParams() {
-  return listCountries().flatMap((country) =>
-    listDestinationsForCountry(country.slug).map((destination) => ({
-      countrySlug: country.slug,
-      destinationSlug: destination.slug,
-    })),
-  );
-}
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: DestinationPageProps) {
   const { countrySlug, destinationSlug } = await params;

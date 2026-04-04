@@ -14,11 +14,6 @@ const productionOpenApiPath = path.join(
   "explorers-map-actions.production.openapi.json",
 );
 
-export const actionsRouteConfig = {
-  runtime: "nodejs" as const,
-  dynamic: "force-dynamic" as const,
-};
-
 export type EvidenceItem = {
   label: string;
   note: string;

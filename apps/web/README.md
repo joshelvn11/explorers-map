@@ -60,10 +60,20 @@ Shared packages are transpiled through Next.js so they can be imported directly 
   - `/api/actions/openapi.json`
   - `/api/actions/openapi.production.json`
   - `/api/actions/v1/...`
-- Build and dev flows expect the shared SQLite database to be migrated and seeded first because static params and page rendering read real content from shared services.
+- Local dev flows still expect the shared SQLite database to be migrated and seeded first so the public pages have content to render.
+- Production builds no longer require seeded SQLite content because DB-backed public routes render from the runtime database.
 - The production build script uses `next build --webpack` so the shared native SQLite dependency stays compatible with Next's build pipeline.
 - Remote images are configured for `picsum.photos` and an optional Cloudflare public asset base URL.
 - The Actions API expects `EXPLORERS_MAP_ACTIONS_AUTH_TOKEN` to be set before use.
+
+## Container Deployment
+
+The repository root ships a web-only `Dockerfile` and `docker-compose.yml` for Dockhand-style deployment.
+
+- The container starts with `pnpm docker:start:web`.
+- Startup runs migrations, seeds only when the SQLite database is empty, and then launches `next start` on `0.0.0.0:3000`.
+- SQLite persistence is expected through the compose-mounted `/app/data` volume.
+- The container health check uses `/api/actions/healthz`.
 
 ## Key Documents
 

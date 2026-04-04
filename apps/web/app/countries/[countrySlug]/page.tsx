@@ -3,7 +3,6 @@ import { notFound } from "next/navigation";
 
 import {
   getCountryBySlug,
-  listCountries,
   listDestinationsForCountry,
   listRegionsForCountry,
 } from "@explorers-map/services";
@@ -26,11 +25,7 @@ type CountryPageProps = {
   params: Promise<{ countrySlug: string }>;
 };
 
-export async function generateStaticParams() {
-  return listCountries().map((country) => ({
-    countrySlug: country.slug,
-  }));
-}
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: CountryPageProps) {
   const { countrySlug } = await params;

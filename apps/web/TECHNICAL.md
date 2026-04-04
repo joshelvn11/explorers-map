@@ -39,7 +39,7 @@ These packages are transpiled via `transpilePackages` in `next.config.ts`.
 - `/countries/[countrySlug]/regions/[regionSlug]/destinations` shows the full set of destination pages linked to the current region.
 - Destination pages consume the shared destination listing query and link every card to the canonical region-scoped listing URL.
 - Dynamic page metadata is built from shared detail queries for countries, regions, destinations, and listings.
-- Static params are generated from shared browse queries, so builds assume migrated and seeded SQLite data.
+- DB-backed public pages now use `dynamic = "force-dynamic"` so page content and metadata are read from the live runtime database instead of from build-time static params.
 
 ## Runtime Notes
 
@@ -48,9 +48,11 @@ These packages are transpiled via `transpilePackages` in `next.config.ts`.
 - Remote images are enabled for `picsum.photos` and optionally for the configured Cloudflare public asset host.
 - The Actions API lives under `/api/actions`, uses bearer auth via `EXPLORERS_MAP_ACTIONS_AUTH_TOKEN`, and serves its checked-in contract from `/api/actions/openapi.json`.
 - The web app also serves a trimmed production ChatGPT import contract from `/api/actions/openapi.production.json`.
+- Each Actions route exports direct `runtime = "nodejs"` and `dynamic = "force-dynamic"` literals so Next.js 16 accepts the route segment config during production builds.
 - Actions POST routes return `EnsureResult`-style payloads so custom GPT workflows can distinguish created, matched, candidate-match, and insufficient-evidence outcomes.
 - Actions listing reads include drafts by default but exclude trashed listings.
 - The web package dev, build, and start scripts auto-load the repo-root `.env` file when it exists.
+- The root `docker:start:web` bootstrap flow runs migrations, seeds only on an empty database, and then starts the app on `0.0.0.0:3000` for container deployment.
 - Keep both checked-in schema files in sync when editing the Actions contract:
   - `apps/web/openapi/explorers-map-actions.openapi.json`
   - `apps/web/openapi/explorers-map-actions.production.openapi.json`

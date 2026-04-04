@@ -29,6 +29,7 @@ Expected flow:
 - `packages/services` now owns the shared seed import pipeline used by repository scripts plus the shared public query and listing write services used by future app and MCP entrypoints.
 - `apps/web` now also serves a narrow machine-facing Actions API for custom GPT integrations, backed by the same shared service layer as the public app and MCP runtime.
 - The shared database file defaults to `.data/explorers-map.sqlite` unless `EXPLORERS_MAP_SQLITE_PATH` overrides it.
+- Docker deployment now also supports a persistent runtime DB at `/app/data/explorers-map.sqlite` via container environment configuration.
 - Core data integrity for listings, scoped slugs, and join-table duplication is enforced in the schema layer.
 
 ## Seed Pipeline
@@ -108,9 +109,19 @@ Expected flow:
 - Destination pages remain curated and unfiltered, showing only listings explicitly linked to that destination while linking onward to canonical region-scoped listing pages.
 - Listing metadata prefers `googleMapsPlaceUrl` when present and otherwise falls back to generated Google Maps coordinate-search URLs.
 - The web app no longer depends on remote Google font fetches during build; typography uses local font stacks so offline or restricted-network builds can still succeed.
-- Public pages call shared queries during static param generation, so migrated and seeded SQLite data is expected before `pnpm build:web`.
+- DB-backed public pages now opt into dynamic rendering so published content is read from the live runtime SQLite database instead of being baked into the build output.
 - The Actions API is implemented as thin route handlers that authenticate, validate HTTP inputs, map service errors to JSON responses, and then delegate all domain logic to `packages/services`.
 - The web app dev, build, and start scripts now auto-load the repo-root `.env` file so local Actions API auth behaves like the MCP runtime.
+- The Actions routes export direct segment-config literals (`runtime = "nodejs"` and `dynamic = "force-dynamic"`) because Next.js 16 build analysis rejects indirection there.
+
+## Docker Deployment
+
+- The repository root now contains a web-only `Dockerfile`, `.dockerignore`, and `docker-compose.yml`.
+- The container image is built from the workspace root so existing monorepo-relative scripts and package resolution continue to work.
+- Container startup runs `pnpm db:migrate`, checks whether the `countries` table is empty, seeds only on first boot, and then starts the Next.js web server.
+- Docker Compose persists SQLite state in a named volume mounted at `/app/data`.
+- The web container health check targets `GET /api/actions/healthz`.
+- The standalone MCP server is intentionally excluded from the compose stack for now.
 
 ## Notes for Future Agents
 

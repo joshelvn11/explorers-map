@@ -1,3 +1,4 @@
+import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -7,6 +8,8 @@ const appRoot = path.resolve(__dirname, "..");
 const repoRoot = path.resolve(appRoot, "..", "..");
 const rootEnvPath = path.join(repoRoot, ".env");
 
-process.loadEnvFile(rootEnvPath);
+if (fs.existsSync(rootEnvPath)) {
+  process.loadEnvFile(rootEnvPath);
+}
 
 await import("next/dist/bin/next");

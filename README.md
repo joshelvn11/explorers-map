@@ -35,6 +35,7 @@ pnpm test:web
 pnpm typecheck:mcp
 pnpm test:services
 pnpm test:mcp
+pnpm docker:start:web
 pnpm db:generate
 pnpm db:migrate
 pnpm studio
@@ -56,8 +57,35 @@ Seed command behavior:
 
 Public app note:
 
-- The public Next.js app now reads countries, regions, destinations, and listings directly from the shared SQLite database during page rendering and static param generation.
-- Run `pnpm db:migrate` and `pnpm seed` before `pnpm dev:web` or `pnpm build:web` so the public routes have data available.
+- The public Next.js app now reads countries, regions, destinations, and listings directly from the shared SQLite database during page rendering.
+- Run `pnpm db:migrate` and `pnpm seed` before `pnpm dev:web` so the public routes have data available.
+- Production builds no longer require seeded SQLite content because DB-backed public routes now render dynamically against the runtime database.
+
+## Docker Deployment
+
+This repository now includes a web-only container deployment path for Dockhand and other Docker-based hosts.
+
+Key behavior:
+
+- The image builds the Next.js web app from the workspace root.
+- Container startup always runs `pnpm db:migrate`.
+- The container seeds the SQLite database only when the `countries` table is empty.
+- The public site renders DB-backed country, region, destination, catalog, and listing pages at request time so new content appears without rebuilding the image.
+
+Local Docker commands:
+
+```bash
+export EXPLORERS_MAP_ACTIONS_AUTH_TOKEN=change-me-actions-token
+export EXPLORERS_MAP_PUBLIC_APP_URL=http://localhost:3000
+docker compose up --build
+```
+
+Runtime notes:
+
+- The compose stack mounts a named volume at `/app/data` so SQLite persists across container recreation.
+- The default container database path is `/app/data/explorers-map.sqlite`.
+- The container health check uses `GET /api/actions/healthz`.
+- The compose file intentionally includes only the web app; the standalone MCP server is not containerized yet.
 
 ## Environment
 
@@ -73,6 +101,10 @@ Copy `.env.example` to your local env file of choice and set `EXPLORERS_MAP_SQLI
   Required bearer token for the MCP server.
 - `EXPLORERS_MAP_ACTIONS_AUTH_TOKEN`
   Required bearer token for the custom GPT Actions HTTP API under `apps/web`.
+
+Container deployment note:
+
+- Docker Compose provides `EXPLORERS_MAP_SQLITE_PATH`, `EXPLORERS_MAP_PUBLIC_APP_URL`, and `EXPLORERS_MAP_ACTIONS_AUTH_TOKEN` through the container environment, so a repo-local `.env` file is optional for containerized deployment.
 
 MCP runtime note:
 

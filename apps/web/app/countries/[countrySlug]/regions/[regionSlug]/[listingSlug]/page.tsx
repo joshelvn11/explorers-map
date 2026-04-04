@@ -4,9 +4,6 @@ import { notFound } from "next/navigation";
 
 import {
   getListingDetail,
-  listCountries,
-  listListingsForRegion,
-  listRegionsForCountry,
 } from "@explorers-map/services";
 
 import { Badge } from "../../../../../../components/badge";
@@ -27,17 +24,7 @@ type ListingPageProps = {
   params: Promise<{ countrySlug: string; regionSlug: string; listingSlug: string }>;
 };
 
-export async function generateStaticParams() {
-  return listCountries().flatMap((country) =>
-    listRegionsForCountry(country.slug).flatMap((region) =>
-      listListingsForRegion({ countrySlug: country.slug, regionSlug: region.slug }).map((listing) => ({
-        countrySlug: country.slug,
-        regionSlug: region.slug,
-        listingSlug: listing.slug,
-      })),
-    ),
-  );
-}
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: ListingPageProps) {
   const { countrySlug, regionSlug, listingSlug } = await params;

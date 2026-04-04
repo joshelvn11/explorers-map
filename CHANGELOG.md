@@ -8,6 +8,7 @@ The format is based on Keep a Changelog.
 
 ### Added
 
+- Added a web-only Docker deployment path with a root `Dockerfile`, `.dockerignore`, `docker-compose.yml`, persistent SQLite volume wiring, and first-boot migrate-plus-seed bootstrap behavior for Dockhand-style hosting.
 - Added the initial Drizzle schema, shared SQLite client, and migration workflow in `packages/db`.
 - Added repo-level DB scripts and environment scaffolding for the shared SQLite path and deferred Cloudflare/MCP config.
 - Updated the seed source and validator to include tag IDs, listing image IDs and sort order, and explicit listing lifecycle/source fields.
@@ -34,6 +35,8 @@ The format is based on Keep a Changelog.
 
 ### Changed
 
+- Changed the public web app from build-time DB-backed static params to runtime DB-backed rendering for country, region, destination, catalog, and listing pages so content updates no longer require rebuilding the image.
+- Changed the Actions route segment config exports to direct Next.js literals so production builds succeed under Next.js 16.
 - Refined the MCP plan around personal editorial use through ChatGPT rather than generic CRUD automation.
 - Updated the MCP implementation plan to emphasize fuzzy lookup, lookup-before-create flows, destination ensuring, and draft-first content creation.
 - Split the MCP authentication plan into two stages: private API key first for MVP and OAuth later for the proper remote ChatGPT connector phase.

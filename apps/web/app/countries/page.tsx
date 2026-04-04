@@ -10,6 +10,8 @@ export const metadata = buildMetadata({
   description: "Browse the countries currently available in Explorers Map.",
 });
 
+export const dynamic = "force-dynamic";
+
 export default function CountriesPage() {
   const countries = listCountries();
 

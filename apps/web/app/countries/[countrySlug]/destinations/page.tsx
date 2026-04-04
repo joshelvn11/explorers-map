@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 
-import { getCountryBySlug, listCountries, listDestinationsForCountry } from "@explorers-map/services";
+import { getCountryBySlug, listDestinationsForCountry } from "@explorers-map/services";
 
 import { Breadcrumbs } from "../../../../components/breadcrumbs";
 import { EmptyState } from "../../../../components/empty-state";
@@ -13,11 +13,7 @@ type CountryDestinationsPageProps = {
   params: Promise<{ countrySlug: string }>;
 };
 
-export async function generateStaticParams() {
-  return listCountries().map((country) => ({
-    countrySlug: country.slug,
-  }));
-}
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: CountryDestinationsPageProps) {
   const { countrySlug } = await params;
