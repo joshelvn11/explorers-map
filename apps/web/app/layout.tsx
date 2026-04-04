@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { SiteHeader } from "../components/site-header";
+import { getBuildInfo } from "../lib/build-info";
 import { buildMetadata, getMetadataBase } from "../lib/metadata";
 import { siteName } from "../lib/routes";
 import "./globals.css";
@@ -14,13 +15,15 @@ export const metadata: Metadata = {
   }),
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
   params: _params,
 }: Readonly<{
   children: React.ReactNode;
   params: Promise<unknown>;
 }>) {
+  const buildInfo = await getBuildInfo();
+
   return (
     <html lang="en" className="h-full" data-scroll-behavior="smooth">
       <body className="min-h-full bg-[radial-gradient(circle_at_top,#fdf7ef,transparent_36%),linear-gradient(180deg,#f6f0e7_0%,#f8f4ee_38%,#fcfaf7_100%)] text-stone-950">
@@ -31,6 +34,10 @@ export default function RootLayout({
             <div className="mx-auto flex w-full max-w-7xl flex-col gap-2 px-4 py-6 text-sm text-stone-600 sm:px-6 lg:px-8">
               <p className="font-serif text-lg text-stone-900">{siteName}</p>
               <p>Curated country, region, destination, and listing pages for outdoor discovery.</p>
+              <p className="font-mono text-xs text-stone-500">
+                Build {buildInfo.label}
+                {buildInfo.builtAtText ? ` · ${buildInfo.builtAtText}` : ""}
+              </p>
             </div>
           </footer>
         </div>

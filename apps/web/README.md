@@ -78,6 +78,7 @@ Shared packages are transpiled through Next.js so they can be imported directly 
 - Production builds no longer require seeded SQLite content because DB-backed public routes render from the runtime database.
 - The production build script uses `next build --webpack` so the shared native SQLite dependency stays compatible with Next's build pipeline.
 - Remote images are configured for `picsum.photos` and an optional Cloudflare public asset base URL.
+- The footer now shows a build marker. In Docker deployments it comes from the image's generated `.build-info.json`; in local dev it falls back to `local-dev`.
 - The Actions API expects `EXPLORERS_MAP_ACTIONS_AUTH_TOKEN` to be set before use.
 - Browser auth requires `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, and optional bootstrap-admin env values for the one-time admin initializer.
 - Production runtime requires `BETTER_AUTH_SECRET`, but the Docker/Next build step no longer needs the real secret because auth uses a build-only placeholder during `next build` and reads the real secret only at runtime.

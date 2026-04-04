@@ -145,6 +145,7 @@ Expected flow:
 - The Compose service now declares `pull_policy: build` so deploy tools that call `docker compose up` will rebuild the local image for the web service instead of only reusing whatever image tag already exists on the host.
 - Container startup runs `pnpm db:migrate`, checks whether the `countries` table is empty, seeds only on first boot, and then starts the Next.js web server.
 - Container startup also runs the explicit bootstrap-admin initializer after migrations and optional seeding.
+- The Docker build now writes `.build-info.json` into the image with a source fingerprint and UTC build timestamp, and the web footer reads that file at runtime so live deployments expose a visible build marker.
 - Docker Compose persists SQLite state in a named volume mounted at `/app/data`.
 - Docker Compose maps the internal web port `3000` to a configurable host port via `EXPLORERS_MAP_HOST_PORT`, defaulting to `8080`.
 - The web container health check targets `GET /api/actions/healthz`.

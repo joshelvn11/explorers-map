@@ -12,6 +12,7 @@ COPY . .
 
 RUN pnpm install --frozen-lockfile
 RUN pnpm build:web
+RUN node ./scripts/write-build-info.mjs
 
 FROM node:23-slim AS runtime
 

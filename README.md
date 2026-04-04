@@ -75,6 +75,7 @@ Key behavior:
 - Container startup always runs `pnpm db:migrate`.
 - The container seeds the SQLite database only when the `countries` table is empty.
 - The public site renders DB-backed country, region, destination, catalog, and listing pages at request time so new content appears without rebuilding the image.
+- The footer now shows a Docker-generated build marker with a source fingerprint and UTC build timestamp so deployed stacks can be visually verified after each rebuild.
 
 Local Docker commands:
 
