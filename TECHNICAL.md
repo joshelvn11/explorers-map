@@ -146,6 +146,7 @@ Expected flow:
 - Docker Compose persists SQLite state in a named volume mounted at `/app/data`.
 - Docker Compose maps the internal web port `3000` to a configurable host port via `EXPLORERS_MAP_HOST_PORT`, defaulting to `8080`.
 - The web container health check targets `GET /api/actions/healthz`.
+- The compose stack now passes Better Auth env vars through to the container as well, because the auth-enabled production app requires `BETTER_AUTH_SECRET` at runtime and may optionally consume bootstrap-admin credentials during startup.
 - The standalone MCP server is intentionally excluded from the compose stack for now.
 
 ## Notes for Future Agents

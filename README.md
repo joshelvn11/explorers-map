@@ -92,6 +92,7 @@ Runtime notes:
 - The container health check uses `GET /api/actions/healthz`.
 - The compose file intentionally includes only the web app; the standalone MCP server is not containerized yet.
 - Container startup now also runs the idempotent bootstrap-admin initializer after migrations and optional seeding.
+- The compose stack must provide `BETTER_AUTH_SECRET` for auth-enabled production builds, and it can also pass `BETTER_AUTH_URL` plus the optional bootstrap-admin env vars into the container.
 
 ## Environment
 
