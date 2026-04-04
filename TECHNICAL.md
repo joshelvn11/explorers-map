@@ -142,6 +142,7 @@ Expected flow:
 
 - The repository root now contains a web-only `Dockerfile`, `.dockerignore`, and `docker-compose.yml`.
 - The container image is built from the workspace root so existing monorepo-relative scripts and package resolution continue to work.
+- The Compose service now declares `pull_policy: build` so deploy tools that call `docker compose up` will rebuild the local image for the web service instead of only reusing whatever image tag already exists on the host.
 - Container startup runs `pnpm db:migrate`, checks whether the `countries` table is empty, seeds only on first boot, and then starts the Next.js web server.
 - Container startup also runs the explicit bootstrap-admin initializer after migrations and optional seeding.
 - Docker Compose persists SQLite state in a named volume mounted at `/app/data`.

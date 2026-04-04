@@ -71,6 +71,7 @@ This repository now includes a web-only container deployment path for Dockhand a
 Key behavior:
 
 - The image builds the Next.js web app from the workspace root.
+- The Compose service now sets `pull_policy: build` so `docker compose up` rebuilds the local web image instead of silently reusing a stale one.
 - Container startup always runs `pnpm db:migrate`.
 - The container seeds the SQLite database only when the `countries` table is empty.
 - The public site renders DB-backed country, region, destination, catalog, and listing pages at request time so new content appears without rebuilding the image.

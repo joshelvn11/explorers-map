@@ -44,6 +44,7 @@ The format is based on Keep a Changelog.
 - Changed `pnpm dev:web` / `pnpm dev` in `apps/web` to run shared DB migrations and bootstrap-admin initialization before Next.js starts, which keeps older local SQLite files compatible with the new auth tables.
 - Changed the Docker Compose stack to pass Better Auth and bootstrap-admin environment variables into the production container so Dockhand-style deployments can run the new auth-enabled web build.
 - Changed the Better Auth integration to initialize lazily and allow a build-only placeholder secret during `next build`, so Docker images can build successfully without baking production secrets into the image.
+- Changed the Compose web service to use `pull_policy: build` so Dockhand-style `docker compose up` deploys rebuild the local image instead of reusing a stale cached one.
 - Changed the Actions route segment config exports to direct Next.js literals so production builds succeed under Next.js 16.
 - Changed Docker Compose to publish the web container on a configurable host port via `EXPLORERS_MAP_HOST_PORT`, defaulting to `8080`.
 - Refined the MCP plan around personal editorial use through ChatGPT rather than generic CRUD automation.
