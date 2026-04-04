@@ -327,7 +327,7 @@ Note:
 
 ### Human Required Steps
 
-- [ ] Review the CMS information architecture and admin workflows before implementation continues into editorial tooling.
+- [x] Review the CMS information architecture and admin workflows before implementation continues into editorial tooling.
 
 ## Phase 10 - Regional Editorial CMS
 
