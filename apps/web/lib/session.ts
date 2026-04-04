@@ -2,21 +2,21 @@ import { canAccessCms, getAuthActorContext } from "@explorers-map/services";
 import { headers } from "next/headers.js";
 import { redirect } from "next/navigation.js";
 
-import { auth } from "./auth.ts";
+import { getAuth, type ExplorersMapAuth } from "./auth.ts";
 import { sanitizeReturnTo } from "./auth-redirect.ts";
 import { getAccountHref, getCmsHref, getSignInHref } from "./routes.ts";
 
-export async function getSessionFromHeaders(requestHeaders: HeadersInit, authInstance = auth) {
+export async function getSessionFromHeaders(requestHeaders: HeadersInit, authInstance: ExplorersMapAuth = getAuth()) {
   return authInstance.api.getSession({
     headers: requestHeaders instanceof Headers ? requestHeaders : new Headers(requestHeaders),
   });
 }
 
-export async function getCurrentSession(authInstance = auth) {
+export async function getCurrentSession(authInstance: ExplorersMapAuth = getAuth()) {
   return getSessionFromHeaders(await headers(), authInstance);
 }
 
-export async function getCurrentActorContext(authInstance = auth) {
+export async function getCurrentActorContext(authInstance: ExplorersMapAuth = getAuth()) {
   const session = await getCurrentSession(authInstance);
 
   if (!session?.user?.id) {
@@ -26,7 +26,7 @@ export async function getCurrentActorContext(authInstance = auth) {
   return getAuthActorContext(session.user.id);
 }
 
-export async function requireAuthenticatedSession(returnTo?: string | null, authInstance = auth) {
+export async function requireAuthenticatedSession(returnTo?: string | null, authInstance: ExplorersMapAuth = getAuth()) {
   const session = await getCurrentSession(authInstance);
 
   if (!session?.user?.id) {
@@ -36,7 +36,7 @@ export async function requireAuthenticatedSession(returnTo?: string | null, auth
   return session;
 }
 
-export async function requireCmsActor(returnTo?: string | null, authInstance = auth) {
+export async function requireCmsActor(returnTo?: string | null, authInstance: ExplorersMapAuth = getAuth()) {
   const session = await requireAuthenticatedSession(returnTo ?? getCmsHref(), authInstance);
   const actor = getAuthActorContext(session.user.id);
 
@@ -47,7 +47,7 @@ export async function requireCmsActor(returnTo?: string | null, authInstance = a
   return actor;
 }
 
-export async function redirectIfAuthenticated(returnTo?: string | null, authInstance = auth) {
+export async function redirectIfAuthenticated(returnTo?: string | null, authInstance: ExplorersMapAuth = getAuth()) {
   const session = await getCurrentSession(authInstance);
 
   if (!session?.user?.id) {

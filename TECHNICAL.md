@@ -73,6 +73,7 @@ Expected flow:
 - Bootstrap-admin behavior is idempotent, runs only from explicit init paths, and does not rewrite existing admins after initialization.
 - Better Auth owns auth/session/account persistence, while app-owned tables carry CMS roles and moderator-region assignments.
 - Public anonymous browsing remains unaffected while `/account` and `/cms` are protected behind browser-session auth.
+- The auth layer now distinguishes production build time from production runtime so Docker images can be built without baking in `BETTER_AUTH_SECRET`, while the running production container still requires the real secret.
 
 ## MCP Direction
 

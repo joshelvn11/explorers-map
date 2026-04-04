@@ -24,6 +24,10 @@ export function getBetterAuthSecret() {
     return secret;
   }
 
+  if (isNextProductionBuild()) {
+    return "explorers-map-build-placeholder-secret";
+  }
+
   if (process.env.NODE_ENV === "production") {
     throw new Error("BETTER_AUTH_SECRET must be configured in production.");
   }
@@ -87,4 +91,20 @@ export function createAuth(options: CreateAuthOptions = {}) {
   });
 }
 
-export const auth = createAuth();
+export type ExplorersMapAuth = ReturnType<typeof createAuth>;
+
+declare global {
+  var __explorersMapAuth: ExplorersMapAuth | undefined;
+}
+
+export function getAuth() {
+  if (!globalThis.__explorersMapAuth) {
+    globalThis.__explorersMapAuth = createAuth();
+  }
+
+  return globalThis.__explorersMapAuth;
+}
+
+function isNextProductionBuild() {
+  return process.env.NEXT_PHASE === "phase-production-build";
+}

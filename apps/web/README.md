@@ -80,6 +80,7 @@ Shared packages are transpiled through Next.js so they can be imported directly 
 - Remote images are configured for `picsum.photos` and an optional Cloudflare public asset base URL.
 - The Actions API expects `EXPLORERS_MAP_ACTIONS_AUTH_TOKEN` to be set before use.
 - Browser auth requires `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, and optional bootstrap-admin env values for the one-time admin initializer.
+- Production runtime requires `BETTER_AUTH_SECRET`, but the Docker/Next build step no longer needs the real secret because auth uses a build-only placeholder during `next build` and reads the real secret only at runtime.
 - `proxy.ts` performs optimistic cookie checks for `/account` and `/cms`, while page and layout code still enforce server-side session and role checks.
 
 ## Container Deployment

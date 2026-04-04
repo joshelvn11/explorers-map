@@ -64,10 +64,11 @@ These packages are transpiled via `transpilePackages` in `next.config.ts`.
 - The root `docker:start:web` bootstrap flow runs migrations, seeds only on an empty database, and then starts the app on `0.0.0.0:3000` for container deployment.
 - Better Auth env vars plus bootstrap-admin env vars are now loaded into the same runtime.
 - The bootstrap-admin flow now runs from a dedicated initialization path, stays idempotent, and never evaluates on ordinary requests.
-- `/api/auth/[...all]` is mounted through `toNextJsHandler(auth)`, while `createAuth({ enableNextCookies: false })` is used in non-request bootstrap and test contexts.
+- `/api/auth/[...all]` now resolves Better Auth lazily at request time instead of constructing it at module import time, while `createAuth({ enableNextCookies: false })` is still used in non-request bootstrap and test contexts.
 - `proxy.ts` only performs optimistic cookie checks for `/account` and `/cms`; authoritative session and role gating still happens in server helpers used by the protected pages and layouts.
 - Browser-auth signup currently defaults every new user to an app-owned `viewer` role via Better Auth database hooks.
 - The account page is available to any signed-in user, while the CMS shell currently allows only `admin` and `moderator`.
+- Production builds may run without `BETTER_AUTH_SECRET` present because the auth layer now uses a build-only placeholder secret during `next build`; the real secret is still mandatory in the running production container.
 - Keep both checked-in schema files in sync when editing the Actions contract:
   - `apps/web/openapi/explorers-map-actions.openapi.json`
   - `apps/web/openapi/explorers-map-actions.production.openapi.json`
