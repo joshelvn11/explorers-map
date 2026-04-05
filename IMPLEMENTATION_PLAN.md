@@ -329,38 +329,86 @@ Note:
 
 - [x] Review the CMS information architecture and admin workflows before implementation continues into editorial tooling.
 
-## Phase 10 - Regional Editorial CMS
+## Phase 10a - Destination Editorial Foundation
+
+This sub-phase establishes moderator-safe destination management. It covers destination audit support, shared RBAC rules, and the first CMS destination create/edit/link flows before any listing editorial UI depends on them.
 
 Note:
 
-- [ ] `moderator` should be able to create, edit, publish, unpublish, trash, and restore listings within assigned regions.
 - [ ] `moderator` should be able to edit destinations when at least one linked destination region overlaps an assigned region.
+- [ ] `moderator` should be able to create a destination only when at least one linked destination region is a region they manage.
+- [ ] When a moderator edits destination-region links, they should only be able to attach regions they manage, including when linking an existing destination to one of their managed regions.
 - [ ] `admin` remains the only role with global content-management access.
 - [ ] Countries, regions, and destinations remain admin-managed records without draft/published lifecycle in this phase.
-- [ ] Sequence Phase 10 work as destinations first, then listings, because listing editing depends on destination assignment UI and the shared moderator-overlap rules.
 - [ ] Keep browser-auth account and session concerns inside `apps/web`; shared services should continue to own CMS authorization, validation, and persistence rather than importing Better Auth into `packages/services`.
 
 ### Agent Tasks
 
 - [ ] Add the shared schema and migration support needed so destination CMS edits can record acting-user audit attribution before destination edit flows ship.
 - [ ] Add CMS create and edit flows for destinations with moderator-scoped authorization backed by shared services.
-- [ ] Add CMS create and edit flows for listings, including copy, metadata, location, destination links, images, tags, and lifecycle controls.
-- [ ] Extend the shared service layer to support RBAC-aware CMS operations for countries, regions, destinations, and listings.
-- [ ] Add shared authorization helpers enforcing admin-only operations and moderator region scoping.
-- [ ] Add listing tag-write support in shared services so the CMS can manage listing tags instead of remaining read-only there.
-- [ ] Ensure listing image management remains URL-based and reorderable while the upload workflow is still deferred.
-- [ ] Keep Phase 10 web mutations on the same thin server-action pattern established in Phase 9, with `apps/web` handling browser-auth integration and shared services handling authorization plus persistence.
-- [ ] Ensure moderators cannot manage listings outside assigned regions.
-- [ ] Ensure moderators cannot perform admin-only actions such as country, region, or user management.
+- [ ] Ensure moderator destination create flows only present moderator-managed regions as attachable options and reject any attempt to attach unmanaged regions.
+- [ ] Add moderator flows for linking an existing destination to a region they manage without granting broader destination-region control outside their assigned scope.
+- [ ] Extend the shared service layer to support RBAC-aware CMS operations for destinations.
+- [ ] Add shared authorization helpers enforcing admin-only operations and moderator region scoping for destination management.
+- [ ] Keep Phase 10a web mutations on the same thin server-action pattern established in Phase 9, with `apps/web` handling browser-auth integration and shared services handling authorization plus persistence.
 - [ ] Ensure moderators may edit a destination only while it retains at least one overlapping assigned region, and restrict moderator destination-region edits to their own assigned regions.
-- [ ] Support editable slugs for destinations and listings with immediate canonical URL changes and no redirect-history layer in v1.
-- [ ] Extend audit attribution so CMS edits to destinations and listings record the acting user through shared services.
-- [ ] Add tests for destination authorization, listing CRUD-like editorial flows, listing tags, image ordering, lifecycle actions, and moderator scoping.
-- [ ] Update documentation to describe the planned CMS editorial scope and authorization rules.
+- [ ] Support editable slugs for destinations with immediate canonical URL changes and no redirect-history layer in v1.
+- [ ] Extend audit attribution so CMS edits to destinations record the acting user through shared services.
+- [ ] Add tests for destination authorization, destination create/edit flows, moderator region-link restrictions, and slug updates.
+- [ ] Update documentation to describe the Phase 10a destination editorial scope and authorization rules.
 
 ### Human Required Steps
 
-- [ ] Review moderator editorial permissions and confirm the shared-destination overlap rule is acceptable for v1.
+- [ ] Review moderator destination permissions and confirm the shared-destination overlap rule is acceptable for v1.
+
+## Phase 10b - Listing Editorial Foundation
+
+This sub-phase introduces the core listing editorial surface. It covers listing create/edit/lifecycle flows, moderator region scoping, and destination selection rules that depend on the destination groundwork from Phase 10a.
+
+Note:
+
+- [ ] `moderator` should be able to create, edit, publish, unpublish, trash, and restore listings within assigned regions.
+- [ ] `moderator` should be able to create a listing only in a region they manage.
+- [ ] When a moderator assigns destinations to a listing, they should only be able to select destinations that are attached to at least one region they manage.
+- [ ] Sequence listing work after destinations, because listing editing depends on destination assignment UI and the shared moderator-overlap rules.
+- [ ] Keep browser-auth account and session concerns inside `apps/web`; shared services should continue to own CMS authorization, validation, and persistence rather than importing Better Auth into `packages/services`.
+
+### Agent Tasks
+
+- [ ] Add CMS create and edit flows for listings, including copy, metadata, location, destination links, and lifecycle controls.
+- [ ] Extend the shared service layer to support RBAC-aware CMS operations for listings.
+- [ ] Add shared authorization helpers enforcing moderator region scoping for listing management.
+- [ ] Ensure moderator listing create and edit flows only present moderator-managed regions as selectable parents and reject any attempt to save a listing into an unmanaged region.
+- [ ] Ensure moderator listing destination selectors only surface destinations attached to at least one moderator-managed region and reject unmanaged destination assignment server-side.
+- [ ] Keep Phase 10b web mutations on the same thin server-action pattern established in Phase 9, with `apps/web` handling browser-auth integration and shared services handling authorization plus persistence.
+- [ ] Ensure moderators cannot manage listings outside assigned regions.
+- [ ] Ensure moderators cannot perform admin-only actions such as country, region, destination, or user management.
+- [ ] Support editable slugs for listings with immediate canonical URL changes and no redirect-history layer in v1.
+- [ ] Extend audit attribution so CMS edits to listings record the acting user through shared services.
+- [ ] Add tests for listing authorization, listing create/edit flows, region scoping, destination selector scoping, and lifecycle actions.
+- [ ] Update documentation to describe the Phase 10b listing editorial scope and authorization rules.
+
+### Human Required Steps
+
+- [ ] Review moderator listing permissions and confirm the region-and-destination scoping rules are acceptable for v1.
+
+## Phase 10c - Listing Media, Tags, and Editorial Polish
+
+This sub-phase rounds out the listing CMS experience. It covers writable tags, ordered image management, and the remaining editorial polish around listing operations after the core listing foundation is stable.
+
+Note:
+
+- [ ] Listing image management remains URL-based and reorderable while the upload workflow is still deferred.
+- [ ] Listing tags should become writable in the CMS during this sub-phase.
+
+### Agent Tasks
+
+- [ ] Add listing tag-write support in shared services so the CMS can manage listing tags instead of remaining read-only there.
+- [ ] Add CMS support for listing images, including ordered URL-based image management.
+- [ ] Expand listing lifecycle controls and editor UX polish around publish, unpublish, trash, and restore flows where needed.
+- [ ] Ensure listing image management remains URL-based and reorderable while the upload workflow is still deferred.
+- [ ] Add tests for listing tags, image ordering, and remaining lifecycle/editorial polish behaviors.
+- [ ] Update documentation to describe the Phase 10c listing media and editorial-polish scope.
 
 ## Phase 11 - Content Lifecycle, Trash, and Operational Polish
 

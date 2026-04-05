@@ -536,7 +536,12 @@ Next.js page
   - `moderator`
     - tied to one or more assigned regions
     - can manage listings in assigned regions
+    - can create listings only in regions they are assigned to manage
+    - when creating or editing a listing, may only choose destinations that are attached to at least one region they manage
+    - can create destinations when the destination is linked to at least one assigned region
     - can manage destinations when at least one linked destination region overlaps an assigned region
+    - when creating or editing destination-region links, may only attach regions they are assigned to manage
+    - can link an existing destination to any region they manage
     - may only change destination-region links within assigned regions
     - may not save a destination with zero overlap to assigned regions
   - `viewer`
@@ -726,6 +731,10 @@ export const listingDestinations = sqliteTable("listing_destinations", {
 - Open signup should create `viewer` users by default
 - Moderators should be region-scoped and may cover more than one region
 - Moderators may edit a destination when at least one linked region overlaps their assigned regions
+- Moderators may create a destination only when it is linked to at least one region they manage
+- Moderators may attach only their own assigned regions when creating or editing destination-region links, including when linking an existing destination to one of their managed regions
+- Moderators may create listings only in regions they manage
+- When assigning destinations on a listing, moderators may select only destinations that are attached to at least one region they manage
 - The bootstrap admin account should come from environment-backed credentials as a one-time initialization path
 
 ---
