@@ -14,7 +14,7 @@
 - Thin authenticated Actions API route handlers for custom GPT integrations
 - Better Auth browser-session handling
 - Signed-in account routes and a protected CMS shell
-- Thin CMS server actions plus admin-only CMS screens for users, countries, and regions, and shared destination screens for admins and moderators
+- Thin CMS server actions plus admin-only CMS screens for users, countries, and regions, and shared listing and destination screens for admins and moderators
 
 ## Shared Package Usage
 
@@ -49,7 +49,9 @@ These packages are transpiled via `transpilePackages` in `next.config.ts`.
 - `/cms` is now gated by session and role while public browse routes remain unaffected.
 - Phase 9 adds a CMS shell layout with role-aware navigation plus admin-only `/cms/users`, `/cms/countries`, and `/cms/regions` route families.
 - A dedicated admin guard now redirects moderators away from the Phase 9 admin-only pages back to `/cms`.
+- Phase 10b adds `/cms/listings`, `/cms/listings/new`, and `/cms/listings/[countrySlug]/[regionSlug]/[listingSlug]` outside the admin-only route group so moderators can use them too.
 - Phase 10a adds `/cms/destinations`, `/cms/destinations/new`, and `/cms/destinations/[countrySlug]/[destinationSlug]` outside the admin-only route group so moderators can use them too.
+- Out-of-scope moderator listing detail requests redirect back to `/cms/listings` instead of rendering a raw forbidden page.
 - Out-of-scope moderator destination detail requests redirect back to `/cms/destinations` instead of rendering a raw forbidden page.
 
 ## Runtime Notes
@@ -77,6 +79,8 @@ These packages are transpiled via `transpilePackages` in `next.config.ts`.
 - Phase 9 user creation stays web-owned because Better Auth lives in `apps/web`; the CMS uses a small auth adapter there to create the browser-auth account and then immediately hands role and moderator-assignment persistence to shared services.
 - CMS mutations now use thin server actions under `app/cms/actions.ts`, while shared services own authorization, slug validation, last-admin protection, and country/region persistence.
 - Phase 10a destination mutations follow the same pattern through a dedicated `lib/cms-destinations.ts` helper, with shared services now owning destination RBAC, audit stamping, slug updates, and moderator-scoped destination-region merge behavior.
+- Phase 10b listing mutations follow the same pattern through `lib/cms-listings.ts`, with shared services now owning listing RBAC, audit stamping, lifecycle transitions, slug updates, and moderator-scoped destination merge behavior.
+- Listing edit pages keep the parent region read-only in this phase; region selection is only available at listing creation time.
 - Production builds may run without `BETTER_AUTH_SECRET` present because the auth layer now uses a build-only placeholder secret during `next build`; the real secret is still mandatory in the running production container.
 - Keep both checked-in schema files in sync when editing the Actions contract:
   - `apps/web/openapi/explorers-map-actions.openapi.json`

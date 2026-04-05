@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { listDestinationsForCms } from "@explorers-map/services";
+import { listDestinationsForCms, listManageableDestinationRegionOptions } from "@explorers-map/services";
 
 import { EmptyState } from "../../../components/empty-state";
 import {
@@ -9,9 +9,46 @@ import {
 } from "../../../lib/routes";
 import { requireCmsActor } from "../../../lib/session";
 
-export default async function CmsDestinationsPage() {
+type DestinationFilters = {
+  country?: string;
+  region?: string;
+};
+
+export default async function CmsDestinationsPage({
+  searchParams,
+}: {
+  searchParams: Promise<DestinationFilters>;
+}) {
   const actor = await requireCmsActor("/cms/destinations");
+  const filters = await searchParams;
   const destinations = listDestinationsForCms(actor);
+  const manageableRegionOptions = listManageableDestinationRegionOptions(actor);
+  const countryOptions = Array.from(
+    new Map(
+      manageableRegionOptions.map((region) => [
+        region.countrySlug,
+        {
+          slug: region.countrySlug,
+          title: region.countryTitle,
+        },
+      ]),
+    ).values(),
+  );
+  const regionOptions = manageableRegionOptions
+    .filter((region) => !filters.country || filters.country === "all" || region.countrySlug === filters.country)
+    .map((region) => ({
+      id: region.regionId,
+      title: region.regionTitle,
+    }));
+  const filteredDestinations = destinations.filter((destination) => {
+    const matchesCountry = !filters.country || filters.country === "all" || destination.countrySlug === filters.country;
+    const matchesRegion =
+      !filters.region ||
+      filters.region === "all" ||
+      destination.regions.some((region) => region.regionId === filters.region);
+
+    return matchesCountry && matchesRegion;
+  });
 
   return (
     <section className="rounded-[1.75rem] border border-white/70 bg-white/88 p-6 shadow-[0_20px_50px_rgba(15,23,42,0.08)] backdrop-blur sm:p-8">
@@ -33,7 +70,50 @@ export default async function CmsDestinationsPage() {
         </Link>
       </div>
 
-      {destinations.length === 0 ? (
+      <form className="mt-8 grid gap-4 rounded-[1.5rem] border border-stone-200 bg-stone-50/80 p-5 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
+        <label className="block space-y-2">
+          <span className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">Country</span>
+          <select
+            className="w-full rounded-2xl border border-stone-300 bg-white px-4 py-3 text-sm text-stone-950 outline-none transition focus:border-sky-500"
+            defaultValue={filters.country ?? "all"}
+            name="country"
+          >
+            <option value="all">All manageable countries</option>
+            {countryOptions.map((country) => (
+              <option key={country.slug} value={country.slug}>
+                {country.title}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="block space-y-2">
+          <span className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">Region</span>
+          <select
+            className="w-full rounded-2xl border border-stone-300 bg-white px-4 py-3 text-sm text-stone-950 outline-none transition focus:border-sky-500"
+            defaultValue={filters.region ?? "all"}
+            name="region"
+          >
+            <option value="all">All manageable regions</option>
+            {regionOptions.map((region) => (
+              <option key={region.id} value={region.id}>
+                {region.title}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <div className="flex items-end">
+          <button
+            className="inline-flex w-full items-center justify-center rounded-full bg-stone-950 px-4 py-3 text-sm font-semibold text-stone-50 transition hover:bg-stone-800"
+            type="submit"
+          >
+            Apply filters
+          </button>
+        </div>
+      </form>
+
+      {filteredDestinations.length === 0 ? (
         <div className="mt-8">
           <EmptyState
             action={
@@ -44,13 +124,17 @@ export default async function CmsDestinationsPage() {
                 Create destination
               </Link>
             }
-            description="No visible destinations are available yet. Create one to start curating named discovery areas."
+            description={
+              filters.country || filters.region
+                ? "No destinations match the current country and region filters."
+                : "No visible destinations are available yet. Create one to start curating named discovery areas."
+            }
             title="No destinations yet"
           />
         </div>
       ) : (
         <div className="mt-8 grid gap-4 md:grid-cols-2">
-          {destinations.map((destination) => (
+          {filteredDestinations.map((destination) => (
             <Link
               key={destination.id}
               className="rounded-[1.5rem] border border-stone-200 bg-stone-50/80 p-5 transition hover:border-sky-300 hover:bg-sky-50"

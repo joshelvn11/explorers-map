@@ -24,6 +24,7 @@ function getCloudflareRemotePattern() {
 const cloudflareRemotePattern = getCloudflareRemotePattern();
 
 const nextConfig: NextConfig = {
+  allowedDevOrigins: ["192.168.1.5"],
   transpilePackages: [
     "@explorers-map/db",
     "@explorers-map/services",

@@ -87,6 +87,18 @@ export function getCmsDestinationHref(countrySlug: string, destinationSlug: stri
   return `/cms/destinations/${countrySlug}/${destinationSlug}`;
 }
 
+export function getCmsListingsHref() {
+  return "/cms/listings";
+}
+
+export function getCmsNewListingHref() {
+  return "/cms/listings/new";
+}
+
+export function getCmsListingHref(countrySlug: string, regionSlug: string, listingSlug: string) {
+  return `/cms/listings/${countrySlug}/${regionSlug}/${listingSlug}`;
+}
+
 export function getCountryRegionsHref(countrySlug: string) {
   return `/countries/${countrySlug}/regions`;
 }

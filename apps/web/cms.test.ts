@@ -5,7 +5,7 @@ import { getURLFromRedirectError } from "next/dist/client/components/redirect.js
 import { isRedirectError } from "next/dist/client/components/redirect-error.js";
 
 import { regions, user } from "@explorers-map/db";
-import { createDestinationForCms, getAuthActorContext, setModeratorRegionAssignments, setUserRole } from "@explorers-map/services";
+import { createDestinationForCms, createListingForCms, getAuthActorContext, setModeratorRegionAssignments, setUserRole } from "@explorers-map/services";
 
 import {
   createCmsCountry,
@@ -22,6 +22,14 @@ import {
   resolveCmsDestinationAccess,
   updateCmsDestination,
 } from "./lib/cms-destinations.ts";
+import {
+  createCmsListing,
+  getCmsActionErrorMessage as getCmsListingActionErrorMessage,
+  publishCmsListing,
+  resolveCmsListingAccess,
+  trashCmsListing,
+  updateCmsListing,
+} from "./lib/cms-listings.ts";
 import { requireAdminActorFromHeaders } from "./lib/session.ts";
 import { createSeededTestDb } from "../../packages/services/test-helpers.ts";
 
@@ -354,4 +362,183 @@ test("destination access helpers allow in-scope moderators, redirect out-of-scop
 
   const errorMessage = getCmsDestinationActionErrorMessage(new Error("Destination failure"));
   assert.equal(errorMessage, "Destination failure");
+});
+
+test("CMS listing helpers redirect to canonical slugged routes after listing edits and lifecycle changes", async (t) => {
+  withAuthEnv(t);
+  const dbInstance = createSeededTestDb(t);
+
+  dbInstance.db.insert(user).values({
+    id: "admin-1",
+    name: "Admin User",
+    email: "admin@example.com",
+  }).run();
+  setUserRole("admin-1", "admin", dbInstance);
+  const actor = getAuthActorContext("admin-1", dbInstance);
+  const dorset = dbInstance.sqlite.prepare("select id from regions where slug = ?").get("dorset") as { id: string } | undefined;
+  const jurassicCoast = dbInstance.sqlite
+    .prepare("select id from destinations where slug = ?")
+    .get("jurassic-coast") as { id: string } | undefined;
+
+  assert.ok(dorset);
+  assert.ok(jurassicCoast);
+
+  const created = await createCmsListing(
+    {
+      regionId: dorset.id,
+      title: "Harbour Steps",
+      shortDescription: "Listing helper coverage.",
+      description: "Create helper coverage.",
+      coverImage: "https://example.com/harbour-steps.jpg",
+      categorySlug: "beach",
+      busynessRating: 2,
+      latitude: 50.61,
+      longitude: -2.45,
+      destinationIds: [jurassicCoast.id],
+    },
+    actor,
+    dbInstance,
+  );
+
+  assert.equal(created.redirectTo, "/cms/listings/united-kingdom/dorset/harbour-steps");
+
+  const updated = await updateCmsListing(
+    {
+      currentCountrySlug: "united-kingdom",
+      currentRegionSlug: "dorset",
+      currentListingSlug: "harbour-steps",
+      title: "Harbour Steps Viewpoint",
+      slug: "harbour-steps-viewpoint",
+      shortDescription: "Updated helper coverage.",
+      description: "Updated helper coverage.",
+      coverImage: "https://example.com/harbour-steps-viewpoint.jpg",
+      categorySlug: "beach",
+      busynessRating: 3,
+      latitude: 50.62,
+      longitude: -2.44,
+      destinationIds: [jurassicCoast.id],
+    },
+    actor,
+    dbInstance,
+  );
+
+  assert.equal(updated.redirectTo, "/cms/listings/united-kingdom/dorset/harbour-steps-viewpoint");
+
+  const published = await publishCmsListing(
+    {
+      countrySlug: "united-kingdom",
+      regionSlug: "dorset",
+      listingSlug: "harbour-steps-viewpoint",
+    },
+    actor,
+    dbInstance,
+  );
+  assert.equal(published.redirectTo, "/cms/listings/united-kingdom/dorset/harbour-steps-viewpoint");
+
+  const trashed = await trashCmsListing(
+    {
+      countrySlug: "united-kingdom",
+      regionSlug: "dorset",
+      listingSlug: "harbour-steps-viewpoint",
+    },
+    actor,
+    dbInstance,
+  );
+  assert.equal(trashed.redirectTo, "/cms/listings/united-kingdom/dorset/harbour-steps-viewpoint");
+});
+
+test("listing access helpers allow in-scope moderators, redirect out-of-scope moderators, and keep admin access global", (t) => {
+  const dbInstance = createSeededTestDb(t);
+
+  dbInstance.db.insert(user).values([
+    {
+      id: "admin-1",
+      name: "Admin User",
+      email: "admin@example.com",
+    },
+    {
+      id: "moderator-1",
+      name: "Moderator User",
+      email: "moderator@example.com",
+    },
+  ]).run();
+
+  setUserRole("admin-1", "admin", dbInstance);
+  setUserRole("moderator-1", "moderator", dbInstance);
+
+  const adminActor = getAuthActorContext("admin-1", dbInstance);
+  const dorset = dbInstance.sqlite.prepare("select id from regions where slug = ?").get("dorset") as { id: string } | undefined;
+  const devon = dbInstance.sqlite.prepare("select id from regions where slug = ?").get("devon") as { id: string } | undefined;
+  const peakDistrict = dbInstance.sqlite
+    .prepare("select id from destinations where slug = ?")
+    .get("peak-district-national-park") as { id: string } | undefined;
+
+  assert.ok(dorset);
+  assert.ok(devon);
+  assert.ok(peakDistrict);
+
+  const inScopeListing = createListingForCms(
+    {
+      regionId: dorset.id,
+      title: "Stone Harbour",
+      shortDescription: "Moderator in-scope listing.",
+      description: "Moderator in-scope listing.",
+      coverImage: "https://example.com/stone-harbour.jpg",
+      categorySlug: "beach",
+      busynessRating: 2,
+      latitude: 50.61,
+      longitude: -2.45,
+      destinationIds: [],
+    },
+    adminActor,
+    dbInstance,
+  );
+  const outOfScopeListing = createListingForCms(
+    {
+      regionId: devon.id,
+      title: "Hidden Estuary",
+      shortDescription: "Moderator out-of-scope listing.",
+      description: "Moderator out-of-scope listing.",
+      coverImage: "https://example.com/hidden-estuary.jpg",
+      categorySlug: "beach",
+      busynessRating: 2,
+      latitude: 50.7,
+      longitude: -3.2,
+      destinationIds: [peakDistrict.id],
+    },
+    adminActor,
+    dbInstance,
+  );
+
+  setModeratorRegionAssignments("moderator-1", [dorset.id], "admin-1", dbInstance);
+  const moderatorActor = getAuthActorContext("moderator-1", dbInstance);
+
+  const inScope = resolveCmsListingAccess(
+    "united-kingdom",
+    "dorset",
+    inScopeListing.slug,
+    moderatorActor,
+    dbInstance,
+  );
+  const outOfScope = resolveCmsListingAccess(
+    "united-kingdom",
+    "devon",
+    outOfScopeListing.slug,
+    moderatorActor,
+    dbInstance,
+  );
+  const adminView = resolveCmsListingAccess(
+    "united-kingdom",
+    "devon",
+    outOfScopeListing.slug,
+    adminActor,
+    dbInstance,
+  );
+
+  assert.equal(inScope?.kind, "listing");
+  assert.deepEqual(outOfScope, { kind: "redirect", redirectTo: "/cms/listings" });
+  assert.equal(adminView?.kind, "listing");
+
+  const errorMessage = getCmsListingActionErrorMessage(new Error("Listing failure"));
+  assert.equal(errorMessage, "Listing failure");
 });

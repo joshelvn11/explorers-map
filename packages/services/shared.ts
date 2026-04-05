@@ -343,6 +343,31 @@ export function resolveRegionRecord(executor: DbExecutor, locator: RegionLocator
   return row ?? null;
 }
 
+export function resolveRegionRecordById(executor: DbExecutor, regionId: string): ResolvedRegionRecord | null {
+  const normalizedRegionId = requireNonEmptyString(regionId, "regionId");
+
+  const row = executor
+    .select({
+      id: regions.id,
+      slug: regions.slug,
+      title: regions.title,
+      description: regions.description,
+      coverImage: regions.coverImage,
+      countryId: countries.id,
+      countrySlug: countries.slug,
+      countryTitle: countries.title,
+      countryDescription: countries.description,
+      countryCoverImage: countries.coverImage,
+    })
+    .from(regions)
+    .innerJoin(countries, eq(regions.countryId, countries.id))
+    .where(eq(regions.id, normalizedRegionId))
+    .limit(1)
+    .get();
+
+  return row ?? null;
+}
+
 export function resolveDestinationRecord(
   executor: DbExecutor,
   locator: DestinationLocator,
@@ -499,6 +524,16 @@ export function requireRegionRecord(executor: DbExecutor, locator: RegionLocator
       "NOT_FOUND",
       `Region "${locator.regionSlug}" was not found in country "${locator.countrySlug}".`,
     );
+  }
+
+  return row;
+}
+
+export function requireRegionRecordById(executor: DbExecutor, regionId: string): ResolvedRegionRecord {
+  const row = resolveRegionRecordById(executor, regionId);
+
+  if (!row) {
+    throw new ServiceError("NOT_FOUND", `Region "${regionId}" was not found.`);
   }
 
   return row;

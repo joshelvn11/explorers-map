@@ -367,26 +367,27 @@ This sub-phase introduces the core listing editorial surface. It covers listing 
 
 Note:
 
-- [ ] `moderator` should be able to create, edit, publish, unpublish, trash, and restore listings within assigned regions.
-- [ ] `moderator` should be able to create a listing only in a region they manage.
-- [ ] When a moderator assigns destinations to a listing, they should only be able to select destinations that are attached to at least one region they manage.
-- [ ] Sequence listing work after destinations, because listing editing depends on destination assignment UI and the shared moderator-overlap rules.
-- [ ] Keep browser-auth account and session concerns inside `apps/web`; shared services should continue to own CMS authorization, validation, and persistence rather than importing Better Auth into `packages/services`.
+- [x] `moderator` should be able to create, edit, publish, unpublish, trash, and restore listings within assigned regions.
+- [x] `moderator` should be able to create a listing only in a region they manage.
+- [x] When a moderator assigns destinations to a listing, they should only be able to select destinations that are attached to at least one region they manage.
+- [x] Sequence listing work after destinations, because listing editing depends on destination assignment UI and the shared moderator-overlap rules.
+- [x] Keep browser-auth account and session concerns inside `apps/web`; shared services should continue to own CMS authorization, validation, and persistence rather than importing Better Auth into `packages/services`.
+- [x] Listing parent region stays fixed after creation in Phase 10b; slug edits can change canonical URLs, but listing reparenting is deferred.
 
 ### Agent Tasks
 
-- [ ] Add CMS create and edit flows for listings, including copy, metadata, location, destination links, and lifecycle controls.
-- [ ] Extend the shared service layer to support RBAC-aware CMS operations for listings.
-- [ ] Add shared authorization helpers enforcing moderator region scoping for listing management.
-- [ ] Ensure moderator listing create and edit flows only present moderator-managed regions as selectable parents and reject any attempt to save a listing into an unmanaged region.
-- [ ] Ensure moderator listing destination selectors only surface destinations attached to at least one moderator-managed region and reject unmanaged destination assignment server-side.
-- [ ] Keep Phase 10b web mutations on the same thin server-action pattern established in Phase 9, with `apps/web` handling browser-auth integration and shared services handling authorization plus persistence.
-- [ ] Ensure moderators cannot manage listings outside assigned regions.
-- [ ] Ensure moderators cannot perform admin-only actions such as country, region, destination, or user management.
-- [ ] Support editable slugs for listings with immediate canonical URL changes and no redirect-history layer in v1.
-- [ ] Extend audit attribution so CMS edits to listings record the acting user through shared services.
-- [ ] Add tests for listing authorization, listing create/edit flows, region scoping, destination selector scoping, and lifecycle actions.
-- [ ] Update documentation to describe the Phase 10b listing editorial scope and authorization rules.
+- [x] Add CMS create and edit flows for listings, including copy, metadata, location, destination links, and lifecycle controls.
+- [x] Extend the shared service layer to support RBAC-aware CMS operations for listings.
+- [x] Add shared authorization helpers enforcing moderator region scoping for listing management.
+- [x] Ensure moderator listing create and edit flows only present moderator-managed regions as selectable parents and reject any attempt to save a listing into an unmanaged region.
+- [x] Ensure moderator listing destination selectors only surface destinations attached to at least one moderator-managed region and reject unmanaged destination assignment server-side.
+- [x] Keep Phase 10b web mutations on the same thin server-action pattern established in Phase 9, with `apps/web` handling browser-auth integration and shared services handling authorization plus persistence.
+- [x] Ensure moderators cannot manage listings outside assigned regions.
+- [x] Ensure moderators cannot perform admin-only actions such as country, region, destination, or user management.
+- [x] Support editable slugs for listings with immediate canonical URL changes and no redirect-history layer in v1.
+- [x] Extend audit attribution so CMS edits to listings record the acting user through shared services.
+- [x] Add tests for listing authorization, listing create/edit flows, region scoping, destination selector scoping, and lifecycle actions.
+- [x] Update documentation to describe the Phase 10b listing editorial scope and authorization rules.
 
 ### Human Required Steps
 

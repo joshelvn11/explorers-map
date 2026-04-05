@@ -1,11 +1,13 @@
 import Link from "next/link";
 
-import { listCountriesForCms, listDestinationsForCms, listRegionsForCms, listCmsUsers } from "@explorers-map/services";
+import { listCountriesForCms, listDestinationsForCms, listListingsForCms, listRegionsForCms, listCmsUsers } from "@explorers-map/services";
 
 import { buildMetadata } from "../../lib/metadata";
 import {
   getCmsCountriesHref,
   getCmsDestinationsHref,
+  getCmsListingsHref,
+  getCmsNewListingHref,
   getCmsNewDestinationHref,
   getCmsNewCountryHref,
   getCmsNewRegionHref,
@@ -26,6 +28,7 @@ export default async function CmsPage() {
   const regions = actor?.role === "admin" ? listRegionsForCms() : [];
   const users = actor?.role === "admin" ? listCmsUsers() : [];
   const destinations = actor ? listDestinationsForCms(actor) : [];
+  const listings = actor ? listListingsForCms(actor) : [];
 
   return (
     <>
@@ -36,8 +39,8 @@ export default async function CmsPage() {
         </h2>
         <p className="mt-4 max-w-3xl text-base leading-7 text-stone-600">
           {actor?.role === "admin"
-            ? "Phase 10a extends the CMS into destination editing, while shared services continue to own authorization, slug validation, and audit attribution."
-            : "You can now manage destinations that overlap your assigned regions, with admin-only management areas still kept separate."}
+            ? "Phase 10b now extends the CMS into listing editing, while shared services continue to own authorization, slug validation, lifecycle behavior, and audit attribution."
+            : "You can now manage listings and destinations inside your assigned regions, with admin-only management areas still kept separate."}
         </p>
       </section>
 
@@ -45,6 +48,7 @@ export default async function CmsPage() {
         <SummaryCard label="Role" value={actor?.role ?? "viewer"} />
         <SummaryCard label="Assigned regions" value={String(actor?.moderatorRegionAssignments.length ?? 0)} />
         <SummaryCard label="Visible destinations" value={String(destinations.length)} />
+        <SummaryCard label="Visible listings" value={String(listings.length)} />
         {actor?.role === "admin" ? (
           <>
             <SummaryCard label="Users" value={String(users.length)} />
@@ -54,7 +58,14 @@ export default async function CmsPage() {
       </section>
 
       {actor?.role === "admin" ? (
-        <section className="grid gap-4 xl:grid-cols-4">
+        <section className="grid gap-4 xl:grid-cols-5">
+          <QuickLinkCard
+            description="Create, edit, publish, unpublish, trash, and restore listings while keeping canonical region routes intact."
+            href={getCmsListingsHref()}
+            secondaryHref={getCmsNewListingHref()}
+            secondaryLabel="New listing"
+            title="Listings"
+          />
           <QuickLinkCard
             description="Create or edit destinations, manage destination-region links, and keep canonical destination slugs up to date."
             href={getCmsDestinationsHref()}
@@ -87,19 +98,19 @@ export default async function CmsPage() {
       ) : (
         <section className="grid gap-4 xl:grid-cols-2">
           <QuickLinkCard
+            description="Create and manage listings inside your assigned regions, with destination choices staying scoped to what you can manage."
+            href={getCmsListingsHref()}
+            secondaryHref={getCmsNewListingHref()}
+            secondaryLabel="New listing"
+            title="Listings"
+          />
+          <QuickLinkCard
             description="Edit destinations that overlap your assigned regions and extend them into other regions you manage."
             href={getCmsDestinationsHref()}
             secondaryHref={getCmsNewDestinationHref()}
             secondaryLabel="New destination"
             title="Destinations"
           />
-          <div className="rounded-[1.75rem] border border-dashed border-stone-300 bg-white/82 p-6">
-            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-stone-500">Next up</p>
-            <p className="mt-3 max-w-3xl text-base leading-7 text-stone-600">
-              Listing editorial tools are still planned for the next sub-phase. Your assigned regions will continue to
-              define what appears in that workflow too.
-            </p>
-          </div>
         </section>
       )}
     </>

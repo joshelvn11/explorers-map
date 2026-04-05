@@ -3,9 +3,12 @@ import { randomUUID } from "node:crypto";
 import { and, asc, eq, inArray } from "drizzle-orm";
 
 import {
+  categories,
   countries,
   destinationRegions,
   destinations,
+  listingDestinations,
+  listings,
   regions,
   user,
   type CmsRole,
@@ -15,10 +18,15 @@ import {
 import { deriveSlug } from "./editorial.ts";
 import { ServiceError } from "./errors.ts";
 import {
+  assertCanAssignListingDestinationIds,
   assertCanManageDestinationWithRegionIds,
+  assertCanManageListing,
+  assertCanManageListingInRegion,
   countAdminUsers,
+  createCmsWriteContext,
   getAuthActorContext,
   listManageableDestinationRegionOptions,
+  listManageableListingDestinationOptions,
   requireAdminActor,
   resolveDestinationRegionIdsForActor,
   setModeratorRegionAssignmentsWithExecutor,
@@ -27,7 +35,17 @@ import {
   type DestinationRegionOption,
   type ModeratorRegionAssignmentRecord,
 } from "./auth.ts";
-import { mapSqliteError, requireCountryRecord, requireNonEmptyString, resolveDb } from "./shared.ts";
+import {
+  assignListingDestinations,
+  createListingDraft,
+  publishListing,
+  restoreListing,
+  setListingLocation,
+  trashListing,
+  unpublishListing,
+  updateListingCopyAndMetadata,
+} from "./listings.ts";
+import { mapSqliteError, requireCountryRecord, requireListingRecord, requireNonEmptyString, requireOptionalString, requireRegionRecordById, resolveDb } from "./shared.ts";
 
 export type CmsUserSummary = {
   userId: string;
@@ -122,6 +140,75 @@ export type UpsertDestinationInput = {
   description: string;
   coverImage: string;
   regionIds: string[];
+};
+
+export type ListingCmsDestinationRecord = {
+  destinationId: string;
+  destinationSlug: string;
+  destinationTitle: string;
+  manageableByActor: boolean;
+};
+
+export type ListingCmsRecord = {
+  id: string;
+  countrySlug: string;
+  countryTitle: string;
+  regionId: string;
+  regionSlug: string;
+  regionTitle: string;
+  slug: string;
+  title: string;
+  status: "draft" | "published";
+  deletedAt: string | null;
+  shortDescription: string;
+  description: string;
+  latitude: number;
+  longitude: number;
+  busynessRating: number;
+  googleMapsPlaceUrl: string | null;
+  coverImage: string;
+  category: {
+    slug: string;
+    title: string;
+  };
+  destinations: ListingCmsDestinationRecord[];
+  source: string;
+  createdBy: string | null;
+  updatedBy: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type CreateCmsListingInput = {
+  regionId: string;
+  title: string;
+  slug?: string;
+  shortDescription: string;
+  description: string;
+  coverImage: string;
+  categorySlug: string;
+  busynessRating: number;
+  latitude: number;
+  longitude: number;
+  googleMapsPlaceUrl?: string | null;
+  destinationIds: string[];
+};
+
+export type UpdateCmsListingInput = {
+  currentCountrySlug: string;
+  currentRegionSlug: string;
+  currentListingSlug: string;
+  title: string;
+  slug?: string;
+  shortDescription: string;
+  description: string;
+  coverImage: string;
+  categorySlug: string;
+  busynessRating: number;
+  latitude: number;
+  longitude: number;
+  googleMapsPlaceUrl?: string | null;
+  destinationIds: string[];
 };
 
 export function listCmsUsers(dbInstance?: DbInstance): CmsUserSummary[] {
@@ -696,6 +783,364 @@ export function updateDestinationForCms(
   return getDestinationForCms(country.slug, slug, actor, dbInstance)!;
 }
 
+export function listListingsForCms(actor: AuthActorContext, dbInstance?: DbInstance): ListingCmsRecord[] {
+  const { db } = resolveDb(dbInstance);
+  const rows =
+    actor.role === "admin"
+      ? db
+          .select({
+            id: listings.id,
+            countrySlug: countries.slug,
+            countryTitle: countries.title,
+            regionId: regions.id,
+            regionSlug: regions.slug,
+            regionTitle: regions.title,
+            slug: listings.slug,
+            title: listings.title,
+            status: listings.status,
+            deletedAt: listings.deletedAt,
+            shortDescription: listings.shortDescription,
+            description: listings.description,
+            latitude: listings.latitude,
+            longitude: listings.longitude,
+            busynessRating: listings.busynessRating,
+            googleMapsPlaceUrl: listings.googleMapsPlaceUrl,
+            coverImage: listings.coverImage,
+            categorySlug: categories.slug,
+            categoryTitle: categories.title,
+            source: listings.source,
+            createdBy: listings.createdBy,
+            updatedBy: listings.updatedBy,
+            createdAt: listings.createdAt,
+            updatedAt: listings.updatedAt,
+          })
+          .from(listings)
+          .innerJoin(regions, eq(listings.regionId, regions.id))
+          .innerJoin(countries, eq(regions.countryId, countries.id))
+          .innerJoin(categories, eq(listings.categorySlug, categories.slug))
+          .orderBy(asc(countries.title), asc(regions.title), asc(listings.title))
+          .all()
+      : actor.moderatorRegionAssignments.length === 0
+        ? []
+        : db
+            .select({
+              id: listings.id,
+              countrySlug: countries.slug,
+              countryTitle: countries.title,
+              regionId: regions.id,
+              regionSlug: regions.slug,
+              regionTitle: regions.title,
+              slug: listings.slug,
+              title: listings.title,
+              status: listings.status,
+              deletedAt: listings.deletedAt,
+              shortDescription: listings.shortDescription,
+              description: listings.description,
+              latitude: listings.latitude,
+              longitude: listings.longitude,
+              busynessRating: listings.busynessRating,
+              googleMapsPlaceUrl: listings.googleMapsPlaceUrl,
+              coverImage: listings.coverImage,
+              categorySlug: categories.slug,
+              categoryTitle: categories.title,
+              source: listings.source,
+              createdBy: listings.createdBy,
+              updatedBy: listings.updatedBy,
+              createdAt: listings.createdAt,
+              updatedAt: listings.updatedAt,
+            })
+            .from(listings)
+            .innerJoin(regions, eq(listings.regionId, regions.id))
+            .innerJoin(countries, eq(regions.countryId, countries.id))
+            .innerJoin(categories, eq(listings.categorySlug, categories.slug))
+            .where(inArray(listings.regionId, actor.moderatorRegionAssignments.map((assignment) => assignment.regionId)))
+            .orderBy(asc(countries.title), asc(regions.title), asc(listings.title))
+            .all();
+
+  const manageableDestinationIds = buildManageableDestinationIdSet(
+    actor,
+    Array.from(new Set(rows.map((row) => row.countrySlug))),
+    dbInstance,
+  );
+  const destinationMap = loadListingCmsDestinations(
+    rows.map((row) => row.id),
+    manageableDestinationIds,
+    dbInstance,
+  );
+
+  return rows.map((row) => mapListingRow(row, destinationMap.get(row.id) ?? []));
+}
+
+export function getListingForCms(
+  countrySlug: string,
+  regionSlug: string,
+  listingSlug: string,
+  actor: AuthActorContext,
+  dbInstance?: DbInstance,
+): ListingCmsRecord | null {
+  let listing;
+
+  try {
+    listing = requireListingForCmsAccess({ countrySlug, regionSlug, listingSlug }, actor, dbInstance);
+  } catch (error) {
+    if (error instanceof ServiceError && error.code === "NOT_FOUND") {
+      return null;
+    }
+
+    throw error;
+  }
+
+  const manageableDestinationIds = buildManageableDestinationIdSet(actor, [listing.countrySlug], dbInstance);
+  const destinations = loadListingCmsDestinations([listing.id], manageableDestinationIds, dbInstance).get(listing.id) ?? [];
+
+  return mapListingRow(
+    {
+      id: listing.id,
+      countrySlug: listing.countrySlug,
+      countryTitle: listing.countryTitle,
+      regionId: listing.regionId,
+      regionSlug: listing.regionSlug,
+      regionTitle: listing.regionTitle,
+      slug: listing.listingSlug,
+      title: listing.title,
+      status: listing.status,
+      deletedAt: listing.deletedAt,
+      shortDescription: listing.shortDescription,
+      description: listing.description,
+      latitude: listing.latitude,
+      longitude: listing.longitude,
+      busynessRating: listing.busynessRating,
+      googleMapsPlaceUrl: listing.googleMapsPlaceUrl,
+      coverImage: listing.coverImage,
+      categorySlug: listing.categorySlug,
+      categoryTitle: listing.categoryTitle,
+      source: listing.source,
+      createdBy: listing.createdBy,
+      updatedBy: listing.updatedBy,
+      createdAt: listing.createdAt,
+      updatedAt: listing.updatedAt,
+    },
+    destinations,
+  );
+}
+
+export function createListingForCms(
+  input: CreateCmsListingInput,
+  actor: AuthActorContext,
+  dbInstance?: DbInstance,
+) {
+  const { db } = resolveDb(dbInstance);
+  const region = requireRegionRecordById(db, input.regionId);
+  assertCanManageListingInRegion(actor, region.id);
+
+  const title = requireNonEmptyString(input.title, "title");
+  const slug = deriveSlug(input.slug, title, "listing");
+  const destinationIds = resolveListingDestinationIdsForActor(
+    {
+      actor,
+      countrySlug: region.countrySlug,
+      submittedDestinationIds: input.destinationIds,
+    },
+    dbInstance,
+  );
+
+  const destinationRecords = requireListingDestinationRecords(destinationIds, region.countrySlug, dbInstance);
+  const writeContext = createCmsWriteContext(actor);
+
+  createListingDraft(
+    {
+      countrySlug: region.countrySlug,
+      regionSlug: region.slug,
+      slug,
+      title,
+      shortDescription: requireNonEmptyString(input.shortDescription, "shortDescription"),
+      description: requireNonEmptyString(input.description, "description"),
+      latitude: input.latitude,
+      longitude: input.longitude,
+      busynessRating: input.busynessRating,
+      googleMapsPlaceUrl: requireOptionalString(input.googleMapsPlaceUrl, "googleMapsPlaceUrl"),
+      coverImage: requireNonEmptyString(input.coverImage, "coverImage"),
+      categorySlug: requireNonEmptyString(input.categorySlug, "categorySlug"),
+    },
+    writeContext,
+    dbInstance,
+  );
+
+  if (destinationRecords.length > 0) {
+    assignListingDestinations(
+      {
+        countrySlug: region.countrySlug,
+        regionSlug: region.slug,
+        listingSlug: slug,
+      },
+      destinationRecords.map((destination) => ({
+        countrySlug: destination.countrySlug,
+        destinationSlug: destination.destinationSlug,
+      })),
+      writeContext,
+      dbInstance,
+    );
+  }
+
+  return getListingForCms(region.countrySlug, region.slug, slug, actor, dbInstance)!;
+}
+
+export function updateListingForCms(
+  input: UpdateCmsListingInput,
+  actor: AuthActorContext,
+  dbInstance?: DbInstance,
+) {
+  const current = requireListingForCmsAccess(
+    {
+      countrySlug: input.currentCountrySlug,
+      regionSlug: input.currentRegionSlug,
+      listingSlug: input.currentListingSlug,
+    },
+    actor,
+    dbInstance,
+  );
+  const title = requireNonEmptyString(input.title, "title");
+  const slug = deriveSlug(input.slug, title, "listing");
+  const destinationIds = resolveListingDestinationIdsForActor(
+    {
+      actor,
+      countrySlug: current.countrySlug,
+      submittedDestinationIds: input.destinationIds,
+      existingDestinationIds: currentDestinationsForListing(current.id, dbInstance),
+    },
+    dbInstance,
+  );
+  const destinationRecords = requireListingDestinationRecords(destinationIds, current.countrySlug, dbInstance);
+  const locator = {
+    countrySlug: current.countrySlug,
+    regionSlug: current.regionSlug,
+    listingSlug: current.listingSlug,
+  };
+  const writeContext = createCmsWriteContext(actor);
+
+  const updatedCopy = updateListingCopyAndMetadata(
+    locator,
+    {
+      slug,
+      title,
+      shortDescription: requireNonEmptyString(input.shortDescription, "shortDescription"),
+      description: requireNonEmptyString(input.description, "description"),
+      coverImage: requireNonEmptyString(input.coverImage, "coverImage"),
+      categorySlug: requireNonEmptyString(input.categorySlug, "categorySlug"),
+      busynessRating: input.busynessRating,
+    },
+    writeContext,
+    dbInstance,
+  );
+
+  setListingLocation(
+    {
+      countrySlug: updatedCopy.countrySlug,
+      regionSlug: updatedCopy.regionSlug,
+      listingSlug: updatedCopy.listingSlug,
+    },
+    {
+      latitude: input.latitude,
+      longitude: input.longitude,
+      googleMapsPlaceUrl: requireOptionalString(input.googleMapsPlaceUrl, "googleMapsPlaceUrl"),
+    },
+    writeContext,
+    dbInstance,
+  );
+
+  assignListingDestinations(
+    {
+      countrySlug: updatedCopy.countrySlug,
+      regionSlug: updatedCopy.regionSlug,
+      listingSlug: updatedCopy.listingSlug,
+    },
+    destinationRecords.map((destination) => ({
+      countrySlug: destination.countrySlug,
+      destinationSlug: destination.destinationSlug,
+    })),
+    writeContext,
+    dbInstance,
+  );
+
+  return getListingForCms(updatedCopy.countrySlug, updatedCopy.regionSlug, updatedCopy.listingSlug, actor, dbInstance)!;
+}
+
+export function publishListingForCms(
+  input: { countrySlug: string; regionSlug: string; listingSlug: string },
+  actor: AuthActorContext,
+  dbInstance?: DbInstance,
+) {
+  const current = requireListingForCmsAccess(input, actor, dbInstance);
+  const result = publishListing(
+    {
+      countrySlug: current.countrySlug,
+      regionSlug: current.regionSlug,
+      listingSlug: current.listingSlug,
+    },
+    createCmsWriteContext(actor),
+    dbInstance,
+  );
+
+  return getListingForCms(result.countrySlug, result.regionSlug, result.listingSlug, actor, dbInstance)!;
+}
+
+export function unpublishListingForCms(
+  input: { countrySlug: string; regionSlug: string; listingSlug: string },
+  actor: AuthActorContext,
+  dbInstance?: DbInstance,
+) {
+  const current = requireListingForCmsAccess(input, actor, dbInstance);
+  const result = unpublishListing(
+    {
+      countrySlug: current.countrySlug,
+      regionSlug: current.regionSlug,
+      listingSlug: current.listingSlug,
+    },
+    createCmsWriteContext(actor),
+    dbInstance,
+  );
+
+  return getListingForCms(result.countrySlug, result.regionSlug, result.listingSlug, actor, dbInstance)!;
+}
+
+export function trashListingForCms(
+  input: { countrySlug: string; regionSlug: string; listingSlug: string },
+  actor: AuthActorContext,
+  dbInstance?: DbInstance,
+) {
+  const current = requireListingForCmsAccess(input, actor, dbInstance);
+  const result = trashListing(
+    {
+      countrySlug: current.countrySlug,
+      regionSlug: current.regionSlug,
+      listingSlug: current.listingSlug,
+    },
+    createCmsWriteContext(actor),
+    dbInstance,
+  );
+
+  return getListingForCms(result.countrySlug, result.regionSlug, result.listingSlug, actor, dbInstance)!;
+}
+
+export function restoreListingForCms(
+  input: { countrySlug: string; regionSlug: string; listingSlug: string },
+  actor: AuthActorContext,
+  dbInstance?: DbInstance,
+) {
+  const current = requireListingForCmsAccess(input, actor, dbInstance);
+  const result = restoreListing(
+    {
+      countrySlug: current.countrySlug,
+      regionSlug: current.regionSlug,
+      listingSlug: current.listingSlug,
+    },
+    createCmsWriteContext(actor),
+    dbInstance,
+  );
+
+  return getListingForCms(result.countrySlug, result.regionSlug, result.listingSlug, actor, dbInstance)!;
+}
+
 function normalizeModeratorRegionIds(regionIds: string[] | undefined) {
   return Array.from(
     new Set(
@@ -802,6 +1247,45 @@ function loadDestinationCmsRegions(
   return regionsByDestinationId;
 }
 
+function loadListingCmsDestinations(
+  listingIds: string[],
+  manageableDestinationIds: Set<string>,
+  dbInstance?: DbInstance,
+) {
+  const destinationsByListingId = new Map<string, ListingCmsDestinationRecord[]>();
+  const { db } = resolveDb(dbInstance);
+
+  if (listingIds.length === 0) {
+    return destinationsByListingId;
+  }
+
+  const rows = db
+    .select({
+      listingId: listingDestinations.listingId,
+      destinationId: destinations.id,
+      destinationSlug: destinations.slug,
+      destinationTitle: destinations.title,
+    })
+    .from(listingDestinations)
+    .innerJoin(destinations, eq(listingDestinations.destinationId, destinations.id))
+    .where(inArray(listingDestinations.listingId, listingIds))
+    .orderBy(asc(destinations.title))
+    .all();
+
+  for (const row of rows) {
+    const bucket = destinationsByListingId.get(row.listingId) ?? [];
+    bucket.push({
+      destinationId: row.destinationId,
+      destinationSlug: row.destinationSlug,
+      destinationTitle: row.destinationTitle,
+      manageableByActor: manageableDestinationIds.has(row.destinationId),
+    });
+    destinationsByListingId.set(row.listingId, bucket);
+  }
+
+  return destinationsByListingId;
+}
+
 function mapDestinationRow(
   row: {
     id: string;
@@ -827,6 +1311,66 @@ function mapDestinationRow(
     description: row.description,
     coverImage: row.coverImage,
     regions,
+    createdBy: row.createdBy,
+    updatedBy: row.updatedBy,
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
+  };
+}
+
+function mapListingRow(
+  row: {
+    id: string;
+    countrySlug: string;
+    countryTitle: string;
+    regionId: string;
+    regionSlug: string;
+    regionTitle: string;
+    slug: string;
+    title: string;
+    status: "draft" | "published";
+    deletedAt: Date | null;
+    shortDescription: string;
+    description: string;
+    latitude: number;
+    longitude: number;
+    busynessRating: number;
+    googleMapsPlaceUrl: string | null;
+    coverImage: string;
+    categorySlug: string;
+    categoryTitle: string;
+    source: string;
+    createdBy: string | null;
+    updatedBy: string | null;
+    createdAt: Date;
+    updatedAt: Date;
+  },
+  destinations: ListingCmsDestinationRecord[],
+): ListingCmsRecord {
+  return {
+    id: row.id,
+    countrySlug: row.countrySlug,
+    countryTitle: row.countryTitle,
+    regionId: row.regionId,
+    regionSlug: row.regionSlug,
+    regionTitle: row.regionTitle,
+    slug: row.slug,
+    title: row.title,
+    status: row.status,
+    deletedAt: row.deletedAt ? row.deletedAt.toISOString() : null,
+    shortDescription: row.shortDescription,
+    description: row.description,
+    latitude: row.latitude,
+    longitude: row.longitude,
+    busynessRating: row.busynessRating,
+    googleMapsPlaceUrl: row.googleMapsPlaceUrl,
+    coverImage: row.coverImage,
+    category: {
+      slug: row.categorySlug,
+      title: row.categoryTitle,
+    },
+    destinations,
+    source: row.source,
     createdBy: row.createdBy,
     updatedBy: row.updatedBy,
     createdAt: row.createdAt.toISOString(),
@@ -862,4 +1406,124 @@ function requireDestinationRegionRecords(regionIds: string[], countryId: string,
   }
 
   return records;
+}
+
+function requireListingDestinationRecords(destinationIds: string[], countrySlug: string, dbInstance?: DbInstance) {
+  const { db } = resolveDb(dbInstance);
+
+  if (destinationIds.length === 0) {
+    return [];
+  }
+
+  const records = db
+    .select({
+      id: destinations.id,
+      countrySlug: countries.slug,
+      destinationSlug: destinations.slug,
+    })
+    .from(destinations)
+    .innerJoin(countries, eq(destinations.countryId, countries.id))
+    .where(inArray(destinations.id, destinationIds))
+    .all();
+
+  if (records.length !== destinationIds.length) {
+    throw new ServiceError("INVALID_INPUT", "One or more listing destinations do not exist.");
+  }
+
+  if (records.some((destination) => destination.countrySlug !== countrySlug)) {
+    throw new ServiceError("INVALID_INPUT", `Listing destinations must belong to country "${countrySlug}".`);
+  }
+
+  return records;
+}
+
+function buildManageableDestinationIdSet(
+  actor: AuthActorContext,
+  countrySlugs: string[],
+  dbInstance?: DbInstance,
+) {
+  if (actor.role === "admin") {
+    const { db } = resolveDb(dbInstance);
+    const normalizedCountrySlugs = Array.from(new Set(countrySlugs.map((countrySlug) => countrySlug.trim()).filter(Boolean)));
+
+    if (normalizedCountrySlugs.length === 0) {
+      return new Set<string>();
+    }
+
+    return new Set(
+      db
+        .select({ destinationId: destinations.id })
+        .from(destinations)
+        .innerJoin(countries, eq(destinations.countryId, countries.id))
+        .where(inArray(countries.slug, normalizedCountrySlugs))
+        .all()
+        .map((row) => row.destinationId),
+    );
+  }
+
+  return new Set(
+    Array.from(new Set(countrySlugs.map((countrySlug) => countrySlug.trim()).filter(Boolean))).flatMap((countrySlug) =>
+      listManageableListingDestinationOptions(actor, countrySlug, dbInstance).map((option) => option.destinationId),
+    ),
+  );
+}
+
+function requireListingForCmsAccess(
+  locator: { countrySlug: string; regionSlug: string; listingSlug: string },
+  actor: AuthActorContext,
+  dbInstance?: DbInstance,
+) {
+  const { db } = resolveDb(dbInstance);
+  const listing = requireListingRecord(db, locator);
+  assertCanManageListing(actor, listing);
+  return listing;
+}
+
+function currentDestinationsForListing(listingId: string, dbInstance?: DbInstance) {
+  const { db } = resolveDb(dbInstance);
+
+  return db
+    .select({
+      destinationId: listingDestinations.destinationId,
+    })
+    .from(listingDestinations)
+    .where(eq(listingDestinations.listingId, listingId))
+    .all()
+    .map((row) => row.destinationId);
+}
+
+function resolveListingDestinationIdsForActor(
+  input: {
+    actor: AuthActorContext;
+    countrySlug: string;
+    submittedDestinationIds: string[];
+    existingDestinationIds?: string[];
+  },
+  dbInstance?: DbInstance,
+) {
+  const submittedDestinationIds = Array.from(
+    new Set(input.submittedDestinationIds.map((destinationId) => requireNonEmptyString(destinationId, "destinationId"))),
+  );
+  const existingDestinationIds = Array.from(
+    new Set((input.existingDestinationIds ?? []).map((destinationId) => requireNonEmptyString(destinationId, "destinationId"))),
+  );
+
+  if (input.actor.role === "admin") {
+    return submittedDestinationIds;
+  }
+
+  const manageableDestinationIds = new Set(
+    listManageableListingDestinationOptions(input.actor, input.countrySlug, dbInstance).map((option) => option.destinationId),
+  );
+
+  if (submittedDestinationIds.some((destinationId) => !manageableDestinationIds.has(destinationId))) {
+    assertCanAssignListingDestinationIds(input.actor, submittedDestinationIds, dbInstance);
+    throw new ServiceError(
+      "FORBIDDEN",
+      "You can only assign destinations that overlap at least one region you manage in this country.",
+    );
+  }
+
+  const preservedDestinationIds = existingDestinationIds.filter((destinationId) => !manageableDestinationIds.has(destinationId));
+  return Array.from(new Set([...preservedDestinationIds, ...submittedDestinationIds]));
 }

@@ -6,18 +6,26 @@ import { eq } from "drizzle-orm";
 import { destinations, moderatorRegionAssignments, regions, user } from "@explorers-map/db";
 
 import {
+  createListingForCms,
   createDestinationForCms,
   createCountryForCms,
   createRegionForCms,
+  getListingForCms,
   getDestinationForCms,
   getAuthActorContext,
   getCmsUserDetail,
   getCountryBySlug,
   getRegionBySlug,
   listCmsUsers,
+  listListingsForCms,
+  publishListingForCms,
+  restoreListingForCms,
   setModeratorRegionAssignments,
   setUserRole,
+  trashListingForCms,
+  unpublishListingForCms,
   updateDestinationForCms,
+  updateListingForCms,
   updateCmsUserAccess,
   updateCountryForCms,
   updateRegionForCms,
@@ -477,4 +485,280 @@ test("moderator destination edits preserve unmanaged links, allow managed expans
       ),
     (error) => error instanceof ServiceError && error.code === "CONFLICT",
   );
+});
+
+test("listing CMS services enforce moderator region scope and preserve out-of-scope destination links", (t) => {
+  const dbInstance = createSeededTestDb(t);
+
+  dbInstance.db.insert(user).values([
+    {
+      id: "admin-1",
+      name: "Admin User",
+      email: "admin@example.com",
+    },
+    {
+      id: "moderator-1",
+      name: "Moderator User",
+      email: "moderator@example.com",
+    },
+  ]).run();
+
+  setUserRole("admin-1", "admin", dbInstance);
+  setUserRole("moderator-1", "moderator", dbInstance);
+
+  const adminActor = getAuthActorContext("admin-1", dbInstance);
+  const moderatorActor = getAuthActorContext("moderator-1", dbInstance);
+  const dorset = dbInstance.db.select({ id: regions.id }).from(regions).where(eq(regions.slug, "dorset")).get();
+  const devon = dbInstance.db.select({ id: regions.id }).from(regions).where(eq(regions.slug, "devon")).get();
+  const jurassicCoast = dbInstance.db
+    .select({ id: destinations.id })
+    .from(destinations)
+    .where(eq(destinations.slug, "jurassic-coast"))
+    .get();
+  const peakDistrict = dbInstance.db
+    .select({ id: destinations.id })
+    .from(destinations)
+    .where(eq(destinations.slug, "peak-district-national-park"))
+    .get();
+
+  assert.ok(dorset);
+  assert.ok(devon);
+  assert.ok(jurassicCoast);
+  assert.ok(peakDistrict);
+
+  setModeratorRegionAssignments("moderator-1", [dorset.id], "admin-1", dbInstance);
+  const scopedModerator = getAuthActorContext("moderator-1", dbInstance);
+
+  const created = createListingForCms(
+    {
+      regionId: dorset.id,
+      title: "Scope Test Cove",
+      shortDescription: "Moderator-safe create flow.",
+      description: "Created inside an assigned region.",
+      coverImage: "https://example.com/scope-test-cove.jpg",
+      categorySlug: "beach",
+      busynessRating: 2,
+      latitude: 50.61,
+      longitude: -2.45,
+      destinationIds: [peakDistrict.id],
+    },
+    adminActor,
+    dbInstance,
+  );
+  const moderatorView = getListingForCms(created.countrySlug, created.regionSlug, created.slug, scopedModerator, dbInstance);
+
+  assert.equal(created.regionSlug, "dorset");
+  assert.deepEqual(moderatorView?.destinations.map((destination) => destination.destinationSlug), ["peak-district-national-park"]);
+  assert.equal(moderatorView?.destinations[0]?.manageableByActor, false);
+
+  const updatedByModerator = updateListingForCms(
+    {
+      currentCountrySlug: created.countrySlug,
+      currentRegionSlug: created.regionSlug,
+      currentListingSlug: created.slug,
+      title: "Scope Test Cove Updated",
+      shortDescription: "Moderator updated the copy.",
+      description: "Moderator edit should preserve admin-only destinations.",
+      coverImage: "https://example.com/scope-test-cove-updated.jpg",
+      categorySlug: "beach",
+      busynessRating: 3,
+      latitude: 50.62,
+      longitude: -2.44,
+      destinationIds: [jurassicCoast.id],
+    },
+    scopedModerator,
+    dbInstance,
+  );
+
+  assert.equal(updatedByModerator.slug, "scope-test-cove-updated");
+  assert.deepEqual(
+    updatedByModerator.destinations.map((destination) => destination.destinationSlug),
+    ["jurassic-coast", "peak-district-national-park"],
+  );
+  assert.equal(updatedByModerator.destinations.find((destination) => destination.destinationSlug === "jurassic-coast")?.manageableByActor, true);
+  assert.equal(
+    updatedByModerator.destinations.find((destination) => destination.destinationSlug === "peak-district-national-park")?.manageableByActor,
+    false,
+  );
+
+  assert.throws(
+    () =>
+      createListingForCms(
+        {
+          regionId: devon.id,
+          title: "Out Of Scope Cove",
+          shortDescription: "Should fail.",
+          description: "Moderators cannot create outside assigned regions.",
+          coverImage: "https://example.com/out-of-scope-cove.jpg",
+          categorySlug: "beach",
+          busynessRating: 2,
+          latitude: 50.72,
+          longitude: -3.11,
+          destinationIds: [],
+        },
+        scopedModerator,
+        dbInstance,
+      ),
+    (error) => error instanceof ServiceError && error.code === "FORBIDDEN",
+  );
+
+  const devonListing = createListingForCms(
+    {
+      regionId: devon.id,
+      title: "Admin Devon Listing",
+      shortDescription: "Admin-only region coverage.",
+      description: "Admin created listing in another moderator-inaccessible region.",
+      coverImage: "https://example.com/admin-devon-listing.jpg",
+      categorySlug: "beach",
+      busynessRating: 2,
+      latitude: 50.7,
+      longitude: -3.2,
+      destinationIds: [jurassicCoast.id],
+    },
+    adminActor,
+    dbInstance,
+  );
+
+  assert.throws(
+    () => getListingForCms(devonListing.countrySlug, devonListing.regionSlug, devonListing.slug, scopedModerator, dbInstance),
+    (error) => error instanceof ServiceError && error.code === "FORBIDDEN",
+  );
+  assert.ok(!listListingsForCms(scopedModerator, dbInstance).some((listing) => listing.slug === devonListing.slug));
+
+  assert.throws(
+    () =>
+      updateListingForCms(
+        {
+          currentCountrySlug: devonListing.countrySlug,
+          currentRegionSlug: devonListing.regionSlug,
+          currentListingSlug: devonListing.slug,
+          title: "Blocked Devon Listing",
+          shortDescription: "Blocked edit.",
+          description: "Blocked edit.",
+          coverImage: "https://example.com/blocked-devon-listing.jpg",
+          categorySlug: "beach",
+          busynessRating: 2,
+          latitude: 50.7,
+          longitude: -3.2,
+          destinationIds: [jurassicCoast.id],
+        },
+        scopedModerator,
+        dbInstance,
+      ),
+    (error) => error instanceof ServiceError && error.code === "FORBIDDEN",
+  );
+});
+
+test("listing CMS lifecycle actions work inside assigned regions", (t) => {
+  const dbInstance = createSeededTestDb(t);
+
+  dbInstance.db.insert(user).values([
+    {
+      id: "admin-1",
+      name: "Admin User",
+      email: "admin@example.com",
+    },
+    {
+      id: "moderator-1",
+      name: "Moderator User",
+      email: "moderator@example.com",
+    },
+  ]).run();
+
+  setUserRole("admin-1", "admin", dbInstance);
+  setUserRole("moderator-1", "moderator", dbInstance);
+
+  const dorset = dbInstance.db.select({ id: regions.id }).from(regions).where(eq(regions.slug, "dorset")).get();
+  assert.ok(dorset);
+
+  setModeratorRegionAssignments("moderator-1", [dorset.id], "admin-1", dbInstance);
+  const moderatorActor = getAuthActorContext("moderator-1", dbInstance);
+
+  const created = createListingForCms(
+    {
+      regionId: dorset.id,
+      title: "Lifecycle Jetty",
+      shortDescription: "Lifecycle draft.",
+      description: "Lifecycle draft description.",
+      coverImage: "https://example.com/lifecycle-jetty.jpg",
+      categorySlug: "beach",
+      busynessRating: 1,
+      latitude: 50.63,
+      longitude: -2.41,
+      destinationIds: [],
+    },
+    moderatorActor,
+    dbInstance,
+  );
+
+  assert.equal(created.status, "draft");
+
+  const published = publishListingForCms(
+    {
+      countrySlug: created.countrySlug,
+      regionSlug: created.regionSlug,
+      listingSlug: created.slug,
+    },
+    moderatorActor,
+    dbInstance,
+  );
+  assert.equal(published.status, "published");
+  assert.equal(published.updatedBy, "moderator-1");
+
+  const unpublished = unpublishListingForCms(
+    {
+      countrySlug: created.countrySlug,
+      regionSlug: created.regionSlug,
+      listingSlug: created.slug,
+    },
+    moderatorActor,
+    dbInstance,
+  );
+  assert.equal(unpublished.status, "draft");
+
+  const trashed = trashListingForCms(
+    {
+      countrySlug: created.countrySlug,
+      regionSlug: created.regionSlug,
+      listingSlug: created.slug,
+    },
+    moderatorActor,
+    dbInstance,
+  );
+  assert.ok(trashed.deletedAt);
+
+  assert.throws(
+    () =>
+      updateListingForCms(
+        {
+          currentCountrySlug: created.countrySlug,
+          currentRegionSlug: created.regionSlug,
+          currentListingSlug: created.slug,
+          title: "Lifecycle Jetty Updated",
+          shortDescription: "Should be blocked while trashed.",
+          description: "Should be blocked while trashed.",
+          coverImage: "https://example.com/lifecycle-jetty-updated.jpg",
+          categorySlug: "beach",
+          busynessRating: 2,
+          latitude: 50.63,
+          longitude: -2.41,
+          destinationIds: [],
+        },
+        moderatorActor,
+        dbInstance,
+      ),
+    (error) => error instanceof ServiceError && error.code === "INVALID_STATE",
+  );
+
+  const restored = restoreListingForCms(
+    {
+      countrySlug: created.countrySlug,
+      regionSlug: created.regionSlug,
+      listingSlug: created.slug,
+    },
+    moderatorActor,
+    dbInstance,
+  );
+
+  assert.equal(restored.deletedAt, null);
 });

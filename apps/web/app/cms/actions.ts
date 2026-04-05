@@ -18,6 +18,15 @@ import {
   getCmsActionErrorMessage as getDestinationActionErrorMessage,
   updateCmsDestination,
 } from "../../lib/cms-destinations.ts";
+import {
+  createCmsListing,
+  getCmsActionErrorMessage as getListingActionErrorMessage,
+  publishCmsListing,
+  restoreCmsListing,
+  trashCmsListing,
+  unpublishCmsListing,
+  updateCmsListing,
+} from "../../lib/cms-listings.ts";
 import { requireAdminActor, requireCmsActor } from "../../lib/session.ts";
 
 export async function createUserAction(_: CmsFormState, formData: FormData): Promise<CmsFormState> {
@@ -244,6 +253,95 @@ export async function updateDestinationAction(_: CmsFormState, formData: FormDat
   }
 }
 
+export async function createListingAction(_: CmsFormState, formData: FormData): Promise<CmsFormState> {
+  const actor = await requireCmsActor("/cms/listings/new");
+
+  try {
+    const result = await createCmsListing(
+      {
+        regionId: String(formData.get("regionId") ?? ""),
+        title: String(formData.get("title") ?? ""),
+        slug: optionalString(formData.get("slug")),
+        shortDescription: String(formData.get("shortDescription") ?? ""),
+        description: String(formData.get("description") ?? ""),
+        coverImage: String(formData.get("coverImage") ?? ""),
+        categorySlug: String(formData.get("categorySlug") ?? ""),
+        busynessRating: Number(formData.get("busynessRating") ?? ""),
+        latitude: Number(formData.get("latitude") ?? ""),
+        longitude: Number(formData.get("longitude") ?? ""),
+        googleMapsPlaceUrl: optionalString(formData.get("googleMapsPlaceUrl")),
+        destinationIds: formData.getAll("destinationIds").map(String),
+      },
+      actor,
+    );
+
+    redirect(result.redirectTo);
+  } catch (error) {
+    if (isRedirectError(error)) {
+      throw error;
+    }
+
+    return {
+      errorMessage: getListingActionErrorMessage(error),
+    };
+  }
+}
+
+export async function updateListingAction(_: CmsFormState, formData: FormData): Promise<CmsFormState> {
+  const currentCountrySlug = String(formData.get("currentCountrySlug") ?? "");
+  const currentRegionSlug = String(formData.get("currentRegionSlug") ?? "");
+  const currentListingSlug = String(formData.get("currentListingSlug") ?? "");
+  const actor = await requireCmsActor(`/cms/listings/${currentCountrySlug}/${currentRegionSlug}/${currentListingSlug}`);
+
+  try {
+    const result = await updateCmsListing(
+      {
+        currentCountrySlug,
+        currentRegionSlug,
+        currentListingSlug,
+        title: String(formData.get("title") ?? ""),
+        slug: optionalString(formData.get("slug")),
+        shortDescription: String(formData.get("shortDescription") ?? ""),
+        description: String(formData.get("description") ?? ""),
+        coverImage: String(formData.get("coverImage") ?? ""),
+        categorySlug: String(formData.get("categorySlug") ?? ""),
+        busynessRating: Number(formData.get("busynessRating") ?? ""),
+        latitude: Number(formData.get("latitude") ?? ""),
+        longitude: Number(formData.get("longitude") ?? ""),
+        googleMapsPlaceUrl: optionalString(formData.get("googleMapsPlaceUrl")),
+        destinationIds: formData.getAll("destinationIds").map(String),
+      },
+      actor,
+    );
+
+    redirect(result.redirectTo);
+  } catch (error) {
+    if (isRedirectError(error)) {
+      throw error;
+    }
+
+    return {
+      errorMessage: getListingActionErrorMessage(error),
+    };
+  }
+}
+
+export async function publishListingAction(_: CmsFormState, formData: FormData): Promise<CmsFormState> {
+  return runListingLifecycleAction(formData, publishCmsListing);
+}
+
+export async function unpublishListingAction(_: CmsFormState, formData: FormData): Promise<CmsFormState> {
+  return runListingLifecycleAction(formData, unpublishCmsListing);
+}
+
+export async function trashListingAction(_: CmsFormState, formData: FormData): Promise<CmsFormState> {
+  return runListingLifecycleAction(formData, trashCmsListing);
+}
+
+export async function restoreListingAction(_: CmsFormState, formData: FormData): Promise<CmsFormState> {
+  return runListingLifecycleAction(formData, restoreCmsListing);
+}
+
 function optionalString(value: FormDataEntryValue | null) {
   if (typeof value !== "string") {
     return undefined;
@@ -251,4 +349,35 @@ function optionalString(value: FormDataEntryValue | null) {
 
   const normalized = value.trim();
   return normalized.length > 0 ? normalized : undefined;
+}
+
+async function runListingLifecycleAction(
+  formData: FormData,
+  action: typeof publishCmsListing,
+): Promise<CmsFormState> {
+  const countrySlug = String(formData.get("countrySlug") ?? "");
+  const regionSlug = String(formData.get("regionSlug") ?? "");
+  const listingSlug = String(formData.get("listingSlug") ?? "");
+  const actor = await requireCmsActor(`/cms/listings/${countrySlug}/${regionSlug}/${listingSlug}`);
+
+  try {
+    const result = await action(
+      {
+        countrySlug,
+        regionSlug,
+        listingSlug,
+      },
+      actor,
+    );
+
+    redirect(result.redirectTo);
+  } catch (error) {
+    if (isRedirectError(error)) {
+      throw error;
+    }
+
+    return {
+      errorMessage: getListingActionErrorMessage(error),
+    };
+  }
 }

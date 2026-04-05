@@ -8,6 +8,8 @@ The format is based on Keep a Changelog.
 
 ### Added
 
+- Added the Phase 10b listing editorial foundation, including shared listing CMS services, listing RBAC helpers, moderator-safe destination assignment scoping, and CMS listing routes for admins plus region-scoped moderators.
+- Added Phase 10b service and web tests covering listing authorization, lifecycle actions, canonical slug redirects, moderator redirect behavior for out-of-scope listing pages, and preservation of out-of-scope destination links during moderator edits.
 - Added the Phase 10a destination editorial foundation, including shared destination audit columns, RBAC-aware destination CMS services, moderator-safe destination-region linking, and CMS destination routes for admins plus region-scoped moderators.
 - Added Phase 10a service and web tests covering destination audit attribution, moderator scope enforcement, preserved out-of-scope destination links, destination slug redirects, and moderator redirect behavior for out-of-scope destination pages.
 - Added the Phase 10a DB migration `0004_flowery_william_stryker.sql` to track acting-user attribution on destination CMS writes.
@@ -47,6 +49,7 @@ The format is based on Keep a Changelog.
 
 ### Changed
 
+- Changed the CMS shell and docs so listing management now sits alongside destination management for admins and region-scoped moderators.
 - Changed the public web app from build-time DB-backed static params to runtime DB-backed rendering for country, region, destination, catalog, and listing pages so content updates no longer require rebuilding the image.
 - Changed `pnpm dev:web` / `pnpm dev` in `apps/web` to run shared DB migrations and bootstrap-admin initialization before Next.js starts, which keeps older local SQLite files compatible with the new auth tables.
 - Changed the Docker Compose stack to pass Better Auth and bootstrap-admin environment variables into the production container so Dockhand-style deployments can run the new auth-enabled web build.
