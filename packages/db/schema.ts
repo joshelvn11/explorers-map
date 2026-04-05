@@ -62,6 +62,8 @@ export const destinations = sqliteTable(
     title: text("title").notNull(),
     description: text("description").notNull(),
     coverImage: text("cover_image").notNull(),
+    createdBy: text("created_by").references(() => user.id, { onDelete: "set null", onUpdate: "cascade" }),
+    updatedBy: text("updated_by").references(() => user.id, { onDelete: "set null", onUpdate: "cascade" }),
     createdAt: integer("created_at", { mode: "timestamp" }).notNull().default(currentTimestamp),
     updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().default(currentTimestamp),
   },

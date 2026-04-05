@@ -8,6 +8,9 @@ The format is based on Keep a Changelog.
 
 ### Added
 
+- Added the Phase 10a destination editorial foundation, including shared destination audit columns, RBAC-aware destination CMS services, moderator-safe destination-region linking, and CMS destination routes for admins plus region-scoped moderators.
+- Added Phase 10a service and web tests covering destination audit attribution, moderator scope enforcement, preserved out-of-scope destination links, destination slug redirects, and moderator redirect behavior for out-of-scope destination pages.
+- Added the Phase 10a DB migration `0004_flowery_william_stryker.sql` to track acting-user attribution on destination CMS writes.
 - Added the Phase 9 CMS shell, including role-aware `/cms` navigation, admin-only user management pages, and admin country/region create-edit flows backed by thin web server actions.
 - Added shared Phase 9 CMS services for admin user access management, moderator-region reconciliation, last-admin protection, and country/region slug-managed writes.
 - Added Phase 9 DB migration `0003_tan_alice.sql` to track acting-admin attribution on CMS role rows and moderator-region assignments.

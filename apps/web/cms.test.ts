@@ -5,7 +5,7 @@ import { getURLFromRedirectError } from "next/dist/client/components/redirect.js
 import { isRedirectError } from "next/dist/client/components/redirect-error.js";
 
 import { regions, user } from "@explorers-map/db";
-import { getAuthActorContext, setUserRole } from "@explorers-map/services";
+import { createDestinationForCms, getAuthActorContext, setModeratorRegionAssignments, setUserRole } from "@explorers-map/services";
 
 import {
   createCmsCountry,
@@ -16,6 +16,12 @@ import {
   updateCmsRegion,
 } from "./lib/cms-admin.ts";
 import { createAuth } from "./lib/auth.ts";
+import {
+  createCmsDestination,
+  getCmsActionErrorMessage as getCmsDestinationActionErrorMessage,
+  resolveCmsDestinationAccess,
+  updateCmsDestination,
+} from "./lib/cms-destinations.ts";
 import { requireAdminActorFromHeaders } from "./lib/session.ts";
 import { createSeededTestDb } from "../../packages/services/test-helpers.ts";
 
@@ -222,4 +228,130 @@ test("CMS admin helpers redirect to the new slugged routes after country and reg
     dbInstance,
   );
   assert.equal(updatedRegion.redirectTo, "/cms/regions/france-west/northern-dunes");
+});
+
+test("CMS destination helpers redirect to the canonical slugged routes after destination edits", async (t) => {
+  withAuthEnv(t);
+  const dbInstance = createSeededTestDb(t);
+
+  dbInstance.db.insert(user).values({
+    id: "admin-1",
+    name: "Admin User",
+    email: "admin@example.com",
+  }).run();
+  setUserRole("admin-1", "admin", dbInstance);
+  const actor = getAuthActorContext("admin-1", dbInstance);
+  const dorset = dbInstance.sqlite.prepare("select id from regions where slug = ?").get("dorset") as { id: string } | undefined;
+
+  assert.ok(dorset);
+
+  const created = await createCmsDestination(
+    {
+      countrySlug: "united-kingdom",
+      title: "Harbour Cliffs",
+      description: "Destination helper coverage.",
+      coverImage: "https://example.com/harbour-cliffs.jpg",
+      regionIds: [dorset.id],
+    },
+    actor,
+    dbInstance,
+  );
+
+  assert.equal(created.redirectTo, "/cms/destinations/united-kingdom/harbour-cliffs");
+
+  const updated = await updateCmsDestination(
+    {
+      currentCountrySlug: "united-kingdom",
+      currentDestinationSlug: "harbour-cliffs",
+      countrySlug: "united-kingdom",
+      title: "Harbour Sea Cliffs",
+      slug: "harbour-sea-cliffs",
+      description: "Updated destination helper coverage.",
+      coverImage: "https://example.com/harbour-sea-cliffs.jpg",
+      regionIds: [dorset.id],
+    },
+    actor,
+    dbInstance,
+  );
+
+  assert.equal(updated.redirectTo, "/cms/destinations/united-kingdom/harbour-sea-cliffs");
+});
+
+test("destination access helpers allow in-scope moderators, redirect out-of-scope moderators, and keep admin access global", (t) => {
+  const dbInstance = createSeededTestDb(t);
+
+  dbInstance.db.insert(user).values([
+    {
+      id: "admin-1",
+      name: "Admin User",
+      email: "admin@example.com",
+    },
+    {
+      id: "moderator-1",
+      name: "Moderator User",
+      email: "moderator@example.com",
+    },
+  ]).run();
+
+  setUserRole("admin-1", "admin", dbInstance);
+  setUserRole("moderator-1", "moderator", dbInstance);
+
+  const adminActor = getAuthActorContext("admin-1", dbInstance);
+  const dorset = dbInstance.sqlite.prepare("select id from regions where slug = ?").get("dorset") as { id: string } | undefined;
+  const devon = dbInstance.sqlite.prepare("select id from regions where slug = ?").get("devon") as { id: string } | undefined;
+
+  assert.ok(dorset);
+  assert.ok(devon);
+
+  const dorsetDestination = createDestinationForCms(
+    {
+      countrySlug: "united-kingdom",
+      title: "Stone Harbours",
+      description: "Moderator in-scope destination.",
+      coverImage: "https://example.com/stone-harbours.jpg",
+      regionIds: [dorset.id],
+    },
+    adminActor,
+    dbInstance,
+  );
+  const devonDestination = createDestinationForCms(
+    {
+      countrySlug: "united-kingdom",
+      title: "River Valleys",
+      description: "Moderator out-of-scope destination.",
+      coverImage: "https://example.com/river-valleys.jpg",
+      regionIds: [devon.id],
+    },
+    adminActor,
+    dbInstance,
+  );
+
+  setModeratorRegionAssignments("moderator-1", [dorset.id], "admin-1", dbInstance);
+  const moderatorActor = getAuthActorContext("moderator-1", dbInstance);
+
+  const inScope = resolveCmsDestinationAccess(
+    "united-kingdom",
+    dorsetDestination.slug,
+    moderatorActor,
+    dbInstance,
+  );
+  const outOfScope = resolveCmsDestinationAccess(
+    "united-kingdom",
+    devonDestination.slug,
+    moderatorActor,
+    dbInstance,
+  );
+  const adminView = resolveCmsDestinationAccess(
+    "united-kingdom",
+    devonDestination.slug,
+    adminActor,
+    dbInstance,
+  );
+
+  assert.equal(inScope?.kind, "destination");
+  assert.deepEqual(outOfScope, { kind: "redirect", redirectTo: "/cms/destinations" });
+  assert.equal(adminView?.kind, "destination");
+
+  const errorMessage = getCmsDestinationActionErrorMessage(new Error("Destination failure"));
+  assert.equal(errorMessage, "Destination failure");
 });

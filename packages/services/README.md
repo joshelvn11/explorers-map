@@ -10,6 +10,7 @@ This package contains shared domain logic used by the public app, repository too
 - Shared editorial service modules for MCP-facing category, region, destination, and listing reads, matching, ensure flows, and safe creation
 - Shared CMS/auth service responsibilities such as actor context, permission checks, and CMS write-context helpers
 - Shared Phase 9 CMS admin services for user access management plus country/region create and edit flows
+- Shared Phase 10a CMS destination services for actor-aware reads plus moderator-safe destination create/edit flows
 
 ## Exports
 
@@ -77,10 +78,11 @@ Current CMS/auth additions:
 - CMS write-context helpers that convert an authorized actor into the existing shared write-context shape
 - Phase 9 admin helpers for listing users, updating roles with moderator-region reconciliation, and guarding last-admin demotion
 - Phase 9 country and region CMS helpers with shared slug derivation and conflict handling
+- Phase 10a destination helpers for visible destination listing, destination detail access, moderator-manageable region options, and moderator-safe destination-region replacement within assigned scope
 
 Planned CMS additions:
 
-- RBAC-aware CMS operations for destinations and listings
+- RBAC-aware CMS operations for listings
 - listing tag-write support
 
 ## Local Commands

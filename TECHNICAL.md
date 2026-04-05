@@ -29,7 +29,7 @@ Expected flow:
 - `packages/services` now owns the shared seed import pipeline used by repository scripts plus the shared public query and listing write services used by future app and MCP entrypoints.
 - `apps/web` now also serves a narrow machine-facing Actions API for custom GPT integrations, backed by the same shared service layer as the public app and MCP runtime.
 - `apps/web` now also owns Better Auth browser-session handling, signed-in account routes, an idempotent bootstrap-admin initializer, and a protected CMS shell.
-- `apps/web` now also hosts the first real Phase 9 CMS surface: role-aware shell navigation plus admin-only user, country, and region management pages backed by thin server actions.
+- `apps/web` now also hosts the first real CMS surface: role-aware shell navigation, admin-only user/country/region management, and Phase 10a destination management for admins plus region-scoped moderators, all backed by thin server actions.
 - The shared database file defaults to `.data/explorers-map.sqlite` unless `EXPLORERS_MAP_SQLITE_PATH` overrides it.
 - Docker deployment now also supports a persistent runtime DB at `/app/data/explorers-map.sqlite` via container environment configuration.
 - Core data integrity for listings, scoped slugs, and join-table duplication is enforced in the schema layer.
@@ -60,6 +60,7 @@ Expected flow:
 - Service writes update `source`, `updatedBy`, and `updatedAt` consistently, while creation also populates `createdBy`.
 - The shared service layer now includes browser-auth actor context, CMS role lookup, moderator-region scope lookup, and CMS write-context helpers so later CMS work can reuse one authorization path.
 - The shared service layer now also includes Phase 9 admin CMS operations for listing users, updating roles plus moderator-region assignments atomically, and creating or editing countries and regions with shared slug validation.
+- Phase 10a extends that CMS layer with destination audit attribution, actor-aware destination reads, moderator-safe destination-region merging, and destination create/edit flows with shared slug validation.
 
 ## CMS/Auth Direction
 
@@ -70,7 +71,12 @@ Expected flow:
   - `admin` for full CMS and user-management access
   - `moderator` for region-scoped editorial access
   - `viewer` for authenticated non-CMS accounts
+- Planned next-phase note: after Phase 10b, the next intended RBAC expansion is a future `country_moderator` role with country-level assignments and nested moderation responsibilities; this is product direction only and is not implemented in the current runtime.
 - Moderator scope is region-based and may span more than one region once assignments are managed in the CMS.
+- Destination management is now the first moderator editorial surface:
+  - moderators can create destinations only with linked regions they manage
+  - moderators can edit destinations only while at least one linked region overlaps their assignments
+  - moderator destination edits replace only the links inside their own scope and preserve out-of-scope links
 - The first root admin account now uses a one-time environment-backed bootstrap flow rather than a permanent alternate login path.
 - Bootstrap-admin behavior is idempotent, runs only from explicit init paths, and does not rewrite existing admins after initialization.
 - Better Auth owns auth/session/account persistence, while app-owned tables carry CMS roles and moderator-region assignments.
@@ -138,8 +144,8 @@ Expected flow:
 - The Actions routes export direct segment-config literals (`runtime = "nodejs"` and `dynamic = "force-dynamic"`) because Next.js 16 build analysis rejects indirection there.
 - The auth route tree now includes `/api/auth/[...all]`, `/sign-in`, `/sign-up`, `/sign-out`, `/account`, and `/cms`.
 - `proxy.ts` performs optimistic cookie-based redirects for `/account` and `/cms`, while the protected pages and layouts still do authoritative server-side session and role checks.
-- The CMS route tree now also includes admin-only `/cms/users`, `/cms/users/new`, `/cms/users/[userId]`, `/cms/countries`, `/cms/countries/new`, `/cms/countries/[countrySlug]`, `/cms/regions`, `/cms/regions/new`, and `/cms/regions/[countrySlug]/[regionSlug]`.
-- `/cms` remains accessible to admins and moderators, but a dedicated admin guard now redirects moderators away from the Phase 9 admin-only CMS sections back to `/cms`.
+- The CMS route tree now also includes admin-only `/cms/users`, `/cms/users/new`, `/cms/users/[userId]`, `/cms/countries`, `/cms/countries/new`, `/cms/countries/[countrySlug]`, `/cms/regions`, `/cms/regions/new`, and `/cms/regions/[countrySlug]/[regionSlug]`, plus shared `/cms/destinations`, `/cms/destinations/new`, and `/cms/destinations/[countrySlug]/[destinationSlug]`.
+- `/cms` remains accessible to admins and moderators, but a dedicated admin guard still redirects moderators away from the Phase 9 admin-only CMS sections back to `/cms`, while out-of-scope destination detail links redirect moderators to `/cms/destinations`.
 - The browser-auth tests cover signup, signin, signout, viewer-default role creation, proxy protection, bootstrap-admin idempotency, and the separation between browser sessions and Actions bearer auth.
 
 ## Docker Deployment

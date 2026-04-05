@@ -24,7 +24,7 @@
 - Better Auth should own the auth/session/account tables, while app-owned schema additions should carry CMS role data and moderator-region assignments.
 - Phase 9 extends those app-owned CMS tables with nullable actor-attribution columns for admin-managed role changes and moderator-region assignments.
 - `rate_limit` now uses a generated Better Auth `id` plus a unique `key`, which lets Better Auth keep database-backed rate limiting in SQLite without bypassing the shared migration flow.
-- Browser-auth rollout still leaves content audit tracking for countries, regions, and destinations as later CMS work.
+- Phase 10a now extends content audit tracking to destinations via nullable `created_by` and `updated_by` foreign keys, while countries and regions still remain unaudited for now.
 
 ## Runtime Notes
 

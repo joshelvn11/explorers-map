@@ -533,8 +533,18 @@ Next.js page
     - can create users
     - can assign roles
     - can manage countries, regions, destinations, and listings
+  - `country_moderator`
+    - separate role from `moderator`
+    - tied to one or more assigned countries
+    - can manage country metadata for assigned countries
+    - can create and edit regions, destinations, and listings in assigned countries
+    - can publish, unpublish, trash, and restore listings in assigned countries
+    - can manage region-level moderators only within assigned countries
+    - can create and manage only `viewer` and `moderator` users within assigned countries
+    - may not create, promote, demote, or otherwise manage `admin` or `country_moderator` accounts
   - `moderator`
     - tied to one or more assigned regions
+    - remains a separate role from `country_moderator`
     - can manage listings in assigned regions
     - can create listings only in regions they are assigned to manage
     - when creating or editing a listing, may only choose destinations that are attached to at least one region they manage
@@ -544,6 +554,7 @@ Next.js page
     - can link an existing destination to any region they manage
     - may only change destination-region links within assigned regions
     - may not save a destination with zero overlap to assigned regions
+    - once country-moderator management exists, moderators managed by a country moderator must be single-country moderators
   - `viewer`
     - default signup role
     - can authenticate
@@ -729,7 +740,15 @@ export const listingDestinations = sqliteTable("listing_destinations", {
 - Soft delete should move records to trash rather than permanently deleting them by default
 - Browser auth should use Better Auth when the CMS phase lands
 - Open signup should create `viewer` users by default
+- `country_moderator` should be a separate role from `moderator`
+- `country_moderator` may be assigned to one or more countries
+- `country_moderator` may edit country metadata for assigned countries
+- `country_moderator` may create and edit regions, destinations, and listings in assigned countries
+- `country_moderator` may publish, unpublish, trash, and restore listings in assigned countries
+- `country_moderator` may create and manage only `viewer` and `moderator` users within assigned countries
+- Only `admin` may create, promote, demote, or otherwise manage `admin` and `country_moderator` accounts
 - Moderators should be region-scoped and may cover more than one region
+- Once country-moderator management exists, moderators managed through that role should be limited to a single country
 - Moderators may edit a destination when at least one linked region overlaps their assigned regions
 - Moderators may create a destination only when it is linked to at least one region they manage
 - Moderators may attach only their own assigned regions when creating or editing destination-region links, including when linking an existing destination to one of their managed regions

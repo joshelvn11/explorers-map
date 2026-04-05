@@ -3,17 +3,21 @@ import test from "node:test";
 
 import { eq } from "drizzle-orm";
 
-import { moderatorRegionAssignments, regions, user } from "@explorers-map/db";
+import { destinations, moderatorRegionAssignments, regions, user } from "@explorers-map/db";
 
 import {
+  createDestinationForCms,
   createCountryForCms,
   createRegionForCms,
+  getDestinationForCms,
   getAuthActorContext,
   getCmsUserDetail,
   getCountryBySlug,
   getRegionBySlug,
   listCmsUsers,
+  setModeratorRegionAssignments,
   setUserRole,
+  updateDestinationForCms,
   updateCmsUserAccess,
   updateCountryForCms,
   updateRegionForCms,
@@ -218,5 +222,259 @@ test("admin country and region updates preserve canonical slug behavior and regi
   assert.equal(
     getRegionBySlug({ countrySlug: updatedCountry.slug, regionSlug: "northern-dunes" }, dbInstance)?.title,
     "Northern Dunes",
+  );
+});
+
+test("admin destination CMS writes stamp audit attribution and support slug updates", (t) => {
+  const dbInstance = createSeededTestDb(t);
+
+  dbInstance.db.insert(user).values({
+    id: "admin-1",
+    name: "Admin User",
+    email: "admin@example.com",
+  }).run();
+
+  setUserRole("admin-1", "admin", dbInstance);
+  const adminActor = getAuthActorContext("admin-1", dbInstance);
+  const dorset = dbInstance.db.select({ id: regions.id }).from(regions).where(eq(regions.slug, "dorset")).get();
+  const devon = dbInstance.db.select({ id: regions.id }).from(regions).where(eq(regions.slug, "devon")).get();
+
+  assert.ok(dorset);
+  assert.ok(devon);
+
+  const created = createDestinationForCms(
+    {
+      countrySlug: "united-kingdom",
+      title: "Devon Cliffs",
+      description: "A destination for testing audit attribution.",
+      coverImage: "https://example.com/devon-cliffs.jpg",
+      regionIds: [dorset.id],
+    },
+    adminActor,
+    dbInstance,
+  );
+
+  assert.equal(created.slug, "devon-cliffs");
+  assert.deepEqual(created.regions.map((region) => region.regionSlug), ["dorset"]);
+
+  const createdRow = dbInstance.db
+    .select({
+      createdBy: destinations.createdBy,
+      updatedBy: destinations.updatedBy,
+    })
+    .from(destinations)
+    .where(eq(destinations.id, created.id))
+    .get();
+
+  assert.equal(createdRow?.createdBy, "admin-1");
+  assert.equal(createdRow?.updatedBy, "admin-1");
+
+  const updated = updateDestinationForCms(
+    {
+      currentCountrySlug: "united-kingdom",
+      currentDestinationSlug: "devon-cliffs",
+      countrySlug: "united-kingdom",
+      title: "Devon Sea Cliffs",
+      slug: "devon-sea-cliffs",
+      description: "Updated destination slug and regions.",
+      coverImage: "https://example.com/devon-sea-cliffs.jpg",
+      regionIds: [dorset.id, devon.id],
+    },
+    adminActor,
+    dbInstance,
+  );
+
+  assert.equal(updated.slug, "devon-sea-cliffs");
+  assert.equal(getDestinationForCms("united-kingdom", "devon-cliffs", adminActor, dbInstance), null);
+  assert.deepEqual(
+    updated.regions.map((region) => region.regionSlug),
+    ["devon", "dorset"],
+  );
+
+  const updatedRow = dbInstance.db
+    .select({
+      updatedBy: destinations.updatedBy,
+    })
+    .from(destinations)
+    .where(eq(destinations.id, updated.id))
+    .get();
+
+  assert.equal(updatedRow?.updatedBy, "admin-1");
+});
+
+test("moderators can create destinations only inside managed regions", (t) => {
+  const dbInstance = createSeededTestDb(t);
+
+  dbInstance.db.insert(user).values([
+    {
+      id: "admin-1",
+      name: "Admin User",
+      email: "admin@example.com",
+    },
+    {
+      id: "moderator-1",
+      name: "Moderator User",
+      email: "moderator@example.com",
+    },
+  ]).run();
+
+  setUserRole("moderator-1", "moderator", dbInstance);
+
+  const dorset = dbInstance.db.select({ id: regions.id }).from(regions).where(eq(regions.slug, "dorset")).get();
+  const devon = dbInstance.db.select({ id: regions.id }).from(regions).where(eq(regions.slug, "devon")).get();
+
+  assert.ok(dorset);
+  assert.ok(devon);
+
+  setModeratorRegionAssignments("moderator-1", [dorset.id], "admin-1", dbInstance);
+  const moderatorActor = getAuthActorContext("moderator-1", dbInstance);
+
+  const created = createDestinationForCms(
+    {
+      countrySlug: "united-kingdom",
+      title: "Dorset Coves",
+      description: "Moderator-created destination.",
+      coverImage: "https://example.com/dorset-coves.jpg",
+      regionIds: [dorset.id],
+    },
+    moderatorActor,
+    dbInstance,
+  );
+
+  assert.equal(created.slug, "dorset-coves");
+
+  assert.throws(
+    () =>
+      createDestinationForCms(
+        {
+          countrySlug: "united-kingdom",
+          title: "Devon Rivers",
+          description: "Attempt to create outside the moderator scope.",
+          coverImage: "https://example.com/devon-rivers.jpg",
+          regionIds: [devon.id],
+        },
+        moderatorActor,
+        dbInstance,
+      ),
+    (error) => error instanceof ServiceError && error.code === "FORBIDDEN",
+  );
+});
+
+test("moderator destination edits preserve unmanaged links, allow managed expansion, and reject overlap loss", (t) => {
+  const dbInstance = createSeededTestDb(t);
+
+  dbInstance.db.insert(user).values([
+    {
+      id: "admin-1",
+      name: "Admin User",
+      email: "admin@example.com",
+    },
+    {
+      id: "moderator-1",
+      name: "Moderator User",
+      email: "moderator@example.com",
+    },
+  ]).run();
+
+  setUserRole("admin-1", "admin", dbInstance);
+  setUserRole("moderator-1", "moderator", dbInstance);
+
+  const adminActor = getAuthActorContext("admin-1", dbInstance);
+  const dorset = dbInstance.db.select({ id: regions.id }).from(regions).where(eq(regions.slug, "dorset")).get();
+  const devon = dbInstance.db.select({ id: regions.id }).from(regions).where(eq(regions.slug, "devon")).get();
+
+  assert.ok(dorset);
+  assert.ok(devon);
+
+  const created = createDestinationForCms(
+    {
+      countrySlug: "united-kingdom",
+      title: "South Coast Escapes",
+      description: "Shared destination for moderator tests.",
+      coverImage: "https://example.com/south-coast-escapes.jpg",
+      regionIds: [dorset.id, devon.id],
+    },
+    adminActor,
+    dbInstance,
+  );
+
+  setModeratorRegionAssignments("moderator-1", [dorset.id], "admin-1", dbInstance);
+  const moderatorActor = getAuthActorContext("moderator-1", dbInstance);
+
+  const preserved = updateDestinationForCms(
+    {
+      currentCountrySlug: "united-kingdom",
+      currentDestinationSlug: created.slug,
+      countrySlug: "united-kingdom",
+      title: "South Coast Escapes Updated",
+      description: "Moderator update that should preserve unmanaged regions.",
+      coverImage: "https://example.com/south-coast-escapes-updated.jpg",
+      regionIds: [dorset.id],
+    },
+    moderatorActor,
+    dbInstance,
+  );
+
+  assert.deepEqual(
+    preserved.regions.map((region) => region.regionSlug),
+    ["devon", "dorset"],
+  );
+
+  assert.throws(
+    () =>
+      updateDestinationForCms(
+        {
+          currentCountrySlug: "united-kingdom",
+          currentDestinationSlug: preserved.slug,
+          countrySlug: "united-kingdom",
+          title: "South Coast Escapes Updated",
+          description: "Attempt to drop overlap entirely.",
+          coverImage: "https://example.com/south-coast-escapes-updated.jpg",
+          regionIds: [],
+        },
+        moderatorActor,
+        dbInstance,
+      ),
+    (error) => error instanceof ServiceError && error.code === "FORBIDDEN",
+  );
+
+  setModeratorRegionAssignments("moderator-1", [dorset.id, devon.id], "admin-1", dbInstance);
+  const expandedActor = getAuthActorContext("moderator-1", dbInstance);
+  const expanded = updateDestinationForCms(
+    {
+      currentCountrySlug: "united-kingdom",
+      currentDestinationSlug: preserved.slug,
+      countrySlug: "united-kingdom",
+      title: "South Coast Escapes Expanded",
+      description: "Moderator can expand into another managed region.",
+      coverImage: "https://example.com/south-coast-escapes-expanded.jpg",
+      regionIds: [dorset.id, devon.id],
+    },
+    expandedActor,
+    dbInstance,
+  );
+
+  assert.deepEqual(
+    expanded.regions.map((region) => region.regionSlug),
+    ["devon", "dorset"],
+  );
+
+  assert.throws(
+    () =>
+      updateDestinationForCms(
+        {
+          currentCountrySlug: "united-kingdom",
+          currentDestinationSlug: expanded.slug,
+          countrySlug: "united-kingdom",
+          title: "South Coast Escapes Conflict",
+          slug: "jurassic-coast",
+          description: "Attempt to collide with an existing destination slug.",
+          coverImage: "https://example.com/south-coast-escapes-conflict.jpg",
+          regionIds: [dorset.id, devon.id],
+        },
+        expandedActor,
+        dbInstance,
+      ),
+    (error) => error instanceof ServiceError && error.code === "CONFLICT",
   );
 });

@@ -32,6 +32,7 @@ The web app dev script also runs the shared DB migrations and the idempotent boo
 - Better Auth browser-session auth for signed-in humans
 - Protected CMS shell routes for admins and moderators
 - Admin-only CMS routes for user, country, and region management
+- Shared CMS destination routes for admins and region-scoped moderators
 - Signed-in account surfaces for authenticated users
 
 ## Shared Workspace Packages
@@ -74,6 +75,9 @@ Shared packages are transpiled through Next.js so they can be imported directly 
   - `/sign-out`
   - `/account`
   - `/cms`
+  - `/cms/destinations`
+  - `/cms/destinations/new`
+  - `/cms/destinations/[countrySlug]/[destinationSlug]`
   - `/cms/users`
   - `/cms/countries`
   - `/cms/regions`
@@ -86,6 +90,8 @@ Shared packages are transpiled through Next.js so they can be imported directly 
 - The Actions API expects `EXPLORERS_MAP_ACTIONS_AUTH_TOKEN` to be set before use.
 - Browser auth requires `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, and optional bootstrap-admin env values for the one-time admin initializer.
 - Phase 9 admin-created users receive an initial password set inside the CMS; password reset and first-login password change flows remain out of scope for now.
+- Phase 10a destination editing stays on the same thin server-action pattern as the rest of the CMS: browser auth and redirects live here, while authorization, audit stamping, slug validation, and destination-region merge rules live in `@explorers-map/services`.
+- Moderator destination edits only expose moderator-managed regions as editable options, and direct links to out-of-scope destination pages redirect back to `/cms/destinations`.
 - Production runtime requires `BETTER_AUTH_SECRET`, but the Docker/Next build step no longer needs the real secret because auth uses a build-only placeholder during `next build` and reads the real secret only at runtime.
 - `proxy.ts` performs optimistic cookie checks for `/account` and `/cms`, while page and layout code still enforce server-side session and role checks.
 

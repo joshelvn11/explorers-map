@@ -5,6 +5,7 @@ import type { AuthActorContext } from "@explorers-map/services";
 import {
   getAccountHref,
   getCmsCountriesHref,
+  getCmsDestinationsHref,
   getCmsHref,
   getCmsRegionsHref,
   getCmsUsersHref,
@@ -28,8 +29,8 @@ export function CmsShell({
             <p className="text-sm font-semibold uppercase tracking-[0.24em] text-sky-800">CMS</p>
             <h1 className="mt-3 font-serif text-4xl text-stone-950">Editorial workspace</h1>
             <p className="mt-4 max-w-3xl text-base leading-7 text-stone-600">
-              The CMS shell is now role-aware. Admins can manage access, countries, and regions here, while moderators
-              keep entry to the protected workspace ahead of Phase 10 editorial tools.
+              The CMS shell is now role-aware. Admins can manage access and structure globally, while moderators now
+              get destination tooling scoped to their assigned regions.
             </p>
           </div>
 
@@ -63,6 +64,7 @@ export function CmsShell({
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-stone-500">Navigation</p>
             <nav className="mt-4 space-y-2">
               <CmsNavLink href={getCmsHref()} label="Dashboard" />
+              <CmsNavLink href={getCmsDestinationsHref()} label="Destinations" />
               {isAdmin ? (
                 <>
                   <CmsNavLink href={getCmsUsersHref()} label="Users" />
@@ -71,7 +73,7 @@ export function CmsShell({
                 </>
               ) : (
                 <p className="rounded-2xl border border-dashed border-stone-300 bg-stone-50/80 px-4 py-3 text-sm leading-6 text-stone-600">
-                  Admin-only sections stay hidden here for moderators until later editorial tools arrive.
+                  Admin-only sections stay hidden here. Your destination edits remain limited to your managed regions.
                 </p>
               )}
             </nav>

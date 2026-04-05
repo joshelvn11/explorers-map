@@ -10,7 +10,7 @@
 - `countries.ts`, `destinations.ts`, and `listings.ts` now provide the Phase 4 shared query and listing-service surface.
 - `editorial.ts` now provides the MCP-facing editorial read, matching, ensure, and safe-creation surface.
 - `auth.ts` now provides shared CMS role lookup, actor-context assembly, moderator-region scope lookup, admin detection, and CMS write-context helpers.
-- `cms.ts` now provides Phase 9 admin CMS operations for users, countries, and regions.
+- `cms.ts` now provides Phase 9 admin CMS operations for users, countries, and regions, plus Phase 10a destination CMS operations for admins and moderators.
 - The package now owns both the public read contract for the web app and the write and matching contract reused by the MCP server.
 - The package now also owns the Phase 8 browser-auth actor-context and CMS-role foundation so the web app can stay thin as the CMS expands.
 
@@ -54,7 +54,10 @@
 - `admin` retains global CMS authority, `moderator` is prepared for assigned-region editorial scope, and `viewer` authenticates successfully but has no CMS access.
 - `updateCmsUserAccess` now applies role changes plus moderator-region reconciliation atomically, rejects moderator saves with zero regions, and prevents demotion of the last remaining admin.
 - `createCountryForCms`, `updateCountryForCms`, `createRegionForCms`, and `updateRegionForCms` now own Phase 9 admin-only country and region persistence with shared slug derivation and conflict rules.
-- Later CMS additions should still implement shared destination, listing, and tag-write services with RBAC enforced in this package.
+- `listManageableDestinationRegionOptions`, `assertCanManageDestinationWithRegionIds`, and `resolveDestinationRegionIdsForActor` now centralize the Phase 10a destination authorization rules.
+- `listDestinationsForCms`, `getDestinationForCms`, `createDestinationForCms`, and `updateDestinationForCms` now own actor-aware destination reads plus destination create/edit persistence with shared audit attribution.
+- Moderator destination edits are partial-scope writes: links outside the moderator's assigned regions are preserved, while links inside their scope are replaced by the submitted set.
+- Later CMS additions should still implement shared listing and tag-write services with RBAC enforced in this package.
 
 ## Evidence And Matching Rules
 
@@ -80,6 +83,7 @@
 - Mutating listing services always stamp `source`, `updatedBy`, and `updatedAt`.
 - Listing creation also stamps `createdBy` and `createdAt`.
 - Trash and restore preserve the listing's prior publication state because soft delete is tracked only through `deletedAt`.
+- Destinations now also stamp `createdBy`, `updatedBy`, and `updatedAt` during CMS writes.
 
 ## Seed Sync Rules
 
@@ -113,4 +117,4 @@
 - `services.test.ts` provisions fresh temp SQLite databases, applies migrations, imports the shared seed dataset, and exercises the public query and listing write surface end to end.
 - `editorial.test.ts` covers editorial region and destination creation, editor-visible listing reads, evidence requirements, fuzzy matching, ensure flows, and slug-collision protection.
 - `auth.test.ts` covers CMS role creation, moderator-region actor context, CMS write-context gating, and admin detection.
-- `cms.test.ts` covers Phase 9 user access management, last-admin protection, and admin country/region slug behavior.
+- `cms.test.ts` now covers Phase 9 user access management, Phase 10a destination audit and RBAC behavior, last-admin protection, and country/region slug behavior.

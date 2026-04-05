@@ -31,6 +31,14 @@ export type ModeratorRegionAssignmentRecord = {
   createdAt: string;
 };
 
+export type DestinationRegionOption = {
+  regionId: string;
+  countrySlug: string;
+  countryTitle: string;
+  regionSlug: string;
+  regionTitle: string;
+};
+
 export type AuthActorContext = {
   userId: string;
   role: CmsRole;
@@ -151,6 +159,50 @@ export function listModeratorRegionAssignments(
     }));
 }
 
+export function listManageableDestinationRegionOptions(
+  actor: Pick<AuthActorContext, "role" | "moderatorRegionAssignments"> | null | undefined,
+  dbInstance?: DbInstance,
+): DestinationRegionOption[] {
+  assertCanAccessCms(actor);
+  const cmsActor = actor!;
+  const { db } = resolveDb(dbInstance);
+
+  if (cmsActor.role === "admin") {
+    return db
+      .select({
+        regionId: regions.id,
+        countrySlug: countries.slug,
+        countryTitle: countries.title,
+        regionSlug: regions.slug,
+        regionTitle: regions.title,
+      })
+      .from(regions)
+      .innerJoin(countries, eq(regions.countryId, countries.id))
+      .orderBy(asc(countries.title), asc(regions.title))
+      .all();
+  }
+
+  const manageableRegionIds = cmsActor.moderatorRegionAssignments.map((assignment) => assignment.regionId);
+
+  if (manageableRegionIds.length === 0) {
+    return [];
+  }
+
+  return db
+    .select({
+      regionId: regions.id,
+      countrySlug: countries.slug,
+      countryTitle: countries.title,
+      regionSlug: regions.slug,
+      regionTitle: regions.title,
+    })
+    .from(regions)
+    .innerJoin(countries, eq(regions.countryId, countries.id))
+    .where(inArray(regions.id, manageableRegionIds))
+    .orderBy(asc(countries.title), asc(regions.title))
+    .all();
+}
+
 export function getAuthActorContext(userId: string, dbInstance?: DbInstance): AuthActorContext {
   const normalizedUserId = requireNonEmptyString(userId, "userId");
   const role = getUserRole(normalizedUserId, dbInstance)?.role ?? "viewer";
@@ -203,6 +255,80 @@ export function createCmsWriteContext(actor: AuthActorContext, source = "web"): 
     actorId: actor.userId,
     source: requireNonEmptyString(source, "source"),
   };
+}
+
+export function canManageDestinationWithRegionIds(
+  actor: Pick<AuthActorContext, "role" | "moderatorRegionAssignments"> | null | undefined,
+  destinationRegionIds: string[],
+) {
+  if (actor?.role === "admin") {
+    return true;
+  }
+
+  if (actor?.role !== "moderator") {
+    return false;
+  }
+
+  const manageableRegionIds = new Set(actor.moderatorRegionAssignments.map((assignment) => assignment.regionId));
+  return destinationRegionIds.some((regionId) => manageableRegionIds.has(regionId));
+}
+
+export function assertCanManageDestinationWithRegionIds(
+  actor: Pick<AuthActorContext, "role" | "moderatorRegionAssignments"> | null | undefined,
+  destinationRegionIds: string[],
+) {
+  assertCanAccessCms(actor);
+
+  if (!canManageDestinationWithRegionIds(actor, destinationRegionIds)) {
+    throw new ServiceError(
+      "FORBIDDEN",
+      "You can only manage destinations that overlap at least one region you manage.",
+    );
+  }
+}
+
+export function resolveDestinationRegionIdsForActor(
+  input: {
+    actor: Pick<AuthActorContext, "role" | "moderatorRegionAssignments"> | null | undefined;
+    submittedRegionIds: string[];
+    existingRegionIds?: string[];
+  },
+  dbInstance?: DbInstance,
+) {
+  assertCanAccessCms(input.actor);
+  const cmsActor = input.actor!;
+  const submittedRegionIds = Array.from(
+    new Set(input.submittedRegionIds.map((value) => requireNonEmptyString(value, "regionId"))),
+  );
+  const existingRegionIds = Array.from(
+    new Set((input.existingRegionIds ?? []).map((value) => requireNonEmptyString(value, "existingRegionId"))),
+  );
+  const manageableRegionIds = new Set(
+    listManageableDestinationRegionOptions(cmsActor, dbInstance).map((option) => option.regionId),
+  );
+
+  if (cmsActor.role === "admin") {
+    if (submittedRegionIds.some((regionId) => !manageableRegionIds.has(regionId))) {
+      throw new ServiceError("INVALID_INPUT", "One or more destination regions do not exist.");
+    }
+
+    return submittedRegionIds;
+  }
+
+  if (submittedRegionIds.length === 0 && existingRegionIds.length === 0) {
+    throw new ServiceError("FORBIDDEN", "Moderators must attach destinations to at least one region they manage.");
+  }
+
+  if (submittedRegionIds.some((regionId) => !manageableRegionIds.has(regionId))) {
+    throw new ServiceError("FORBIDDEN", "You can only attach destinations to regions you manage.");
+  }
+
+  const preservedRegionIds = existingRegionIds.filter((regionId) => !manageableRegionIds.has(regionId));
+  const finalRegionIds = Array.from(new Set([...preservedRegionIds, ...submittedRegionIds]));
+
+  assertCanManageDestinationWithRegionIds(cmsActor, finalRegionIds);
+
+  return finalRegionIds;
 }
 
 export function setModeratorRegionAssignments(

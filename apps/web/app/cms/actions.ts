@@ -13,7 +13,12 @@ import {
   updateCmsUser,
 } from "../../lib/cms-admin.ts";
 import type { CmsFormState } from "../../lib/cms-form-state.ts";
-import { requireAdminActor } from "../../lib/session.ts";
+import {
+  createCmsDestination,
+  getCmsActionErrorMessage as getDestinationActionErrorMessage,
+  updateCmsDestination,
+} from "../../lib/cms-destinations.ts";
+import { requireAdminActor, requireCmsActor } from "../../lib/session.ts";
 
 export async function createUserAction(_: CmsFormState, formData: FormData): Promise<CmsFormState> {
   const actor = await requireAdminActor("/cms/users/new");
@@ -175,6 +180,66 @@ export async function updateRegionAction(_: CmsFormState, formData: FormData): P
 
     return {
       errorMessage: getCmsActionErrorMessage(error),
+    };
+  }
+}
+
+export async function createDestinationAction(_: CmsFormState, formData: FormData): Promise<CmsFormState> {
+  const actor = await requireCmsActor("/cms/destinations/new");
+
+  try {
+    const result = await createCmsDestination(
+      {
+        countrySlug: String(formData.get("countrySlug") ?? ""),
+        title: String(formData.get("title") ?? ""),
+        slug: optionalString(formData.get("slug")),
+        description: String(formData.get("description") ?? ""),
+        coverImage: String(formData.get("coverImage") ?? ""),
+        regionIds: formData.getAll("regionIds").map(String),
+      },
+      actor,
+    );
+
+    redirect(result.redirectTo);
+  } catch (error) {
+    if (isRedirectError(error)) {
+      throw error;
+    }
+
+    return {
+      errorMessage: getDestinationActionErrorMessage(error),
+    };
+  }
+}
+
+export async function updateDestinationAction(_: CmsFormState, formData: FormData): Promise<CmsFormState> {
+  const currentCountrySlug = String(formData.get("currentCountrySlug") ?? "");
+  const currentDestinationSlug = String(formData.get("currentDestinationSlug") ?? "");
+  const actor = await requireCmsActor(`/cms/destinations/${currentCountrySlug}/${currentDestinationSlug}`);
+
+  try {
+    const result = await updateCmsDestination(
+      {
+        currentCountrySlug,
+        currentDestinationSlug,
+        countrySlug: String(formData.get("countrySlug") ?? ""),
+        title: String(formData.get("title") ?? ""),
+        slug: optionalString(formData.get("slug")),
+        description: String(formData.get("description") ?? ""),
+        coverImage: String(formData.get("coverImage") ?? ""),
+        regionIds: formData.getAll("regionIds").map(String),
+      },
+      actor,
+    );
+
+    redirect(result.redirectTo);
+  } catch (error) {
+    if (isRedirectError(error)) {
+      throw error;
+    }
+
+    return {
+      errorMessage: getDestinationActionErrorMessage(error),
     };
   }
 }

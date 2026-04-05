@@ -59,7 +59,7 @@ Seed command behavior:
 Public app note:
 
 - The public Next.js app now reads countries, regions, destinations, and listings directly from the shared SQLite database during page rendering.
-- The web app now also includes Better Auth browser sessions, signed-in account pages, a protected CMS shell, and Phase 9 admin tooling for users, countries, and regions.
+- The web app now also includes Better Auth browser sessions, signed-in account pages, a protected CMS shell, Phase 9 admin tooling for users, countries, and regions, and Phase 10a destination management for admins plus region-scoped moderators.
 - `pnpm dev:web` now runs `pnpm db:migrate` and the idempotent bootstrap-admin initializer before Next.js starts.
 - Run `pnpm seed` before `pnpm dev:web` only when you need to populate a fresh local database with the curated development content.
 - Production builds no longer require seeded SQLite content because DB-backed public routes now render dynamically against the runtime database.
@@ -149,6 +149,8 @@ Browser auth note:
 - Open signup now defaults new users to a non-CMS `viewer` role.
 - `/account` is available to any signed-in user, while `/cms` is reserved for `admin` and region-scoped `moderator` roles.
 - Phase 9 adds admin-only CMS routes for `/cms/users`, `/cms/countries`, and `/cms/regions`, plus create/edit subroutes for those records.
+- Phase 10a adds shared CMS destination routes at `/cms/destinations`, `/cms/destinations/new`, and `/cms/destinations/[countrySlug]/[destinationSlug]`.
+- Destination editing now supports moderator-safe partial control: moderators can create or edit only inside their managed regions, and out-of-scope existing destination links are preserved unless an admin changes them.
 - `pnpm auth:bootstrap-admin` runs the explicit one-time bootstrap-admin initializer, and the same initializer also runs during `pnpm docker:start:web`.
 - `pnpm dev:web` now also runs the same bootstrap-admin initializer after migrations so local auth/CMS work starts from a migrated schema.
 
