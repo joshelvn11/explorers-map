@@ -8,7 +8,7 @@ The format is based on Keep a Changelog.
 
 ### Added
 
-- Added a third Actions OpenAPI schema at `apps/web/openapi/explorers-map-actions.draft-only.openapi.json` plus `GET /api/actions/openapi.draft-only.json` for a separate read-only draft-only Custom GPT import.
+- Added a third Actions OpenAPI schema at `apps/web/openapi/explorers-map-actions.read-only.openapi.json` plus `GET /api/actions/openapi.read-only.json` for a separate read-only Custom GPT import.
 - Added `CHATGPT_DRAFT_ONLY_GPT_INSTRUCTIONS.md` with a separate paste-ready Custom GPT instruction set for read-only Actions usage that inspects current records and drafts listings in chat without writing or publishing through the API.
 - Added the Phase 10b DB migration `0005_same_doctor_strange.sql` to allow sparse listing draft metadata and optional destination cover images for best-effort machine-created records.
 - Added `CHATGPT_ACTIONS_OPERATING_PROCEDURE.md` as a short, model-facing decision routine for duplicate-safe best-effort listing and destination creation without deadlocking on optional metadata.

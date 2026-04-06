@@ -28,7 +28,7 @@ import {
   parseJsonBody,
   parseLimit,
   parseOptionalNumber,
-  readDraftOnlyOpenApiDocumentText,
+  readReadOnlyOpenApiDocumentText,
   readOpenApiDocumentText,
   readProductionOpenApiDocumentText,
   requireSearchQuery,
@@ -70,9 +70,9 @@ export function openApiProductionHandler() {
   );
 }
 
-export function openApiDraftOnlyHandler() {
+export function openApiReadOnlyHandler() {
   return withoutAuth(() =>
-    new Response(readDraftOnlyOpenApiDocumentText(), {
+    new Response(readReadOnlyOpenApiDocumentText(), {
       status: 200,
       headers: {
         "content-type": "application/json; charset=utf-8",

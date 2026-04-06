@@ -13,10 +13,10 @@ const productionOpenApiPath = path.join(
   "openapi",
   "explorers-map-actions.production.openapi.json",
 );
-const draftOnlyOpenApiPath = path.join(
+const readOnlyOpenApiPath = path.join(
   packageRoot,
   "openapi",
-  "explorers-map-actions.draft-only.openapi.json",
+  "explorers-map-actions.read-only.openapi.json",
 );
 
 export type EvidenceItem = {
@@ -124,12 +124,12 @@ export function readProductionOpenApiDocument() {
   return JSON.parse(readProductionOpenApiDocumentText()) as Record<string, unknown>;
 }
 
-export function readDraftOnlyOpenApiDocumentText() {
-  return fs.readFileSync(draftOnlyOpenApiPath, "utf8");
+export function readReadOnlyOpenApiDocumentText() {
+  return fs.readFileSync(readOnlyOpenApiPath, "utf8");
 }
 
-export function readDraftOnlyOpenApiDocument() {
-  return JSON.parse(readDraftOnlyOpenApiDocumentText()) as Record<string, unknown>;
+export function readReadOnlyOpenApiDocument() {
+  return JSON.parse(readReadOnlyOpenApiDocumentText()) as Record<string, unknown>;
 }
 
 export function requireActionsAuth(request: Request) {

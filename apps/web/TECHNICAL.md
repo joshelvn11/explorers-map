@@ -63,7 +63,7 @@ These packages are transpiled via `transpilePackages` in `next.config.ts`.
 - Browser auth now uses Better Auth session cookies and remains separate from the existing bearer-token Actions auth.
 - Public browse routes should remain anonymous and continue working even after CMS session auth is added.
 - The web app also serves a trimmed production ChatGPT import contract from `/api/actions/openapi.production.json`.
-- The web app also serves a read-only draft-only ChatGPT import contract from `/api/actions/openapi.draft-only.json`.
+- The web app also serves a read-only ChatGPT import contract from `/api/actions/openapi.read-only.json`.
 - Each Actions route exports direct `runtime = "nodejs"` and `dynamic = "force-dynamic"` literals so Next.js 16 accepts the route segment config during production builds.
 - Actions POST routes return `EnsureResult`-style payloads so custom GPT workflows can distinguish created, matched, candidate-match, and insufficient-evidence outcomes.
 - Actions listing reads include drafts by default but exclude trashed listings.
@@ -90,4 +90,4 @@ These packages are transpiled via `transpilePackages` in `next.config.ts`.
 - Keep all checked-in schema files in sync when editing the Actions contract:
   - `apps/web/openapi/explorers-map-actions.openapi.json`
   - `apps/web/openapi/explorers-map-actions.production.openapi.json`
-  - `apps/web/openapi/explorers-map-actions.draft-only.openapi.json`
+  - `apps/web/openapi/explorers-map-actions.read-only.openapi.json`

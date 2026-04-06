@@ -137,17 +137,17 @@ Actions API note:
 - `apps/web` now also hosts a narrow authenticated HTTP API for custom GPT Actions under `/api/actions`.
 - The checked-in OpenAPI contract lives at `apps/web/openapi/explorers-map-actions.openapi.json`.
 - The production GPT import contract lives at `apps/web/openapi/explorers-map-actions.production.openapi.json`.
-- The draft-only GPT import contract lives at `apps/web/openapi/explorers-map-actions.draft-only.openapi.json`.
+- The read-only GPT import contract lives at `apps/web/openapi/explorers-map-actions.read-only.openapi.json`.
 - Use `CHATGPT_CUSTOM_GPT_INSTRUCTIONS.md` for the create-through-actions GPT and `CHATGPT_DRAFT_ONLY_GPT_INSTRUCTIONS.md` for the separate read-only draft-in-chat GPT.
 - Prompting examples for the Actions workflow live in `CHATGPT_ACTIONS_PROMPTS.md`.
 - The served schema endpoints are:
   - `GET /api/actions/openapi.json`
   - `GET /api/actions/openapi.production.json`
-  - `GET /api/actions/openapi.draft-only.json`
+  - `GET /api/actions/openapi.read-only.json`
 - On production, those URLs are:
   - `https://explorersmap.org/api/actions/openapi.json`
   - `https://explorersmap.org/api/actions/openapi.production.json`
-  - `https://explorersmap.org/api/actions/openapi.draft-only.json`
+  - `https://explorersmap.org/api/actions/openapi.read-only.json`
 - `pnpm dev:web`, `pnpm build:web`, and `pnpm --filter @explorers-map/web start` now automatically load the repo-root `.env` file when it exists.
 - The primary custom GPT workflow is list/search/get before create so duplicate-safe ensure flows can stop on ambiguity instead of inventing new records.
 - The current Actions bearer token remains fully separate from browser/session auth.

@@ -16,7 +16,7 @@ import {
   listDestinationsHandler,
   listRegionListingsHandler,
   listRegionsHandler,
-  openApiDraftOnlyHandler,
+  openApiReadOnlyHandler,
   openApiHandler,
   openApiProductionHandler,
   searchDestinationsHandler,
@@ -24,7 +24,7 @@ import {
   searchRegionsHandler,
 } from "./lib/actions-handlers.ts";
 import {
-  readDraftOnlyOpenApiDocumentText,
+  readReadOnlyOpenApiDocumentText,
   readOpenApiDocumentText,
   readProductionOpenApiDocumentText,
 } from "./lib/actions-api.ts";
@@ -59,7 +59,7 @@ test("health and OpenAPI endpoints are available without auth", async () => {
   const health = await healthzHandler();
   const openApi = await openApiHandler();
   const productionOpenApi = await openApiProductionHandler();
-  const draftOnlyOpenApi = await openApiDraftOnlyHandler();
+  const readOnlyOpenApi = await openApiReadOnlyHandler();
 
   assert.equal(health.status, 200);
   assert.deepEqual(await readJson(health), { ok: true });
@@ -68,8 +68,8 @@ test("health and OpenAPI endpoints are available without auth", async () => {
   assert.equal(await openApi.text(), readOpenApiDocumentText());
   assert.equal(productionOpenApi.status, 200);
   assert.equal(await productionOpenApi.text(), readProductionOpenApiDocumentText());
-  assert.equal(draftOnlyOpenApi.status, 200);
-  assert.equal(await draftOnlyOpenApi.text(), readDraftOnlyOpenApiDocumentText());
+  assert.equal(readOnlyOpenApi.status, 200);
+  assert.equal(await readOnlyOpenApi.text(), readReadOnlyOpenApiDocumentText());
 });
 
 test("protected Actions endpoints reject unauthenticated requests", async (t) => {
@@ -542,15 +542,16 @@ test("production OpenAPI contract is trimmed for ChatGPT import and points at ex
   assert.ok(document.paths["/api/actions/v1/countries/{countrySlug}/regions/{regionSlug}/listings"]);
 });
 
-test("draft-only OpenAPI contract is read-only and points at explorersmap.org", async () => {
-  const response = await openApiDraftOnlyHandler();
+test("read-only OpenAPI contract is read-only and points at explorersmap.org", async () => {
+  const response = await openApiReadOnlyHandler();
   const document = JSON.parse(await response.text()) as {
     info: { title: string };
     servers: Array<{ url: string }>;
     paths: Record<string, Record<string, unknown>>;
+    components: { schemas: Record<string, unknown> };
   };
 
-  assert.equal(document.info.title, "Explorers Map Actions API (Draft-Only)");
+  assert.equal(document.info.title, "Explorers Map Actions API (Read-Only)");
   assert.deepEqual(document.servers, [{ url: "https://explorersmap.org" }]);
   assert.ok(document.paths["/api/actions/v1/countries"]);
   assert.ok(document.paths["/api/actions/v1/countries/{countrySlug}/regions"]);
@@ -561,4 +562,10 @@ test("draft-only OpenAPI contract is read-only and points at explorersmap.org", 
     document.paths["/api/actions/v1/countries/{countrySlug}/regions/{regionSlug}/listings"].post,
     undefined,
   );
+  assert.equal(document.components.schemas.CreateRegionBody, undefined);
+  assert.equal(document.components.schemas.CreateDestinationBody, undefined);
+  assert.equal(document.components.schemas.CreateListingBody, undefined);
+  assert.equal(document.components.schemas.EnsureRegionResult, undefined);
+  assert.equal(document.components.schemas.EnsureDestinationResult, undefined);
+  assert.equal(document.components.schemas.EnsureListingResult, undefined);
 });

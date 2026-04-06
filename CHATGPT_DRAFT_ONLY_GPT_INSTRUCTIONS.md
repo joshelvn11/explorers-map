@@ -118,5 +118,5 @@ missingOrUncertain:
 
 - Use this document for the read-only, draft-in-chat GPT.
 - Use `CHATGPT_CUSTOM_GPT_INSTRUCTIONS.md` for the existing create-through-actions GPT.
-- Import the read-only Actions schema from `GET /api/actions/openapi.draft-only.json` when you want the GPT itself constrained to `GET` actions only.
+- Import the read-only Actions schema from `GET /api/actions/openapi.read-only.json` when you want the GPT itself constrained to `GET` actions only.
 - This draft-only GPT should rely on the current Actions API to inspect countries, regions, destinations, categories, and listings, then stop at proposing manual drafts in chat.
