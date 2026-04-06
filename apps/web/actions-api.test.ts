@@ -440,6 +440,82 @@ test("Actions listing create returns non-blocking warnings for weak out-of-scope
   );
 });
 
+test("Actions listing create returns advisory candidates instead of blocking on same-region fuzzy matches", async (t) => {
+  const original = process.env.EXPLORERS_MAP_ACTIONS_AUTH_TOKEN;
+  process.env.EXPLORERS_MAP_ACTIONS_AUTH_TOKEN = token;
+  t.after(() => {
+    process.env.EXPLORERS_MAP_ACTIONS_AUTH_TOKEN = original;
+  });
+
+  const dbInstance = createSeededTestDb(t);
+
+  await createRegionHandler(
+    authorizedRequest("/api/actions/v1/countries/united-kingdom/regions", {
+      method: "POST",
+      body: JSON.stringify({
+        title: "Somerset",
+        description: "Editorial region for Somerset coverage.",
+        coverImage: "https://example.com/somerset.jpg",
+        evidence,
+      }),
+    }),
+    { countrySlug: "united-kingdom" },
+    dbInstance,
+  );
+
+  createListingDraftForEditor(
+    {
+      countrySlug: "united-kingdom",
+      regionSlug: "somerset",
+      title: "Shapwick Heath Reserve",
+      shortDescription: "Existing reserve-style listing for advisory duplicate coverage.",
+      description: "A seeded Somerset listing used to verify advisory candidate behavior.",
+      latitude: 51.1649,
+      longitude: -2.8015,
+      busynessRating: 3,
+      coverImage: "https://example.com/shapwick-heath-reserve.jpg",
+      categorySlug: "nature-reserve",
+      evidence,
+    },
+    { source: "actions-test", actorId: null },
+    dbInstance,
+  );
+
+  const response = await createListingHandler(
+    authorizedRequest("/api/actions/v1/countries/united-kingdom/regions/somerset/listings", {
+      method: "POST",
+      body: JSON.stringify({
+        title: "Shapwick Heath NNR",
+        shortDescription: "A closely named Somerset reserve listing that should still be allowed.",
+        description: "A new Somerset draft used to verify same-region fuzzy candidates stay advisory.",
+        latitude: 51.165,
+        longitude: -2.801,
+        busynessRating: 3,
+        coverImage: "https://example.com/shapwick-heath-nnr.jpg",
+        categorySlug: "nature-reserve",
+        evidence,
+      }),
+    }),
+    { countrySlug: "united-kingdom", regionSlug: "somerset" },
+    dbInstance,
+  );
+
+  const payload = await readJson(response);
+
+  assert.equal(response.status, 201);
+  assert.equal(payload.status, "created");
+  assert.ok(
+    ((payload.candidates as Array<{ title: string }> | undefined) ?? []).some(
+      (candidate) => candidate.title === "Shapwick Heath Reserve",
+    ),
+  );
+  assert.ok(
+    ((payload.warnings as string[] | undefined) ?? []).some(
+      (warning) => warning.includes("Shapwick Heath Reserve") && warning.includes("potential duplicate"),
+    ),
+  );
+});
+
 test("OpenAPI contract includes the planned routes and consequential mutations", async (t) => {
   const original = process.env.EXPLORERS_MAP_ACTIONS_AUTH_TOKEN;
   process.env.EXPLORERS_MAP_ACTIONS_AUTH_TOKEN = token;

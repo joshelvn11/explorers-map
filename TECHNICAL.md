@@ -122,6 +122,7 @@ Expected flow:
 - The Actions guidance now explicitly allows GPTs to gather their own evidence with Web Search before calling create endpoints, while still preserving evidence-first and ambiguity-stop behavior.
 - Shared listing matching now honors requested region and destination scope as a real candidate filter, which prevents weak cross-region fuzzy matches from blocking scoped create flows.
 - Successful listing creates can now also return advisory warnings for weak out-of-scope lookalikes, giving the GPT reference context without turning those lookalikes into hard blockers.
+- Successful listing creates can also return advisory same-region fuzzy candidates, so the assistant can note likely duplicates without being forced to stop the write.
 
 ## Service Tests
 

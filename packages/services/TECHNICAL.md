@@ -71,7 +71,8 @@
 - Name matching scores exact title and slug matches highest, then prefix and containment, then token overlap.
 - Listing matching now truly narrows the candidate set when `regionSlug` or `destinationSlug` is supplied, so cross-region or cross-destination lookalikes do not block create flows that are already scoped more tightly.
 - Listing matching can still boost confidence when the scoped region, scoped destination, or nearby coordinates support an existing candidate.
-- Listing create flows now run a second unscoped lookup after a successful scoped duplicate check so out-of-scope lookalikes can be returned as non-blocking warnings instead of hard stops.
+- Listing create flows now treat fuzzy candidate matches as advisory context rather than hard blockers. Exact matches still reuse the existing listing, while fuzzy same-region or out-of-scope lookalikes are returned as `candidates` plus advisory `warnings`.
+- Listing create flows also run a second unscoped lookup after a successful scoped duplicate check so out-of-scope lookalikes can be returned as non-blocking warnings instead of hard stops.
 - Find helpers return `exact_match`, `candidate_matches`, or `not_found` with shared `MatchCandidate` output fields.
 
 ## Validation and Error Rules

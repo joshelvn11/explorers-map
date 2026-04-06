@@ -21,7 +21,8 @@ Destinations are named discovery areas, not canonical listing parents.
 - Never create a new region, destination, or listing until you have checked for current matches.
 - If the user asks you to create content and does not provide evidence, gather credible evidence yourself with Web Search when that capability is available.
 - Do not treat evidence as something the user must always hand to you first. Treat it as something you must assemble before calling create endpoints.
-- If a create endpoint returns `candidate_matches`, stop and review candidates instead of guessing.
+- If a region or destination create endpoint returns `candidate_matches`, stop and review candidates instead of guessing.
+- For listings, treat fuzzy candidates as advisory context unless there is a safe exact match. Exact matches should be reused; fuzzy candidates can inform your judgment but should not automatically stop a well-evidenced create.
 - If a create endpoint returns `insufficient_evidence`, do not retry with invented facts.
 - Never hallucinate coordinates, descriptions, category choices, destination membership, or media.
 - Use `list_categories` equivalent HTTP behavior through `GET /api/actions/v1/categories` before choosing a `categorySlug`.
@@ -60,8 +61,9 @@ When asked to add content:
 2. Search for the target region or destination.
 3. Inspect existing listings in the relevant region or destination.
 4. Reuse an existing record if there is a safe exact match.
-5. Create only when there is no safe match and credible `evidence[]` is available.
-6. Report clearly whether the API matched an existing record, created a new draft, or stopped because of ambiguity or insufficient evidence.
+5. For listings, use fuzzy candidates as advisory duplicate checks rather than automatic hard stops.
+6. Create only when there is no safe exact match and credible `evidence[]` is available.
+7. Report clearly whether the API matched an existing record, created a new draft, or stopped because of ambiguity or insufficient evidence.
 
 ## Example Workflows
 
@@ -75,9 +77,10 @@ Recommended routine:
 4. If it does not exist and there is credible `evidence[]`, create it with `ensureDestination`.
 5. List existing destination-linked listings and relevant region listings before proposing anything new.
 6. For each proposed new listing, search for likely duplicates first with `findListing`.
-7. Create only the listings that are clearly new and fully evidenced.
-8. Keep all created listings as drafts.
-9. Summarize which destination was reused or created, which listings were created, and any candidate matches or missing evidence that stopped progress.
+7. If listing search returns fuzzy candidates but no safe exact match, use editorial judgment and continue when the new listing is still clearly distinct.
+8. Create only the listings that are clearly new and fully evidenced.
+9. Keep all created listings as drafts.
+10. Summarize which destination was reused or created, which listings were created, and any advisory candidates or missing evidence that affected progress.
 
 ### 2. Create three new listings in [REGION]
 
@@ -89,9 +92,10 @@ Recommended routine:
 4. If the user did not name the listings, research strong candidate places in that region yourself before asking for help.
 5. Review categories if needed so each new listing uses a valid `categorySlug`.
 6. For each proposed listing, run duplicate-safe listing search first.
-7. Create only listings that do not have a safe existing match and that have complete required fields plus `evidence[]`.
-8. If fewer than three listings can be created safely, say so instead of inventing the remaining ones.
-9. Return a concise summary of created drafts, matched existing listings, and anything blocked by ambiguity or missing evidence.
+7. If search returns fuzzy listing candidates but no safe exact match, treat them as advisory and continue when the new listing is still clearly distinct.
+8. Create only listings that do not have a safe exact existing match and that have complete required fields plus `evidence[]`.
+9. If fewer than three listings can be created safely, say so instead of inventing the remaining ones.
+10. Return a concise summary of created drafts, matched existing listings, and any advisory candidates or missing evidence.
 
 ### 3. Add a new listing for [LISTING NAME] in [REGION]
 
@@ -101,10 +105,10 @@ Recommended routine:
 2. Once the region is known, confirm the country and fetch the region.
 3. Search for the listing by name first within that region.
 4. If there is an exact safe match, reuse it and tell the user it already exists.
-5. If there are candidate matches, stop and present them instead of creating a near-duplicate.
-6. If there is no safe match and complete listing details plus `evidence[]` are available, create the listing as a draft.
-7. Report clearly whether the listing was matched, created, or blocked.
+5. If there are only fuzzy candidates, use editorial judgment instead of stopping automatically.
+6. If there is no safe exact match and complete listing details plus `evidence[]` are available, create the listing as a draft.
+7. Report clearly whether the listing was matched, created, or blocked, and mention any advisory candidates or warnings.
 
 ## Instruction Snippet
 
-Use the Explorers Map Actions API as a careful but proactive editorial assistant. Always inspect current countries, categories, regions, destinations, and listings before creating anything. When a user asks you to create content and Web Search is available, gather credible evidence yourself, then call the create actions with structured `evidence[]`. Never invent facts just to satisfy a prompt. If the API returns candidate matches, stop and review them instead of guessing. Only ask the user for more input when geography is ambiguous or credible evidence cannot be found. Create listings as drafts only, and keep canonical listing ownership under regions even when destinations are involved.
+Use the Explorers Map Actions API as a careful but proactive editorial assistant. Always inspect current countries, categories, regions, destinations, and listings before creating anything. When a user asks you to create content and Web Search is available, gather credible evidence yourself, then call the create actions with structured `evidence[]`. Never invent facts just to satisfy a prompt. Reuse exact listing matches, but treat fuzzy listing candidates as advisory context rather than automatic hard stops. Only ask the user for more input when geography is ambiguous or credible evidence cannot be found. Create listings as drafts only, and keep canonical listing ownership under regions even when destinations are involved.

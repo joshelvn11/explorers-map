@@ -347,6 +347,66 @@ test("region-scoped listing matching ignores weak cross-region candidates during
   );
 });
 
+test("same-region fuzzy listing candidates are advisory and do not block creation", (t) => {
+  const dbInstance = createSeededTestDb(t);
+
+  createRegion(
+    {
+      countrySlug: "united-kingdom",
+      title: "Somerset",
+      description: "Editorial region for Somerset coverage.",
+      coverImage: "https://example.com/somerset.jpg",
+      evidence,
+    },
+    dbInstance,
+  );
+
+  createListingDraftForEditor(
+    {
+      countrySlug: "united-kingdom",
+      regionSlug: "somerset",
+      title: "Shapwick Heath Reserve",
+      shortDescription: "Existing reserve-style listing for advisory duplicate coverage.",
+      description: "A seeded Somerset listing used to verify advisory candidate behavior.",
+      latitude: 51.1649,
+      longitude: -2.8015,
+      busynessRating: 3,
+      coverImage: "https://example.com/shapwick-heath-reserve.jpg",
+      categorySlug: "nature-reserve",
+      evidence,
+    },
+    { source: "mcp", actorId: null },
+    dbInstance,
+  );
+
+  const createdListing = ensureListing(
+    {
+      countrySlug: "united-kingdom",
+      regionSlug: "somerset",
+      title: "Shapwick Heath NNR",
+      shortDescription: "A closely named Somerset reserve listing that should still be allowed.",
+      description: "A new Somerset draft used to verify same-region fuzzy candidates stay advisory.",
+      latitude: 51.165,
+      longitude: -2.801,
+      busynessRating: 3,
+      coverImage: "https://example.com/shapwick-heath-nnr.jpg",
+      categorySlug: "nature-reserve",
+      evidence,
+    },
+    { source: "mcp", actorId: null },
+    dbInstance,
+  );
+
+  assert.equal(createdListing.status, "created");
+  assert.equal(createdListing.record?.slug, "shapwick-heath-nnr");
+  assert.ok((createdListing.candidates ?? []).some((candidate) => candidate.title === "Shapwick Heath Reserve"));
+  assert.ok(
+    (createdListing.warnings ?? []).some(
+      (warning) => warning.includes("Shapwick Heath Reserve") && warning.includes("potential duplicate"),
+    ),
+  );
+});
+
 test("listing creation requires evidence and still rejects derived slug collisions", (t) => {
   const dbInstance = createSeededTestDb(t);
 

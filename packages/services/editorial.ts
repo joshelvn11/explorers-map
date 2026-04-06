@@ -973,13 +973,34 @@ export function ensureListing(
   }
 
   if (match.status === "candidate_matches") {
+    if (!evidence) {
+      return {
+        status: "candidate_matches",
+        confidence: match.confidence,
+        reasons: match.reasons,
+        candidates: match.candidates,
+        evidence: evidence ?? undefined,
+        warnings: [],
+      };
+    }
+
+    const warnings = [
+      ...buildListingCandidateWarnings(match.candidates, input.regionSlug),
+      ...buildOutOfScopeListingWarnings(input, dbInstance),
+    ];
+    const created = createListingDraftForEditor(input, context, dbInstance);
+
     return {
-      status: "candidate_matches",
+      status: "created",
       confidence: match.confidence,
-      reasons: match.reasons,
+      reasons: [
+        "Potential duplicate candidates were found, but no exact listing match existed in the requested region.",
+        "Created a new listing draft from the provided evidence.",
+      ],
+      record: created.record,
       candidates: match.candidates,
-      evidence: evidence ?? undefined,
-      warnings: [],
+      evidence: created.evidence,
+      warnings,
     };
   }
 
@@ -1458,6 +1479,20 @@ function buildOutOfScopeListingWarnings(
         const locationLabel = candidate.regionTitle ?? candidate.regionSlug ?? "another region";
 
         return `Potential out-of-scope lookalike found: "${candidate.title}" in ${locationLabel}. Review manually if needed, but this did not block creation in ${input.regionSlug}.`;
+      }),
+  )];
+}
+
+function buildListingCandidateWarnings(candidates: MatchCandidate[], targetRegionSlug: string) {
+  return [...new Set(
+    candidates
+      .filter((candidate) => candidate.type === "listing")
+      .map((candidate) => {
+        const locationLabel = candidate.regionTitle ?? candidate.regionSlug ?? "the requested region";
+        const scopeLabel =
+          candidate.regionSlug && candidate.regionSlug !== targetRegionSlug ? "out-of-scope lookalike" : "potential duplicate";
+
+        return `Advisory ${scopeLabel}: "${candidate.title}" in ${locationLabel}. Review manually if needed, but this did not block creation in ${targetRegionSlug}.`;
       }),
   )];
 }

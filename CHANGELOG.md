@@ -8,6 +8,7 @@ The format is based on Keep a Changelog.
 
 ### Added
 
+- Added `CHATGPT_ACTIONS_PROMPTS.md` with reusable demo prompts for effective ChatGPT Actions listing-creation workflows.
 - Added the Phase 10b listing editorial foundation, including shared listing CMS services, listing RBAC helpers, moderator-safe destination assignment scoping, and CMS listing routes for admins plus region-scoped moderators.
 - Added Phase 10b service and web tests covering listing authorization, lifecycle actions, canonical slug redirects, moderator redirect behavior for out-of-scope listing pages, and preservation of out-of-scope destination links during moderator edits.
 - Added the Phase 10a destination editorial foundation, including shared destination audit columns, RBAC-aware destination CMS services, moderator-safe destination-region linking, and CMS destination routes for admins plus region-scoped moderators.
@@ -50,6 +51,7 @@ The format is based on Keep a Changelog.
 ### Changed
 
 - Changed listing create flows to return weak out-of-scope lookalikes as advisory warnings instead of blocking creation after the scoped duplicate check passes.
+- Changed listing create flows so fuzzy candidate matches no longer hard-block creation; exact matches still reuse the existing listing, while advisory candidates and warnings are returned for the assistant's discretion.
 - Changed shared listing fuzzy matching so `findListing` now truly scopes candidate search by requested region or destination, preventing weak cross-region lookalikes from blocking listing creation in a specific region.
 - Changed the ChatGPT Actions guidance and OpenAPI descriptions so GPTs are instructed to gather their own credible evidence with Web Search before creating records, instead of assuming the user must provide every source manually.
 - Changed the CMS shell and docs so listing management now sits alongside destination management for admins and region-scoped moderators.

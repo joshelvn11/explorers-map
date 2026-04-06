@@ -137,6 +137,7 @@ Actions API note:
 - `apps/web` now also hosts a narrow authenticated HTTP API for custom GPT Actions under `/api/actions`.
 - The checked-in OpenAPI contract lives at `apps/web/openapi/explorers-map-actions.openapi.json`.
 - The production GPT import contract lives at `apps/web/openapi/explorers-map-actions.production.openapi.json`.
+- Prompting examples for the Actions workflow live in `CHATGPT_ACTIONS_PROMPTS.md`.
 - The runtime serves the same contract from `GET /api/actions/openapi.json`.
 - The trimmed production GPT import contract is also served from `GET /api/actions/openapi.production.json`.
 - `pnpm dev:web`, `pnpm build:web`, and `pnpm --filter @explorers-map/web start` now automatically load the repo-root `.env` file when it exists.

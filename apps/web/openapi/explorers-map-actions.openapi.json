@@ -696,7 +696,7 @@
         "operationId": "ensureListingDraft",
         "tags": ["Listings"],
         "summary": "Ensure a listing draft exists",
-        "description": "Search for a safe existing listing match before creating a new draft in the target region. When the user asks you to add a place, gather credible evidence yourself when possible, then create only with complete evidence-backed fields.",
+        "description": "Search for a safe existing listing match before creating a new draft in the target region. Reuse exact matches, but treat fuzzy listing candidates as advisory context rather than automatic hard stops. When the user asks you to add a place, gather credible evidence yourself when possible, then create only with complete evidence-backed fields.",
         "x-openai-isConsequential": true,
         "parameters": [
           {
@@ -728,7 +728,7 @@
         },
         "responses": {
           "200": {
-            "description": "Listing matched or creation stopped safely.",
+            "description": "Listing matched, or a new draft was created with any advisory candidates and warnings.",
             "content": {
               "application/json": {
                 "schema": {
@@ -738,7 +738,7 @@
             }
           },
           "201": {
-            "description": "Listing draft created.",
+            "description": "Listing draft created, potentially with advisory candidates or warnings.",
             "content": {
               "application/json": {
                 "schema": {
