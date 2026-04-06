@@ -203,7 +203,7 @@ export async function createDestinationAction(_: CmsFormState, formData: FormDat
         title: String(formData.get("title") ?? ""),
         slug: optionalString(formData.get("slug")),
         description: String(formData.get("description") ?? ""),
-        coverImage: String(formData.get("coverImage") ?? ""),
+        coverImage: nullableString(formData.get("coverImage")),
         regionIds: formData.getAll("regionIds").map(String),
       },
       actor,
@@ -235,7 +235,7 @@ export async function updateDestinationAction(_: CmsFormState, formData: FormDat
         title: String(formData.get("title") ?? ""),
         slug: optionalString(formData.get("slug")),
         description: String(formData.get("description") ?? ""),
-        coverImage: String(formData.get("coverImage") ?? ""),
+        coverImage: nullableString(formData.get("coverImage")),
         regionIds: formData.getAll("regionIds").map(String),
       },
       actor,
@@ -264,12 +264,12 @@ export async function createListingAction(_: CmsFormState, formData: FormData): 
         slug: optionalString(formData.get("slug")),
         shortDescription: String(formData.get("shortDescription") ?? ""),
         description: String(formData.get("description") ?? ""),
-        coverImage: String(formData.get("coverImage") ?? ""),
-        categorySlug: String(formData.get("categorySlug") ?? ""),
-        busynessRating: Number(formData.get("busynessRating") ?? ""),
-        latitude: Number(formData.get("latitude") ?? ""),
-        longitude: Number(formData.get("longitude") ?? ""),
-        googleMapsPlaceUrl: optionalString(formData.get("googleMapsPlaceUrl")),
+        coverImage: nullableString(formData.get("coverImage")),
+        categorySlug: nullableString(formData.get("categorySlug")),
+        busynessRating: nullableNumber(formData.get("busynessRating")),
+        latitude: nullableNumber(formData.get("latitude")),
+        longitude: nullableNumber(formData.get("longitude")),
+        googleMapsPlaceUrl: nullableString(formData.get("googleMapsPlaceUrl")),
         destinationIds: formData.getAll("destinationIds").map(String),
       },
       actor,
@@ -303,12 +303,12 @@ export async function updateListingAction(_: CmsFormState, formData: FormData): 
         slug: optionalString(formData.get("slug")),
         shortDescription: String(formData.get("shortDescription") ?? ""),
         description: String(formData.get("description") ?? ""),
-        coverImage: String(formData.get("coverImage") ?? ""),
-        categorySlug: String(formData.get("categorySlug") ?? ""),
-        busynessRating: Number(formData.get("busynessRating") ?? ""),
-        latitude: Number(formData.get("latitude") ?? ""),
-        longitude: Number(formData.get("longitude") ?? ""),
-        googleMapsPlaceUrl: optionalString(formData.get("googleMapsPlaceUrl")),
+        coverImage: nullableString(formData.get("coverImage")),
+        categorySlug: nullableString(formData.get("categorySlug")),
+        busynessRating: nullableNumber(formData.get("busynessRating")),
+        latitude: nullableNumber(formData.get("latitude")),
+        longitude: nullableNumber(formData.get("longitude")),
+        googleMapsPlaceUrl: nullableString(formData.get("googleMapsPlaceUrl")),
         destinationIds: formData.getAll("destinationIds").map(String),
       },
       actor,
@@ -349,6 +349,29 @@ function optionalString(value: FormDataEntryValue | null) {
 
   const normalized = value.trim();
   return normalized.length > 0 ? normalized : undefined;
+}
+
+function nullableString(value: FormDataEntryValue | null) {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const normalized = value.trim();
+  return normalized.length > 0 ? normalized : null;
+}
+
+function nullableNumber(value: FormDataEntryValue | null) {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const normalized = value.trim();
+
+  if (normalized.length === 0) {
+    return null;
+  }
+
+  return Number(normalized);
 }
 
 async function runListingLifecycleAction(

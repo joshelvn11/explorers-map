@@ -66,7 +66,10 @@ These packages are transpiled via `transpilePackages` in `next.config.ts`.
 - Each Actions route exports direct `runtime = "nodejs"` and `dynamic = "force-dynamic"` literals so Next.js 16 accepts the route segment config during production builds.
 - Actions POST routes return `EnsureResult`-style payloads so custom GPT workflows can distinguish created, matched, candidate-match, and insufficient-evidence outcomes.
 - Actions listing reads include drafts by default but exclude trashed listings.
-- The checked-in Actions context and OpenAPI descriptions now explicitly instruct GPTs to self-source credible evidence with Web Search when that capability is enabled, instead of assuming the user must supply every source up front.
+- The checked-in Actions context and OpenAPI descriptions now explicitly instruct GPTs to self-source credible evidence with Web Search when that capability is enabled, while still allowing best-effort listing and destination creates when optional metadata is missing.
+- The repository-level `CHATGPT_ACTIONS_OPERATING_PROCEDURE.md` provides the shorter model-facing operating routine intended to reduce hesitation before valid create calls.
+- Actions create endpoints no longer use OpenAPI consequential confirmations, which reduces ChatGPT hesitation before firing duplicate-safe create requests.
+- Destination pages and destination cards now tolerate missing `coverImage` values so sparse destination records can still render safely in the public app and CMS.
 - The web package dev, build, and start scripts auto-load the repo-root `.env` file when it exists.
 - The web package dev script now also runs `pnpm db:migrate` and `pnpm auth:bootstrap-admin` before handing off to Next.js so local auth routes do not boot against stale SQLite schemas.
 - The root `docker:start:web` bootstrap flow runs migrations, seeds only on an empty database, and then starts the app on `0.0.0.0:3000` for container deployment.

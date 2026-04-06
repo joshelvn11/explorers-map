@@ -143,12 +143,12 @@ export type CreateListingDraftInput = {
   title: string;
   shortDescription: string;
   description: string;
-  latitude: number;
-  longitude: number;
-  busynessRating: number;
+  latitude?: number | null;
+  longitude?: number | null;
+  busynessRating?: number | null;
   googleMapsPlaceUrl?: string | null;
-  coverImage: string;
-  categorySlug: string;
+  coverImage?: string | null;
+  categorySlug?: string | null;
 };
 
 export type UpdateListingCopyAndMetadataInput = Partial<
@@ -159,8 +159,8 @@ export type UpdateListingCopyAndMetadataInput = Partial<
 >;
 
 export type SetListingLocationInput = {
-  latitude: number;
-  longitude: number;
+  latitude?: number | null;
+  longitude?: number | null;
   googleMapsPlaceUrl?: string | null;
 };
 
@@ -194,6 +194,31 @@ export type ListingImagesMutationResult = {
   images: ListingImageSummary[];
 };
 
+type PublicListingRow = {
+  id: string;
+  slug: string;
+  title: string;
+  shortDescription: string;
+  coverImage: string | null;
+  busynessRating: number | null;
+  latitude: number | null;
+  longitude: number | null;
+  googleMapsPlaceUrl: string | null;
+  categorySlug: string | null;
+  categoryTitle: string | null;
+  regionSlug: string;
+  regionTitle: string;
+};
+
+type CompletePublicListingRow = Omit<PublicListingRow, "coverImage" | "busynessRating" | "latitude" | "longitude" | "categorySlug" | "categoryTitle"> & {
+  coverImage: string;
+  busynessRating: number;
+  latitude: number;
+  longitude: number;
+  categorySlug: string;
+  categoryTitle: string;
+};
+
 export function listListingsForRegion(locator: Pick<ListingLocator, "countrySlug" | "regionSlug">, dbInstance?: DbInstance) {
   const { db } = resolveDb(dbInstance);
   const region = requireRegionForPublicList(locator, dbInstance);
@@ -225,7 +250,7 @@ export function listListingsForRegion(locator: Pick<ListingLocator, "countrySlug
     .orderBy(asc(listings.title))
     .all();
 
-  return attachTagsToListings(db, rows);
+  return attachTagsToListings(db, filterCompletePublicListingRows(rows));
 }
 
 export function listListingsForDestination(
@@ -269,7 +294,7 @@ export function listListingsForDestination(
     .orderBy(asc(listings.title))
     .all();
 
-  return attachTagsToListings(db, rows);
+  return attachTagsToListings(db, filterCompletePublicListingRows(rows));
 }
 
 export function getRegionListingCatalog(
@@ -307,7 +332,7 @@ export function getRegionListingCatalog(
     .orderBy(asc(listings.title))
     .all();
 
-  const entries = attachMetadataToRegionCatalogEntries(db, rows);
+  const entries = attachMetadataToRegionCatalogEntries(db, filterCompletePublicListingRows(rows));
   const appliedFilters = normalizeRegionCatalogFilters(filters, entries);
 
   return {
@@ -338,34 +363,43 @@ export function getListingDetail(locator: ListingLocator, dbInstance?: DbInstanc
     return null;
   }
 
-  const tags = loadListingTags(db, [listing.id]).get(listing.id) ?? [];
+  const completeListing = listing as ResolvedListingRecord & {
+    coverImage: string;
+    categorySlug: string;
+    categoryTitle: string;
+    latitude: number;
+    longitude: number;
+    busynessRating: number;
+  };
+
+  const tags = loadListingTags(db, [completeListing.id]).get(completeListing.id) ?? [];
 
   return {
-    id: listing.id,
-    slug: listing.listingSlug,
-    title: listing.title,
-    shortDescription: listing.shortDescription,
-    description: listing.description,
-    coverImage: listing.coverImage,
-    busynessRating: listing.busynessRating,
-    latitude: listing.latitude,
-    longitude: listing.longitude,
-    googleMapsPlaceUrl: listing.googleMapsPlaceUrl,
+    id: completeListing.id,
+    slug: completeListing.listingSlug,
+    title: completeListing.title,
+    shortDescription: completeListing.shortDescription,
+    description: completeListing.description,
+    coverImage: completeListing.coverImage,
+    busynessRating: completeListing.busynessRating,
+    latitude: completeListing.latitude,
+    longitude: completeListing.longitude,
+    googleMapsPlaceUrl: completeListing.googleMapsPlaceUrl,
     category: {
-      slug: listing.categorySlug,
-      title: listing.categoryTitle,
+      slug: completeListing.categorySlug,
+      title: completeListing.categoryTitle,
     },
     region: {
-      slug: listing.regionSlug,
-      title: listing.regionTitle,
+      slug: completeListing.regionSlug,
+      title: completeListing.regionTitle,
     },
     country: {
-      slug: listing.countrySlug,
-      title: listing.countryTitle,
+      slug: completeListing.countrySlug,
+      title: completeListing.countryTitle,
     },
     tags,
-    images: loadListingImages(db, listing.id),
-    destinations: loadListingDestinations(db, listing.id),
+    images: loadListingImages(db, completeListing.id),
+    destinations: loadListingDestinations(db, completeListing.id),
   };
 }
 
@@ -379,15 +413,14 @@ export function createListingDraft(
   const now = new Date();
   const writeContext = requireWriteContext(context);
   const nextSlug = requireNonEmptyString(input.slug, "slug");
+  const nextCategorySlug = normalizeOptionalCategorySlug(db, input.categorySlug);
+  const nextCoverImage = requireOptionalString(input.coverImage, "coverImage");
+  const nextBusynessRating = normalizeOptionalBusynessRating(input.busynessRating);
+  const { latitude, longitude } = normalizeOptionalCoordinates(input.latitude, input.longitude);
 
-  requireCategoryRecord(db, input.categorySlug);
   requireNonEmptyString(input.title, "title");
   requireNonEmptyString(input.shortDescription, "shortDescription");
   requireNonEmptyString(input.description, "description");
-  requireNonEmptyString(input.coverImage, "coverImage");
-  requireBusynessRating(input.busynessRating);
-  requireLatitude(input.latitude);
-  requireLongitude(input.longitude);
   requireOptionalString(input.googleMapsPlaceUrl, "googleMapsPlaceUrl");
   ensureListingSlugAvailable(db, region.id, nextSlug);
 
@@ -403,12 +436,12 @@ export function createListingDraft(
         title: input.title.trim(),
         shortDescription: input.shortDescription.trim(),
         description: input.description.trim(),
-        latitude: input.latitude,
-        longitude: input.longitude,
-        busynessRating: input.busynessRating,
+        latitude,
+        longitude,
+        busynessRating: nextBusynessRating,
         googleMapsPlaceUrl: requireOptionalString(input.googleMapsPlaceUrl, "googleMapsPlaceUrl"),
-        coverImage: input.coverImage.trim(),
-        categorySlug: input.categorySlug.trim(),
+        coverImage: nextCoverImage,
+        categorySlug: nextCategorySlug,
         createdBy: writeContext.actorId,
         updatedBy: writeContext.actorId,
         source: writeContext.source,
@@ -452,13 +485,12 @@ export function updateListingCopyAndMetadata(
   const nextDescription =
     patch.description === undefined ? listing.description : requireNonEmptyString(patch.description, "description");
   const nextCoverImage =
-    patch.coverImage === undefined ? listing.coverImage : requireNonEmptyString(patch.coverImage, "coverImage");
+    patch.coverImage === undefined ? listing.coverImage : requireOptionalString(patch.coverImage, "coverImage");
   const nextCategorySlug =
-    patch.categorySlug === undefined ? listing.categorySlug : requireNonEmptyString(patch.categorySlug, "categorySlug");
+    patch.categorySlug === undefined ? listing.categorySlug : normalizeOptionalCategorySlug(db, patch.categorySlug);
   const nextBusynessRating =
-    patch.busynessRating === undefined ? listing.busynessRating : requireBusynessRating(patch.busynessRating);
+    patch.busynessRating === undefined ? listing.busynessRating : normalizeOptionalBusynessRating(patch.busynessRating);
 
-  requireCategoryRecord(db, nextCategorySlug);
   ensureListingSlugAvailable(db, listing.regionId, nextSlug, listing.id);
 
   try {
@@ -494,13 +526,14 @@ export function setListingLocation(
   const listing = requireListingRecord(db, locator);
   const writeContext = requireWriteContext(context);
   const now = new Date();
+  const { latitude, longitude } = normalizeOptionalCoordinates(input.latitude, input.longitude);
 
   assertMutableListing(listing);
 
   db.update(listings)
     .set({
-      latitude: requireLatitude(input.latitude),
-      longitude: requireLongitude(input.longitude),
+      latitude,
+      longitude,
       googleMapsPlaceUrl: requireOptionalString(input.googleMapsPlaceUrl, "googleMapsPlaceUrl"),
       updatedBy: writeContext.actorId,
       source: writeContext.source,
@@ -711,26 +744,34 @@ function requirePublicListingRecord(locator: ListingLocator, dbInstance?: DbInst
     return null;
   }
 
+  if (
+    listing.coverImage === null ||
+    listing.categorySlug === null ||
+    listing.categoryTitle === null ||
+    listing.latitude === null ||
+    listing.longitude === null ||
+    listing.busynessRating === null
+  ) {
+    return null;
+  }
+
   return listing;
+}
+
+function filterCompletePublicListingRows(rows: PublicListingRow[]): CompletePublicListingRow[] {
+  return rows.filter((row): row is CompletePublicListingRow => (
+    row.coverImage !== null &&
+    row.busynessRating !== null &&
+    row.latitude !== null &&
+    row.longitude !== null &&
+    row.categorySlug !== null &&
+    row.categoryTitle !== null
+  ));
 }
 
 function attachTagsToListings(
   db: DbInstance["db"],
-  rows: Array<{
-    id: string;
-    slug: string;
-    title: string;
-    shortDescription: string;
-    coverImage: string;
-    busynessRating: number;
-    latitude: number;
-    longitude: number;
-    googleMapsPlaceUrl: string | null;
-    categorySlug: string;
-    categoryTitle: string;
-    regionSlug: string;
-    regionTitle: string;
-  }>,
+  rows: CompletePublicListingRow[],
 ): ListingSummary[] {
   const tagsByListingId = loadListingTags(
     db,
@@ -761,21 +802,7 @@ function attachTagsToListings(
 
 function attachMetadataToRegionCatalogEntries(
   db: DbInstance["db"],
-  rows: Array<{
-    id: string;
-    slug: string;
-    title: string;
-    shortDescription: string;
-    coverImage: string;
-    busynessRating: number;
-    latitude: number;
-    longitude: number;
-    googleMapsPlaceUrl: string | null;
-    categorySlug: string;
-    categoryTitle: string;
-    regionSlug: string;
-    regionTitle: string;
-  }>,
+  rows: CompletePublicListingRow[],
 ): Array<ListingSummary & { destinations: ListingDestinationSummary[] }> {
   const tagsByListingId = loadListingTags(
     db,
@@ -939,6 +966,40 @@ function ensureListingSlugAvailable(
   if (existingListing && existingListing.id !== excludeListingId) {
     throw new ServiceError("CONFLICT", `Listing slug "${slug}" already exists in this region.`);
   }
+}
+
+function normalizeOptionalCoordinates(latitude: number | null | undefined, longitude: number | null | undefined) {
+  if ((latitude === undefined || latitude === null) && (longitude === undefined || longitude === null)) {
+    return { latitude: null, longitude: null };
+  }
+
+  if (latitude === undefined || latitude === null || longitude === undefined || longitude === null) {
+    throw new ServiceError("INVALID_INPUT", "latitude and longitude must both be provided together.");
+  }
+
+  return {
+    latitude: requireLatitude(latitude),
+    longitude: requireLongitude(longitude),
+  };
+}
+
+function normalizeOptionalBusynessRating(value: number | null | undefined) {
+  if (value === undefined || value === null) {
+    return null;
+  }
+
+  return requireBusynessRating(value);
+}
+
+function normalizeOptionalCategorySlug(db: DbInstance["db"], value: string | null | undefined) {
+  if (value === undefined || value === null) {
+    return null;
+  }
+
+  const categorySlug = requireNonEmptyString(value, "categorySlug");
+  requireCategoryRecord(db, categorySlug);
+
+  return categorySlug;
 }
 
 function validateListingImages(images: SetListingImagesInput[]) {

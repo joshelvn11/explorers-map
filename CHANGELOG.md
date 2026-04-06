@@ -8,6 +8,9 @@ The format is based on Keep a Changelog.
 
 ### Added
 
+- Added the Phase 10b DB migration `0005_same_doctor_strange.sql` to allow sparse listing draft metadata and optional destination cover images for best-effort machine-created records.
+- Added `CHATGPT_ACTIONS_OPERATING_PROCEDURE.md` as a short, model-facing decision routine for duplicate-safe best-effort listing and destination creation without deadlocking on optional metadata.
+- Added `CHATGPT_CUSTOM_GPT_INSTRUCTIONS.md` with a paste-ready Custom GPT instruction-box configuration that combines lightweight operating rules with compact Explorers Map editorial context.
 - Added `CHATGPT_ACTIONS_PROMPTS.md` with reusable demo prompts for effective ChatGPT Actions listing-creation workflows.
 - Added the Phase 10b listing editorial foundation, including shared listing CMS services, listing RBAC helpers, moderator-safe destination assignment scoping, and CMS listing routes for admins plus region-scoped moderators.
 - Added Phase 10b service and web tests covering listing authorization, lifecycle actions, canonical slug redirects, moderator redirect behavior for out-of-scope listing pages, and preservation of out-of-scope destination links during moderator edits.
@@ -50,6 +53,9 @@ The format is based on Keep a Changelog.
 
 ### Changed
 
+- Changed the shared listing and destination create semantics so Actions, MCP, and CMS flows can create best-effort drafts without requiring evidence, cover images, categories, coordinates, or busyness up front, while still requiring editorial copy.
+- Changed the Actions OpenAPI contracts, HTTP docs, and ChatGPT guidance so listing and destination create endpoints no longer use consequential confirmations and now explicitly tell GPTs to omit unknown optional metadata instead of stalling.
+- Changed editor-visible listing and destination reads plus the public destination UI to tolerate missing optional media and metadata without breaking the CMS or destination pages.
 - Changed listing create flows to return weak out-of-scope lookalikes as advisory warnings instead of blocking creation after the scoped duplicate check passes.
 - Changed listing create flows so fuzzy candidate matches no longer hard-block creation; exact matches still reuse the existing listing, while advisory candidates and warnings are returned for the assistant's discretion.
 - Changed shared listing fuzzy matching so `findListing` now truly scopes candidate search by requested region or destination, preventing weak cross-region lookalikes from blocking listing creation in a specific region.

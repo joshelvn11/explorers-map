@@ -27,11 +27,11 @@ type CmsListingFormProps = {
     slug: string;
     shortDescription: string;
     description: string;
-    coverImage: string;
-    categorySlug: string;
-    busynessRating: number;
-    latitude: number;
-    longitude: number;
+    coverImage: string | null;
+    categorySlug: string | null;
+    busynessRating: number | null;
+    latitude: number | null;
+    longitude: number | null;
     googleMapsPlaceUrl: string;
     manageableDestinationIds: string[];
     readOnlyDestinations: Array<{
@@ -122,10 +122,11 @@ export function CmsListingForm({
           <span className="text-sm font-medium text-stone-800">Category</span>
           <select
             className="w-full rounded-2xl border border-stone-300 bg-stone-50 px-4 py-3 text-sm text-stone-950 outline-none transition focus:border-sky-500 focus:bg-white disabled:cursor-not-allowed disabled:opacity-70"
-            defaultValue={initialValues?.categorySlug ?? categories[0]?.slug ?? ""}
+            defaultValue={initialValues?.categorySlug ?? ""}
             disabled={disabled}
             name="categorySlug"
           >
+            <option value="">Not set yet</option>
             {categories.map((category) => (
               <option key={category.slug} value={category.slug}>
                 {category.title}
@@ -138,10 +139,11 @@ export function CmsListingForm({
           <span className="text-sm font-medium text-stone-800">Busyness rating</span>
           <select
             className="w-full rounded-2xl border border-stone-300 bg-stone-50 px-4 py-3 text-sm text-stone-950 outline-none transition focus:border-sky-500 focus:bg-white disabled:cursor-not-allowed disabled:opacity-70"
-            defaultValue={String(initialValues?.busynessRating ?? 3)}
+            defaultValue={initialValues?.busynessRating === null || initialValues?.busynessRating === undefined ? "" : String(initialValues.busynessRating)}
             disabled={disabled}
             name="busynessRating"
           >
+            <option value="">Not set yet</option>
             <option value="1">1 - Very quiet</option>
             <option value="2">2 - Usually calm</option>
             <option value="3">3 - Steady</option>
@@ -177,9 +179,8 @@ export function CmsListingForm({
         <label className="block space-y-2">
           <span className="text-sm font-medium text-stone-800">Cover image URL</span>
           <input
-            required
             className="w-full rounded-2xl border border-stone-300 bg-stone-50 px-4 py-3 text-sm text-stone-950 outline-none transition focus:border-sky-500 focus:bg-white disabled:cursor-not-allowed disabled:opacity-70"
-            defaultValue={initialValues?.coverImage}
+            defaultValue={initialValues?.coverImage ?? ""}
             disabled={disabled}
             name="coverImage"
             type="url"
@@ -202,9 +203,8 @@ export function CmsListingForm({
         <label className="block space-y-2">
           <span className="text-sm font-medium text-stone-800">Latitude</span>
           <input
-            required
             className="w-full rounded-2xl border border-stone-300 bg-stone-50 px-4 py-3 text-sm text-stone-950 outline-none transition focus:border-sky-500 focus:bg-white disabled:cursor-not-allowed disabled:opacity-70"
-            defaultValue={initialValues?.latitude}
+            defaultValue={initialValues?.latitude ?? ""}
             disabled={disabled}
             name="latitude"
             step="any"
@@ -215,9 +215,8 @@ export function CmsListingForm({
         <label className="block space-y-2">
           <span className="text-sm font-medium text-stone-800">Longitude</span>
           <input
-            required
             className="w-full rounded-2xl border border-stone-300 bg-stone-50 px-4 py-3 text-sm text-stone-950 outline-none transition focus:border-sky-500 focus:bg-white disabled:cursor-not-allowed disabled:opacity-70"
-            defaultValue={initialValues?.longitude}
+            defaultValue={initialValues?.longitude ?? ""}
             disabled={disabled}
             name="longitude"
             step="any"

@@ -123,7 +123,7 @@ export type DestinationCmsRecord = {
   slug: string;
   title: string;
   description: string;
-  coverImage: string;
+  coverImage: string | null;
   regions: DestinationCmsRegionRecord[];
   createdBy: string | null;
   updatedBy: string | null;
@@ -138,7 +138,7 @@ export type UpsertDestinationInput = {
   title: string;
   slug?: string;
   description: string;
-  coverImage: string;
+  coverImage?: string | null;
   regionIds: string[];
 };
 
@@ -162,15 +162,15 @@ export type ListingCmsRecord = {
   deletedAt: string | null;
   shortDescription: string;
   description: string;
-  latitude: number;
-  longitude: number;
-  busynessRating: number;
+  latitude: number | null;
+  longitude: number | null;
+  busynessRating: number | null;
   googleMapsPlaceUrl: string | null;
-  coverImage: string;
+  coverImage: string | null;
   category: {
     slug: string;
     title: string;
-  };
+  } | null;
   destinations: ListingCmsDestinationRecord[];
   source: string;
   createdBy: string | null;
@@ -185,11 +185,11 @@ export type CreateCmsListingInput = {
   slug?: string;
   shortDescription: string;
   description: string;
-  coverImage: string;
-  categorySlug: string;
-  busynessRating: number;
-  latitude: number;
-  longitude: number;
+  coverImage?: string | null;
+  categorySlug?: string | null;
+  busynessRating?: number | null;
+  latitude?: number | null;
+  longitude?: number | null;
   googleMapsPlaceUrl?: string | null;
   destinationIds: string[];
 };
@@ -202,11 +202,11 @@ export type UpdateCmsListingInput = {
   slug?: string;
   shortDescription: string;
   description: string;
-  coverImage: string;
-  categorySlug: string;
-  busynessRating: number;
-  latitude: number;
-  longitude: number;
+  coverImage?: string | null;
+  categorySlug?: string | null;
+  busynessRating?: number | null;
+  latitude?: number | null;
+  longitude?: number | null;
   googleMapsPlaceUrl?: string | null;
   destinationIds: string[];
 };
@@ -651,7 +651,7 @@ export function createDestinationForCms(
   const country = requireCountryRecord(db, input.countrySlug);
   const title = requireNonEmptyString(input.title, "title");
   const description = requireNonEmptyString(input.description, "description");
-  const coverImage = requireNonEmptyString(input.coverImage, "coverImage");
+  const coverImage = requireOptionalString(input.coverImage, "coverImage");
   const slug = deriveSlug(input.slug, title, "destination");
   const regionIds = resolveDestinationRegionIdsForActor(
     {
@@ -725,7 +725,7 @@ export function updateDestinationForCms(
 
   const title = requireNonEmptyString(input.title, "title");
   const description = requireNonEmptyString(input.description, "description");
-  const coverImage = requireNonEmptyString(input.coverImage, "coverImage");
+  const coverImage = requireOptionalString(input.coverImage, "coverImage");
   const slug = deriveSlug(input.slug, title, "destination");
   const regionIds = resolveDestinationRegionIdsForActor(
     {
@@ -817,7 +817,7 @@ export function listListingsForCms(actor: AuthActorContext, dbInstance?: DbInsta
           .from(listings)
           .innerJoin(regions, eq(listings.regionId, regions.id))
           .innerJoin(countries, eq(regions.countryId, countries.id))
-          .innerJoin(categories, eq(listings.categorySlug, categories.slug))
+          .leftJoin(categories, eq(listings.categorySlug, categories.slug))
           .orderBy(asc(countries.title), asc(regions.title), asc(listings.title))
           .all()
       : actor.moderatorRegionAssignments.length === 0
@@ -852,7 +852,7 @@ export function listListingsForCms(actor: AuthActorContext, dbInstance?: DbInsta
             .from(listings)
             .innerJoin(regions, eq(listings.regionId, regions.id))
             .innerJoin(countries, eq(regions.countryId, countries.id))
-            .innerJoin(categories, eq(listings.categorySlug, categories.slug))
+            .leftJoin(categories, eq(listings.categorySlug, categories.slug))
             .where(inArray(listings.regionId, actor.moderatorRegionAssignments.map((assignment) => assignment.regionId)))
             .orderBy(asc(countries.title), asc(regions.title), asc(listings.title))
             .all();
@@ -959,8 +959,8 @@ export function createListingForCms(
       longitude: input.longitude,
       busynessRating: input.busynessRating,
       googleMapsPlaceUrl: requireOptionalString(input.googleMapsPlaceUrl, "googleMapsPlaceUrl"),
-      coverImage: requireNonEmptyString(input.coverImage, "coverImage"),
-      categorySlug: requireNonEmptyString(input.categorySlug, "categorySlug"),
+      coverImage: requireOptionalString(input.coverImage, "coverImage"),
+      categorySlug: requireOptionalString(input.categorySlug, "categorySlug"),
     },
     writeContext,
     dbInstance,
@@ -1025,8 +1025,8 @@ export function updateListingForCms(
       title,
       shortDescription: requireNonEmptyString(input.shortDescription, "shortDescription"),
       description: requireNonEmptyString(input.description, "description"),
-      coverImage: requireNonEmptyString(input.coverImage, "coverImage"),
-      categorySlug: requireNonEmptyString(input.categorySlug, "categorySlug"),
+      coverImage: requireOptionalString(input.coverImage, "coverImage"),
+      categorySlug: requireOptionalString(input.categorySlug, "categorySlug"),
       busynessRating: input.busynessRating,
     },
     writeContext,
@@ -1294,7 +1294,7 @@ function mapDestinationRow(
     slug: string;
     title: string;
     description: string;
-    coverImage: string;
+    coverImage: string | null;
     createdBy: string | null;
     updatedBy: string | null;
     createdAt: Date;
@@ -1332,13 +1332,13 @@ function mapListingRow(
     deletedAt: Date | null;
     shortDescription: string;
     description: string;
-    latitude: number;
-    longitude: number;
-    busynessRating: number;
+    latitude: number | null;
+    longitude: number | null;
+    busynessRating: number | null;
     googleMapsPlaceUrl: string | null;
-    coverImage: string;
-    categorySlug: string;
-    categoryTitle: string;
+    coverImage: string | null;
+    categorySlug: string | null;
+    categoryTitle: string | null;
     source: string;
     createdBy: string | null;
     updatedBy: string | null;
@@ -1365,10 +1365,13 @@ function mapListingRow(
     busynessRating: row.busynessRating,
     googleMapsPlaceUrl: row.googleMapsPlaceUrl,
     coverImage: row.coverImage,
-    category: {
-      slug: row.categorySlug,
-      title: row.categoryTitle,
-    },
+    category:
+      row.categorySlug && row.categoryTitle
+        ? {
+            slug: row.categorySlug,
+            title: row.categoryTitle,
+          }
+        : null,
     destinations,
     source: row.source,
     createdBy: row.createdBy,

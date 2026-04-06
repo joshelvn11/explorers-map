@@ -6,6 +6,7 @@ import {
   createDestination,
   createListingDraftForEditor,
   createRegion,
+  ensureDestination,
   ensureListing,
   ensureRegion,
   findDestination,
@@ -226,7 +227,7 @@ test("find helpers expose exact, candidate, and not-found outcomes", (t) => {
   assert.equal(missingListing.status, "not_found");
 });
 
-test("ensureRegion and ensureListing stop without evidence and reuse existing exact matches", (t) => {
+test("ensureRegion stays strict while listing exact matches are still reused", (t) => {
   const dbInstance = createSeededTestDb(t);
 
   const missingRegion = ensureRegion(
@@ -263,48 +264,38 @@ test("ensureRegion and ensureListing stop without evidence and reuse existing ex
   assert.equal(matchedListing.record?.slug, "durdle-door");
 });
 
-test("region-scoped listing matching ignores weak cross-region candidates during create flows", (t) => {
+test("destination creation accepts title and description only", (t) => {
   const dbInstance = createSeededTestDb(t);
 
-  createRegion(
+  const created = ensureDestination(
     {
       countrySlug: "united-kingdom",
-      title: "Somerset",
-      description: "Editorial region for Somerset coverage.",
-      coverImage: "https://example.com/somerset.jpg",
-      evidence,
+      title: "Bare Cliffs",
+      description: "A draft destination created without cover media or evidence.",
     },
     dbInstance,
   );
 
-  createRegion(
-    {
-      countrySlug: "united-kingdom",
-      title: "Derbyshire",
-      description: "Editorial region for Derbyshire coverage.",
-      coverImage: "https://example.com/derbyshire.jpg",
-      evidence,
-    },
-    dbInstance,
-  );
+  assert.equal(created.status, "created");
+  assert.equal(created.record?.slug, "bare-cliffs");
+  assert.equal(created.record?.coverImage, null);
 
-  createListingDraftForEditor(
-    {
-      countrySlug: "united-kingdom",
-      regionSlug: "derbyshire",
-      title: "Mam Tor",
-      shortDescription: "Peak District hill listing for duplicate-scope coverage.",
-      description: "A seeded cross-region listing used to verify scoped matching.",
-      latitude: 53.3492,
-      longitude: -1.8093,
-      busynessRating: 4,
-      coverImage: "https://example.com/mam-tor.jpg",
-      categorySlug: "viewpoint",
-      evidence,
-    },
-    { source: "mcp", actorId: null },
-    dbInstance,
+  assert.throws(
+    () =>
+      createDestination(
+        {
+          countrySlug: "united-kingdom",
+          title: "Missing Copy",
+          description: "",
+        },
+        dbInstance,
+      ),
+    (error) => error instanceof ServiceError && error.code === "INVALID_INPUT",
   );
+});
+
+test("region-scoped listing matching ignores weak cross-region candidates during create flows", (t) => {
+  const dbInstance = createSeededTestDb(t);
 
   const scopedSearch = findListing(
     {
@@ -350,29 +341,18 @@ test("region-scoped listing matching ignores weak cross-region candidates during
 test("same-region fuzzy listing candidates are advisory and do not block creation", (t) => {
   const dbInstance = createSeededTestDb(t);
 
-  createRegion(
-    {
-      countrySlug: "united-kingdom",
-      title: "Somerset",
-      description: "Editorial region for Somerset coverage.",
-      coverImage: "https://example.com/somerset.jpg",
-      evidence,
-    },
-    dbInstance,
-  );
-
   createListingDraftForEditor(
     {
       countrySlug: "united-kingdom",
       regionSlug: "somerset",
-      title: "Shapwick Heath Reserve",
+      title: "Shapwick Marsh Walk",
       shortDescription: "Existing reserve-style listing for advisory duplicate coverage.",
       description: "A seeded Somerset listing used to verify advisory candidate behavior.",
       latitude: 51.1649,
       longitude: -2.8015,
       busynessRating: 3,
       coverImage: "https://example.com/shapwick-heath-reserve.jpg",
-      categorySlug: "nature-reserve",
+      categorySlug: "park",
       evidence,
     },
     { source: "mcp", actorId: null },
@@ -383,14 +363,14 @@ test("same-region fuzzy listing candidates are advisory and do not block creatio
     {
       countrySlug: "united-kingdom",
       regionSlug: "somerset",
-      title: "Shapwick Heath NNR",
+      title: "Shapwick Heath Reserve",
       shortDescription: "A closely named Somerset reserve listing that should still be allowed.",
       description: "A new Somerset draft used to verify same-region fuzzy candidates stay advisory.",
       latitude: 51.165,
       longitude: -2.801,
       busynessRating: 3,
       coverImage: "https://example.com/shapwick-heath-nnr.jpg",
-      categorySlug: "nature-reserve",
+      categorySlug: "park",
       evidence,
     },
     { source: "mcp", actorId: null },
@@ -398,17 +378,36 @@ test("same-region fuzzy listing candidates are advisory and do not block creatio
   );
 
   assert.equal(createdListing.status, "created");
-  assert.equal(createdListing.record?.slug, "shapwick-heath-nnr");
-  assert.ok((createdListing.candidates ?? []).some((candidate) => candidate.title === "Shapwick Heath Reserve"));
+  assert.equal(createdListing.record?.slug, "shapwick-heath-reserve");
+  assert.ok((createdListing.candidates ?? []).some((candidate) => candidate.title === "Shapwick Marsh Walk"));
   assert.ok(
     (createdListing.warnings ?? []).some(
-      (warning) => warning.includes("Shapwick Heath Reserve") && warning.includes("potential duplicate"),
+      (warning) => warning.includes("Shapwick Marsh Walk") && warning.includes("potential duplicate"),
     ),
   );
 });
 
-test("listing creation requires evidence and still rejects derived slug collisions", (t) => {
+test("listing creation allows sparse optional metadata but still rejects missing copy and slug collisions", (t) => {
   const dbInstance = createSeededTestDb(t);
+
+  const sparse = createListingDraftForEditor(
+    {
+      countrySlug: "united-kingdom",
+      regionSlug: "dorset",
+      title: "Quiet Bay",
+      shortDescription: "Evidence-free listing.",
+      description: "Should create without optional metadata.",
+    },
+    { source: "mcp", actorId: null },
+    dbInstance,
+  );
+
+  assert.equal(sparse.status, "created");
+  assert.equal(sparse.record.coverImage, null);
+  assert.equal(sparse.record.category, null);
+  assert.equal(sparse.record.latitude, null);
+  assert.equal(sparse.record.longitude, null);
+  assert.equal(sparse.record.busynessRating, null);
 
   assert.throws(
     () =>
@@ -416,19 +415,14 @@ test("listing creation requires evidence and still rejects derived slug collisio
         {
           countrySlug: "united-kingdom",
           regionSlug: "dorset",
-          title: "Quiet Bay",
-          shortDescription: "Evidence-free listing.",
-          description: "Should fail without evidence.",
-          latitude: 50.61,
-          longitude: -2.26,
-          busynessRating: 2,
-          coverImage: "https://example.com/quiet-bay.jpg",
-          categorySlug: "beach",
+          title: "No Short Copy",
+          shortDescription: "",
+          description: "Missing required short copy should still fail.",
         },
         { source: "mcp", actorId: null },
         dbInstance,
       ),
-    (error) => error instanceof ServiceError && error.code === "INSUFFICIENT_EVIDENCE",
+    (error) => error instanceof ServiceError && error.code === "INVALID_INPUT",
   );
 
   assert.throws(

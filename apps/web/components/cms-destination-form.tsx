@@ -28,7 +28,7 @@ type CmsDestinationFormProps = {
     title: string;
     slug: string;
     description: string;
-    coverImage: string;
+    coverImage: string | null;
     manageableRegionIds: string[];
     readOnlyRegions: ReadOnlyRegion[];
   };
@@ -103,9 +103,8 @@ export function CmsDestinationForm({ mode, action, countries, regionOptions, ini
         <label className="block space-y-2">
           <span className="text-sm font-medium text-stone-800">Cover image URL</span>
           <input
-            required
             className="w-full rounded-2xl border border-stone-300 bg-stone-50 px-4 py-3 text-sm text-stone-950 outline-none transition focus:border-sky-500 focus:bg-white"
-            defaultValue={initialValues?.coverImage}
+            defaultValue={initialValues?.coverImage ?? ""}
             name="coverImage"
             type="url"
           />

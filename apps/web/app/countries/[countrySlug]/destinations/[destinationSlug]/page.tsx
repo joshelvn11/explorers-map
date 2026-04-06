@@ -38,7 +38,7 @@ export async function generateMetadata({ params }: DestinationPageProps) {
   return buildMetadata({
     title: `${destination.title}, ${destination.country.title}`,
     description: destination.description,
-    image: destination.coverImage,
+    image: destination.coverImage ?? undefined,
   });
 }
 

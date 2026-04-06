@@ -101,9 +101,9 @@ Expected flow:
 - Destination-region assignment is explicit so a destination can be curated across one or more regions without blurring region ownership of listings.
 - Listing creation follows the same duplicate-safe lookup-before-create pattern via `find_listing`, `ensure_listing`, and `create_listing_draft`.
 - MCP write operations prefer lookup-and-improve flows before creating new rows.
-- MCP creation workflows are evidence-first. If a new fact cannot be grounded confidently, the assistant should return no-op guidance instead of inventing data.
+- MCP region creation remains evidence-first. Listing and destination drafts can now be created best-effort when geography is clear, with evidence treated as recommended rather than mandatory.
 - New MCP-created listings default to `draft` unless the caller explicitly invokes publish behavior.
-- MCP does not support sparse or placeholder-only listing drafts in MVP because the existing listing schema requires a complete draft row.
+- MCP now supports sparse listing draft metadata and sparse destination media, while still requiring listing editorial copy plus destination descriptions.
 - The MCP surface exposes lightweight context resources backed by `BRIEF.md`, `TECHNICAL.md`, and `CHATGPT_MCP_CONTEXT.md`.
 - `CHATGPT_MCP_CONTEXT.md` remains the root-level human-authored context document intended to guide ChatGPT usage of the Explorers Map MCP.
 - `apps/mcp/API.md` now documents the implemented Phase 6 tool schemas, result shapes, auth behavior, and editorial workflows.
@@ -113,13 +113,13 @@ Expected flow:
 - The web app now exposes `GET /api/actions/openapi.json`, `GET /api/actions/healthz`, and the Phase 7 `/api/actions/v1/...` editorial HTTP endpoints for custom GPT Actions use.
 - Actions auth uses a separate bearer token via `EXPLORERS_MAP_ACTIONS_AUTH_TOKEN`.
 - The Actions surface is intentionally narrow: create, list, search, and get only for countries, categories, regions, destinations, and listings.
-- All Actions writes reuse existing shared `ensure_*` and listing draft creation services so duplicate protection, evidence validation, and draft-first behavior stay consistent with MCP.
+- All Actions writes reuse existing shared `ensure_*` and listing draft creation services so duplicate protection and draft-first behavior stay consistent with MCP.
 - Actions listing reads include drafts by default but exclude trashed listings unless future work expands that surface explicitly.
 - The checked-in OpenAPI document lives at `apps/web/openapi/explorers-map-actions.openapi.json`, and the runtime serves the same contract from `/api/actions/openapi.json`.
 - A second checked-in GPT-facing production schema lives at `apps/web/openapi/explorers-map-actions.production.openapi.json`, and the runtime serves it from `/api/actions/openapi.production.json`.
 - Future schema changes must update both schema files so the general runtime contract and the trimmed ChatGPT import contract do not drift.
 - `CHATGPT_ACTIONS_CONTEXT.md` is the root-level GPT instruction document for this HTTP surface.
-- The Actions guidance now explicitly allows GPTs to gather their own evidence with Web Search before calling create endpoints, while still preserving evidence-first and ambiguity-stop behavior.
+- The Actions guidance now explicitly allows GPTs to gather their own evidence with Web Search before calling create endpoints, while also allowing best-effort destination and listing creates when optional metadata is still missing.
 - Shared listing matching now honors requested region and destination scope as a real candidate filter, which prevents weak cross-region fuzzy matches from blocking scoped create flows.
 - Successful listing creates can now also return advisory warnings for weak out-of-scope lookalikes, giving the GPT reference context without turning those lookalikes into hard blockers.
 - Successful listing creates can also return advisory same-region fuzzy candidates, so the assistant can note likely duplicates without being forced to stop the write.
@@ -128,7 +128,7 @@ Expected flow:
 
 - `pnpm test:services` runs Node-based integration tests against fresh temp SQLite databases.
 - The service test suite covers public visibility filters, explicit destination linkage, region catalog filters and facets, listing detail hydration, audit/source stamping, slug conflicts, cross-country destination guards, gallery replacement, and lifecycle transitions.
-- The editorial service suite also covers evidence-gated region/destination/listing creation, editor-visible listing reads, fuzzy matching, and ensure-flow duplicate protection.
+- The editorial service suite also covers strict region evidence rules, best-effort listing and destination draft creation, editor-visible listing reads, fuzzy matching, and ensure-flow duplicate protection.
 
 ## MCP Runtime
 
@@ -152,6 +152,7 @@ Expected flow:
 - The web app dev, build, and start scripts now auto-load the repo-root `.env` file so local Actions API auth behaves like the MCP runtime.
 - The web app dev startup now also runs the shared migration flow and bootstrap-admin initializer before launching Next.js, which keeps existing local SQLite files compatible after schema changes such as Phase 8 auth tables.
 - The Actions routes export direct segment-config literals (`runtime = "nodejs"` and `dynamic = "force-dynamic"`) because Next.js 16 build analysis rejects indirection there.
+- The repository root now includes `CHATGPT_ACTIONS_OPERATING_PROCEDURE.md` as the short model-facing decision routine that complements the fuller Actions context and prompt docs.
 - The auth route tree now includes `/api/auth/[...all]`, `/sign-in`, `/sign-up`, `/sign-out`, `/account`, and `/cms`.
 - `proxy.ts` performs optimistic cookie-based redirects for `/account` and `/cms`, while the protected pages and layouts still do authoritative server-side session and role checks.
 - The CMS route tree now also includes admin-only `/cms/users`, `/cms/users/new`, `/cms/users/[userId]`, `/cms/countries`, `/cms/countries/new`, `/cms/countries/[countrySlug]`, `/cms/regions`, `/cms/regions/new`, and `/cms/regions/[countrySlug]/[regionSlug]`, plus shared `/cms/listings`, `/cms/listings/new`, `/cms/listings/[countrySlug]/[regionSlug]/[listingSlug]`, `/cms/destinations`, `/cms/destinations/new`, and `/cms/destinations/[countrySlug]/[destinationSlug]`.

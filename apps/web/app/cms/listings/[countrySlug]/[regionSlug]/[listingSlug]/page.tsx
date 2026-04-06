@@ -75,7 +75,7 @@ export default async function CmsListingDetailPage({
               shortDescription: listing.shortDescription,
               description: listing.description,
               coverImage: listing.coverImage,
-              categorySlug: listing.category.slug,
+              categorySlug: listing.category?.slug ?? null,
               busynessRating: listing.busynessRating,
               latitude: listing.latitude,
               longitude: listing.longitude,

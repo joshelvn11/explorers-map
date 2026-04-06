@@ -20,6 +20,8 @@
 - Categories are modeled as a real table keyed by `slug`, matching the existing seed data shape.
 - Listing slugs are unique within a region, while region and destination slugs are unique within a country.
 - Listing images include `sortOrder` so later reordering work does not require a migration.
+- Destinations now allow `coverImage = null` so ChatGPT and MCP can create best-effort destination records before media is curated.
+- Listings now allow nullable `latitude`, `longitude`, `busynessRating`, `coverImage`, and `categorySlug` so machine-assisted flows can create sparse drafts while keeping editorial copy required.
 - Soft delete is represented by nullable `deletedAt`. Query-layer behavior stays outside this package.
 - Better Auth should own the auth/session/account tables, while app-owned schema additions should carry CMS role data and moderator-region assignments.
 - Phase 9 extends those app-owned CMS tables with nullable actor-attribution columns for admin-managed role changes and moderator-region assignments.

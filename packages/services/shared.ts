@@ -77,7 +77,7 @@ export type ResolvedDestinationRecord = {
   slug: string;
   title: string;
   description: string;
-  coverImage: string;
+  coverImage: string | null;
   countryId: string;
   countrySlug: string;
   countryTitle: string;
@@ -91,13 +91,13 @@ export type ResolvedListingRecord = {
   title: string;
   shortDescription: string;
   description: string;
-  coverImage: string;
-  categorySlug: string;
-  categoryTitle: string;
+  coverImage: string | null;
+  categorySlug: string | null;
+  categoryTitle: string | null;
   status: "draft" | "published";
-  latitude: number;
-  longitude: number;
-  busynessRating: number;
+  latitude: number | null;
+  longitude: number | null;
+  busynessRating: number | null;
   googleMapsPlaceUrl: string | null;
   source: string;
   createdBy: string | null;
@@ -452,7 +452,7 @@ export function resolveListingRecord(executor: DbExecutor, locator: ListingLocat
     .from(listings)
     .innerJoin(regions, eq(listings.regionId, regions.id))
     .innerJoin(countries, eq(regions.countryId, countries.id))
-    .innerJoin(categories, eq(listings.categorySlug, categories.slug))
+    .leftJoin(categories, eq(listings.categorySlug, categories.slug))
     .where(and(eq(countries.slug, countrySlug), eq(regions.slug, regionSlug), eq(listings.slug, listingSlug)))
     .limit(1)
     .get();
@@ -498,7 +498,7 @@ export function resolveListingRecordById(executor: DbExecutor, listingId: string
     .from(listings)
     .innerJoin(regions, eq(listings.regionId, regions.id))
     .innerJoin(countries, eq(regions.countryId, countries.id))
-    .innerJoin(categories, eq(listings.categorySlug, categories.slug))
+    .leftJoin(categories, eq(listings.categorySlug, categories.slug))
     .where(eq(listings.id, normalizedListingId))
     .limit(1)
     .get();

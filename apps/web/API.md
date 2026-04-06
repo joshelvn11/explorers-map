@@ -2,6 +2,8 @@
 
 This document describes the HTTP Actions API implemented inside `apps/web` for private custom GPT and ChatGPT Actions usage.
 
+For the short model-facing routine that minimizes deadlocks, also see `CHATGPT_ACTIONS_OPERATING_PROCEDURE.md` at the repository root.
+
 The runtime serves:
 
 - `GET /api/actions/healthz`
@@ -19,7 +21,7 @@ This API gives a custom GPT a small OpenAPI-described HTTP surface for:
 
 The API is intentionally narrow. It is not broad CRUD.
 
-For autonomous ChatGPT creation workflows, the GPT should be configured with Web Search as well as Actions. The model should gather credible evidence itself, then call the duplicate-safe create endpoints with structured `evidence[]`.
+For autonomous ChatGPT creation workflows, the GPT should be configured with Web Search as well as Actions. The model should gather credible evidence itself when available, but it may still create best-effort destination or listing drafts when the geography is clear and some optional metadata is still missing.
 
 ## Authentication
 
@@ -47,8 +49,9 @@ Unauthenticated requests return HTTP `401` with:
 
 - Always list, search, or get existing content before creating anything.
 - Regions, destinations, and listings use duplicate-safe ensure flows rather than blind creation.
-- Create flows require non-empty `evidence[]`.
-- If the user asks for creation without supplying sources, the GPT should gather evidence itself before calling create endpoints.
+- Region create still requires non-empty `evidence[]`.
+- Destination and listing create flows treat `evidence[]` as recommended rather than required.
+- If the user asks for creation without supplying sources, the GPT should gather evidence itself when possible, but it should not stall a listing or destination draft solely because optional evidence or media is missing.
 - Region and destination ambiguity still stop with `candidate_matches` instead of guessing.
 - Listing create responses may also include advisory `candidates` and non-blocking `warnings` for fuzzy same-region or out-of-scope lookalikes that did not prevent creation.
 - New listings are created as `draft` only.
@@ -106,15 +109,27 @@ Response semantics:
 - HTTP `201` when `status = "created"`
 - HTTP `200` when a record was matched, or when creation stopped safely because of candidate matches or insufficient evidence
 
+Recommended `evidence[]` example when the GPT has sources available:
+
+```json
+[
+  {
+    "label": "Official tourism page",
+    "note": "Confirmed the place name and regional location.",
+    "url": "https://example.com/place"
+  }
+]
+```
+
 ## Recommended GPT Workflow
 
 1. Call `listCountries` and `listCategories` when you need canonical slugs.
 2. Use search and get endpoints to inspect current regions, destinations, and listings.
-3. For new content, call the matching `POST` ensure endpoint with `evidence[]`.
-4. When the user has not provided evidence, gather it through ChatGPT Web Search first if that capability is enabled for the GPT.
-5. If a region or destination create returns `candidate_matches`, stop and review candidates instead of retrying with a slightly different title.
-6. For listings, reuse exact matches, but treat fuzzy `candidates` or `warnings` on successful creates as advisory review notes.
-7. If the API returns `insufficient_evidence`, gather evidence before trying again.
+3. For new regions, call the matching `POST` ensure endpoint with `evidence[]`.
+4. For new destinations or listings, call the matching `POST` ensure endpoint as soon as the geography is clear and the required copy fields are ready, even if optional metadata is still missing.
+5. Omit optional destination or listing fields you still cannot verify instead of stalling or inventing them.
+6. If a region or destination create returns `candidate_matches`, stop and review candidates instead of retrying with a slightly different title.
+7. For listings, reuse exact matches, but treat fuzzy `candidates` or `warnings` on successful creates as advisory review notes.
 8. If a listing create succeeds with advisory `candidates` or `warnings`, treat them as review notes rather than as a failed write.
 9. Treat listing creation as draft-only. There are no publish or trash endpoints in this phase.
 

@@ -21,7 +21,7 @@ export type DestinationSummary = {
   slug: string;
   title: string;
   description: string;
-  coverImage: string;
+  coverImage: string | null;
 };
 
 export type DestinationDetail = DestinationSummary & {

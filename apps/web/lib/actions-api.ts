@@ -31,7 +31,7 @@ export type CreateRegionBody = {
 export type CreateDestinationBody = {
   title: string;
   description: string;
-  coverImage: string;
+  coverImage?: string | null;
   slug?: string;
   regionSlugs?: string[];
   evidence?: EvidenceItem[];
@@ -41,12 +41,12 @@ export type CreateListingBody = {
   title: string;
   shortDescription: string;
   description: string;
-  latitude: number;
-  longitude: number;
-  busynessRating: number;
+  latitude?: number | null;
+  longitude?: number | null;
+  busynessRating?: number | null;
   googleMapsPlaceUrl?: string | null;
-  coverImage: string;
-  categorySlug: string;
+  coverImage?: string | null;
+  categorySlug?: string | null;
   slug?: string;
   destinationSlugs?: string[];
   images?: Array<{

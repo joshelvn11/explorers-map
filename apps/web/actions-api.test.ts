@@ -237,6 +237,17 @@ test("Actions create handlers return ensure-style results and hide trashed listi
     { countrySlug: "united-kingdom" },
     dbInstance,
   );
+  const createdDestination = await createDestinationHandler(
+    authorizedRequest("/api/actions/v1/countries/united-kingdom/destinations", {
+      method: "POST",
+      body: JSON.stringify({
+        title: "Quiet Headlands",
+        description: "A destination draft created without cover media or evidence.",
+      }),
+    }),
+    { countrySlug: "united-kingdom" },
+    dbInstance,
+  );
   const createdRegion = await createRegionHandler(
     authorizedRequest("/api/actions/v1/countries/united-kingdom/regions", {
       method: "POST",
@@ -293,17 +304,37 @@ test("Actions create handlers return ensure-style results and hide trashed listi
     { countrySlug: "united-kingdom", regionSlug: "dorset" },
     dbInstance,
   );
+  const sparseListing = await createListingHandler(
+    authorizedRequest("/api/actions/v1/countries/united-kingdom/regions/dorset/listings", {
+      method: "POST",
+      body: JSON.stringify({
+        title: "Pebble Hollow",
+        shortDescription: "A sparse draft created without optional metadata.",
+        description: "Used to verify best-effort draft creation through the Actions API.",
+      }),
+    }),
+    { countrySlug: "united-kingdom", regionSlug: "dorset" },
+    dbInstance,
+  );
 
   assert.equal(insufficientRegion.status, 200);
   assert.equal((await readJson(insufficientRegion)).status, "insufficient_evidence");
   assert.equal(matchedDestination.status, 200);
   assert.equal((await readJson(matchedDestination)).status, "matched");
+  assert.equal(createdDestination.status, 201);
+  const createdDestinationPayload = await readJson(createdDestination);
+  assert.equal(createdDestinationPayload.status, "created");
+  assert.equal((createdDestinationPayload.record as { coverImage: string | null }).coverImage, null);
   assert.equal(createdRegion.status, 201);
   assert.equal((await readJson(createdRegion)).status, "created");
   assert.equal(matchedListing.status, 200);
   assert.equal((await readJson(matchedListing)).status, "matched");
   assert.equal(createdListing.status, 201);
   assert.equal((await readJson(createdListing)).status, "created");
+  assert.equal(sparseListing.status, 201);
+  const sparseListingPayload = await readJson(sparseListing);
+  assert.equal(sparseListingPayload.status, "created");
+  assert.equal((sparseListingPayload.record as { coverImage: string | null }).coverImage, null);
 
   const trashed = createListingDraftForEditor(
     {
@@ -364,52 +395,6 @@ test("Actions listing create returns non-blocking warnings for weak out-of-scope
 
   const dbInstance = createSeededTestDb(t);
 
-  await createRegionHandler(
-    authorizedRequest("/api/actions/v1/countries/united-kingdom/regions", {
-      method: "POST",
-      body: JSON.stringify({
-        title: "Somerset",
-        description: "Editorial region for Somerset coverage.",
-        coverImage: "https://example.com/somerset.jpg",
-        evidence,
-      }),
-    }),
-    { countrySlug: "united-kingdom" },
-    dbInstance,
-  );
-
-  await createRegionHandler(
-    authorizedRequest("/api/actions/v1/countries/united-kingdom/regions", {
-      method: "POST",
-      body: JSON.stringify({
-        title: "Derbyshire",
-        description: "Editorial region for Derbyshire coverage.",
-        coverImage: "https://example.com/derbyshire.jpg",
-        evidence,
-      }),
-    }),
-    { countrySlug: "united-kingdom" },
-    dbInstance,
-  );
-
-  createListingDraftForEditor(
-    {
-      countrySlug: "united-kingdom",
-      regionSlug: "derbyshire",
-      title: "Mam Tor",
-      shortDescription: "Peak District hill listing for warning coverage.",
-      description: "A cross-region listing used to verify non-blocking warning behavior.",
-      latitude: 53.3492,
-      longitude: -1.8093,
-      busynessRating: 4,
-      coverImage: "https://example.com/mam-tor.jpg",
-      categorySlug: "viewpoint",
-      evidence,
-    },
-    { source: "actions-test", actorId: null },
-    dbInstance,
-  );
-
   const response = await createListingHandler(
     authorizedRequest("/api/actions/v1/countries/united-kingdom/regions/somerset/listings", {
       method: "POST",
@@ -449,32 +434,18 @@ test("Actions listing create returns advisory candidates instead of blocking on 
 
   const dbInstance = createSeededTestDb(t);
 
-  await createRegionHandler(
-    authorizedRequest("/api/actions/v1/countries/united-kingdom/regions", {
-      method: "POST",
-      body: JSON.stringify({
-        title: "Somerset",
-        description: "Editorial region for Somerset coverage.",
-        coverImage: "https://example.com/somerset.jpg",
-        evidence,
-      }),
-    }),
-    { countrySlug: "united-kingdom" },
-    dbInstance,
-  );
-
   createListingDraftForEditor(
     {
       countrySlug: "united-kingdom",
       regionSlug: "somerset",
-      title: "Shapwick Heath Reserve",
+      title: "Shapwick Marsh Walk",
       shortDescription: "Existing reserve-style listing for advisory duplicate coverage.",
       description: "A seeded Somerset listing used to verify advisory candidate behavior.",
       latitude: 51.1649,
       longitude: -2.8015,
       busynessRating: 3,
       coverImage: "https://example.com/shapwick-heath-reserve.jpg",
-      categorySlug: "nature-reserve",
+      categorySlug: "park",
       evidence,
     },
     { source: "actions-test", actorId: null },
@@ -485,14 +456,14 @@ test("Actions listing create returns advisory candidates instead of blocking on 
     authorizedRequest("/api/actions/v1/countries/united-kingdom/regions/somerset/listings", {
       method: "POST",
       body: JSON.stringify({
-        title: "Shapwick Heath NNR",
+        title: "Shapwick Heath Reserve",
         shortDescription: "A closely named Somerset reserve listing that should still be allowed.",
         description: "A new Somerset draft used to verify same-region fuzzy candidates stay advisory.",
         latitude: 51.165,
         longitude: -2.801,
         busynessRating: 3,
         coverImage: "https://example.com/shapwick-heath-nnr.jpg",
-        categorySlug: "nature-reserve",
+        categorySlug: "park",
         evidence,
       }),
     }),
@@ -506,17 +477,17 @@ test("Actions listing create returns advisory candidates instead of blocking on 
   assert.equal(payload.status, "created");
   assert.ok(
     ((payload.candidates as Array<{ title: string }> | undefined) ?? []).some(
-      (candidate) => candidate.title === "Shapwick Heath Reserve",
+      (candidate) => candidate.title === "Shapwick Marsh Walk",
     ),
   );
   assert.ok(
     ((payload.warnings as string[] | undefined) ?? []).some(
-      (warning) => warning.includes("Shapwick Heath Reserve") && warning.includes("potential duplicate"),
+      (warning) => warning.includes("Shapwick Marsh Walk") && warning.includes("potential duplicate"),
     ),
   );
 });
 
-test("OpenAPI contract includes the planned routes and consequential mutations", async (t) => {
+test("OpenAPI contract includes relaxed create requirements without consequential mutations", async (t) => {
   const original = process.env.EXPLORERS_MAP_ACTIONS_AUTH_TOKEN;
   process.env.EXPLORERS_MAP_ACTIONS_AUTH_TOKEN = token;
   t.after(() => {
@@ -526,6 +497,12 @@ test("OpenAPI contract includes the planned routes and consequential mutations",
   const response = await openApiHandler();
   const document = JSON.parse(await response.text()) as {
     paths: Record<string, Record<string, { operationId?: string; ["x-openai-isConsequential"]?: boolean }>>;
+    components: {
+      schemas: {
+        CreateDestinationBody: { required: string[] };
+        CreateListingBody: { required: string[] };
+      };
+    };
   };
 
   assert.ok(document.paths["/api/actions/v1/countries/{countrySlug}/regions"]);
@@ -533,14 +510,13 @@ test("OpenAPI contract includes the planned routes and consequential mutations",
     document.paths["/api/actions/v1/countries/{countrySlug}/regions"].post.operationId,
     "ensureRegion",
   );
-  assert.equal(
-    document.paths["/api/actions/v1/countries/{countrySlug}/regions"].post["x-openai-isConsequential"],
-    true,
-  );
+  assert.equal(document.paths["/api/actions/v1/countries/{countrySlug}/regions"].post["x-openai-isConsequential"], undefined);
   assert.equal(
     document.paths["/api/actions/v1/countries/{countrySlug}/regions/{regionSlug}/listings"].post.operationId,
     "ensureListingDraft",
   );
+  assert.deepEqual(document.components.schemas.CreateDestinationBody.required, ["title", "description"]);
+  assert.deepEqual(document.components.schemas.CreateListingBody.required, ["title", "shortDescription", "description"]);
 });
 
 test("production OpenAPI contract is trimmed for ChatGPT import and points at explorersmap.org", async () => {

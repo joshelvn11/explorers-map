@@ -2,6 +2,8 @@
 
 Use these prompts when you want ChatGPT connected to the Explorers Map Actions API to create new editorial records effectively.
 
+Pair these prompts with `CHATGPT_ACTIONS_OPERATING_PROCEDURE.md` when you want the GPT to follow the short, low-hesitation create routine.
+
 ## Prompt Pattern
 
 The strongest prompts usually include:
@@ -23,7 +25,7 @@ Create [number] new draft listings in [region], [country]. Research suitable out
 ## Single Listing Prompts
 
 ```text
-Create 1 new draft listing in Somerset, United Kingdom. Research a strong outdoor or nature place yourself, check for duplicates first, use real evidence, and create it if it is clearly new. Treat weak out-of-scope lookalikes as warnings only.
+Create 1 new draft listing in Somerset, United Kingdom. Research a strong outdoor or nature place yourself, check for duplicates first, use real evidence when available, and create it if it is clearly new. If optional metadata like cover images or coordinates is still missing after research, create the draft anyway with the required copy only. Treat weak out-of-scope lookalikes as warnings only.
 ```
 
 ```text
@@ -37,7 +39,7 @@ Research and create 1 hidden-gem hiking listing in Snowdonia, United Kingdom. Us
 ## Batch Region Prompts
 
 ```text
-Create 3 new draft listings in Gloucestershire, United Kingdom. Choose well-known outdoor or nature places yourself, gather evidence with web search, avoid duplicates, and create only the listings that are clearly new. If fewer than 3 can be created safely, say which ones were created and which were skipped.
+Create 3 new draft listings in Gloucestershire, United Kingdom. Choose well-known outdoor or nature places yourself, gather evidence with web search, avoid duplicates, and create only the listings that are clearly new. If some optional metadata is still missing, create best-effort drafts instead of stalling. If fewer than 3 can be created safely, say which ones were created and which were skipped.
 ```
 
 ```text

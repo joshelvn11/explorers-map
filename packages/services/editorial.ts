@@ -83,7 +83,7 @@ export type DestinationRecord = {
   slug: string;
   title: string;
   description: string;
-  coverImage: string;
+  coverImage: string | null;
   regions: DestinationRegionRecord[];
 };
 
@@ -97,15 +97,15 @@ export type ListingRecord = {
   deletedAt: string | null;
   shortDescription: string;
   description: string;
-  latitude: number;
-  longitude: number;
-  busynessRating: number;
+  latitude: number | null;
+  longitude: number | null;
+  busynessRating: number | null;
   googleMapsPlaceUrl: string | null;
-  coverImage: string;
+  coverImage: string | null;
   category: {
     slug: string;
     title: string;
-  };
+  } | null;
   destinations: Array<{
     slug: string;
     title: string;
@@ -194,7 +194,7 @@ export type CreateDestinationInput = {
   countrySlug: string;
   title: string;
   description: string;
-  coverImage: string;
+  coverImage?: string | null;
   slug?: string;
   regionSlugs?: string[];
   evidence?: EvidenceInput;
@@ -229,12 +229,12 @@ export type CreateListingDraftEditorInput = {
   title: string;
   shortDescription: string;
   description: string;
-  latitude: number;
-  longitude: number;
-  busynessRating: number;
+  latitude?: number | null;
+  longitude?: number | null;
+  busynessRating?: number | null;
   googleMapsPlaceUrl?: string | null;
-  coverImage: string;
-  categorySlug: string;
+  coverImage?: string | null;
+  categorySlug?: string | null;
   slug?: string;
   destinationSlugs?: string[];
   images?: Array<{
@@ -482,8 +482,8 @@ export function createDestination(
   const country = requireCountryRecord(db, input.countrySlug);
   const title = requireNonEmptyString(input.title, "title");
   const description = requireNonEmptyString(input.description, "description");
-  const coverImage = requireNonEmptyString(input.coverImage, "coverImage");
-  const evidence = requireEvidence(input.evidence, "Destination creation requires evidence.");
+  const coverImage = requireOptionalString(input.coverImage, "coverImage");
+  const evidence = normalizeEvidence(input.evidence) ?? [];
   const slug = deriveSlug(input.slug, title, "destination");
   const regionSlugs = normalizeDistinctSlugs(input.regionSlugs ?? [], "regionSlugs");
   const now = new Date();
@@ -494,13 +494,13 @@ export function createDestination(
     const destinationId = randomUUID();
 
     tx.insert(destinations)
-      .values({
-        id: destinationId,
-        countryId: country.id,
-        slug,
-        title,
-        description,
-        coverImage,
+        .values({
+          id: destinationId,
+          countryId: country.id,
+          slug,
+          title,
+          description,
+          coverImage,
         createdAt: now,
         updatedAt: now,
       })
@@ -570,23 +570,14 @@ export function ensureDestination(input: CreateDestinationInput, dbInstance?: Db
     };
   }
 
-  if (!evidence) {
-    return {
-      status: "insufficient_evidence",
-      confidence: 0,
-      reasons: ["No safe existing destination match was found.", "Destination creation requires non-empty evidence."],
-      warnings: [],
-    };
-  }
-
   const created = createDestination(input, dbInstance);
 
   return {
     status: "created",
     confidence: 1,
-    reasons: ["No safe existing destination match was found.", "Created a new destination from the provided evidence."],
+    reasons: ["No safe existing destination match was found.", "Created a new destination from the provided details."],
     record: created.record,
-    evidence: created.evidence,
+    evidence: created.evidence.length > 0 ? created.evidence : undefined,
     warnings: created.warnings,
   };
 }
@@ -818,7 +809,12 @@ export function findListing(input: ListingFindInput, dbInstance?: DbInstance): F
         reasons.push("Already linked to the requested destination.");
       }
 
-      if (input.latitude !== undefined && input.longitude !== undefined) {
+      if (
+        input.latitude !== undefined &&
+        input.longitude !== undefined &&
+        listing.latitude !== null &&
+        listing.longitude !== null
+      ) {
         const proximity = scoreCoordinateProximity(
           input.latitude,
           input.longitude,
@@ -852,21 +848,20 @@ export function createListingDraftForEditor(
   dbInstance?: DbInstance,
 ): MutationResult<ListingRecord> {
   const { db } = resolveDb(dbInstance);
-  const evidence = requireEvidence(input.evidence, "Listing draft creation requires evidence.");
+  const evidence = normalizeEvidence(input.evidence) ?? [];
   const title = requireNonEmptyString(input.title, "title");
   const slug = deriveSlug(input.slug, title, "listing");
   const region = requireRegionRecord(db, { countrySlug: input.countrySlug, regionSlug: input.regionSlug });
   const writeContext = requireWriteContext(context);
   const destinationSlugs = normalizeDistinctSlugs(input.destinationSlugs ?? [], "destinationSlugs");
   const images = input.images ?? [];
+  const { latitude, longitude } = normalizeOptionalCoordinates(input.latitude, input.longitude);
+  const busynessRating = normalizeOptionalBusynessRating(input.busynessRating);
+  const categorySlug = normalizeOptionalCategorySlug(db, input.categorySlug);
+  const coverImage = requireOptionalString(input.coverImage, "coverImage");
 
   requireNonEmptyString(input.shortDescription, "shortDescription");
   requireNonEmptyString(input.description, "description");
-  requireLatitude(input.latitude);
-  requireLongitude(input.longitude);
-  requireBusynessRating(input.busynessRating);
-  requireCategoryRecord(db, input.categorySlug);
-  requireNonEmptyString(input.coverImage, "coverImage");
   requireOptionalString(input.googleMapsPlaceUrl, "googleMapsPlaceUrl");
   destinationSlugs.forEach((destinationSlug) =>
     requireDestinationRecord(db, { countrySlug: input.countrySlug, destinationSlug }),
@@ -881,12 +876,12 @@ export function createListingDraftForEditor(
       title,
       shortDescription: input.shortDescription,
       description: input.description,
-      latitude: input.latitude,
-      longitude: input.longitude,
-      busynessRating: input.busynessRating,
+      latitude,
+      longitude,
+      busynessRating,
       googleMapsPlaceUrl: input.googleMapsPlaceUrl,
-      coverImage: input.coverImage,
-      categorySlug: input.categorySlug,
+      coverImage,
+      categorySlug,
     },
     writeContext,
     dbInstance,
@@ -944,8 +939,8 @@ export function ensureListing(
       countrySlug: input.countrySlug,
       regionSlug: input.regionSlug,
       query: input.slug?.trim() || input.title,
-      latitude: input.latitude,
-      longitude: input.longitude,
+      latitude: input.latitude ?? undefined,
+      longitude: input.longitude ?? undefined,
       limit: 5,
     },
     dbInstance,
@@ -973,17 +968,6 @@ export function ensureListing(
   }
 
   if (match.status === "candidate_matches") {
-    if (!evidence) {
-      return {
-        status: "candidate_matches",
-        confidence: match.confidence,
-        reasons: match.reasons,
-        candidates: match.candidates,
-        evidence: evidence ?? undefined,
-        warnings: [],
-      };
-    }
-
     const warnings = [
       ...buildListingCandidateWarnings(match.candidates, input.regionSlug),
       ...buildOutOfScopeListingWarnings(input, dbInstance),
@@ -995,21 +979,12 @@ export function ensureListing(
       confidence: match.confidence,
       reasons: [
         "Potential duplicate candidates were found, but no exact listing match existed in the requested region.",
-        "Created a new listing draft from the provided evidence.",
+        "Created a new listing draft from the provided details.",
       ],
       record: created.record,
       candidates: match.candidates,
-      evidence: created.evidence,
+      evidence: created.evidence.length > 0 ? created.evidence : undefined,
       warnings,
-    };
-  }
-
-  if (!evidence) {
-    return {
-      status: "insufficient_evidence",
-      confidence: 0,
-      reasons: ["No safe existing listing match was found.", "Listing creation requires non-empty evidence."],
-      warnings: [],
     };
   }
 
@@ -1019,9 +994,9 @@ export function ensureListing(
   return {
     status: "created",
     confidence: 1,
-    reasons: ["No safe existing listing match was found.", "Created a new listing draft from the provided evidence."],
+    reasons: ["No safe existing listing match was found.", "Created a new listing draft from the provided details."],
     record: created.record,
-    evidence: created.evidence,
+    evidence: created.evidence.length > 0 ? created.evidence : undefined,
     warnings,
   };
 }
@@ -1259,6 +1234,40 @@ export function requireEvidence(evidence: EvidenceInput | undefined, message: st
   return normalized;
 }
 
+function normalizeOptionalCoordinates(latitude: number | null | undefined, longitude: number | null | undefined) {
+  if ((latitude === undefined || latitude === null) && (longitude === undefined || longitude === null)) {
+    return { latitude: null, longitude: null };
+  }
+
+  if (latitude === undefined || latitude === null || longitude === undefined || longitude === null) {
+    throw new ServiceError("INVALID_INPUT", "latitude and longitude must both be provided together.");
+  }
+
+  return {
+    latitude: requireLatitude(latitude),
+    longitude: requireLongitude(longitude),
+  };
+}
+
+function normalizeOptionalBusynessRating(value: number | null | undefined) {
+  if (value === undefined || value === null) {
+    return null;
+  }
+
+  return requireBusynessRating(value);
+}
+
+function normalizeOptionalCategorySlug(db: DbInstance["db"], value: string | null | undefined) {
+  if (value === undefined || value === null) {
+    return null;
+  }
+
+  const categorySlug = requireNonEmptyString(value, "categorySlug");
+  requireCategoryRecord(db, categorySlug);
+
+  return categorySlug;
+}
+
 export function deriveSlug(explicitSlug: string | undefined, title: string, label: string): string {
   if (explicitSlug !== undefined) {
     return normalizeSlug(explicitSlug, label);
@@ -1322,10 +1331,13 @@ function mapListingRecord(listing: ResolvedListingRecord, db: DbInstance["db"]):
     busynessRating: listing.busynessRating,
     googleMapsPlaceUrl: listing.googleMapsPlaceUrl,
     coverImage: listing.coverImage,
-    category: {
-      slug: listing.categorySlug,
-      title: listing.categoryTitle,
-    },
+    category:
+      listing.categorySlug && listing.categoryTitle
+        ? {
+            slug: listing.categorySlug,
+            title: listing.categoryTitle,
+          }
+        : null,
     destinations: loadListingDestinations(db, listing.id),
     images: loadListingImages(db, listing.id),
     source: listing.source,
@@ -1461,8 +1473,8 @@ function buildOutOfScopeListingWarnings(
     {
       countrySlug: input.countrySlug,
       query: input.slug?.trim() || input.title,
-      latitude: input.latitude,
-      longitude: input.longitude,
+      latitude: input.latitude ?? undefined,
+      longitude: input.longitude ?? undefined,
       limit: 3,
     },
     dbInstance,

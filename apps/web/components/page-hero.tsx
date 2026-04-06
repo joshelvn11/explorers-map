@@ -6,7 +6,7 @@ type PageHeroProps = {
   eyebrow?: string;
   title: string;
   description: string;
-  image: string;
+  image?: string | null;
   badges?: Array<{ label: string; tone?: "default" | "muted" | "warm" }>;
   actions?: React.ReactNode;
 };
@@ -15,14 +15,16 @@ export function PageHero({ eyebrow, title, description, image, badges = [], acti
   return (
     <section className="relative overflow-hidden rounded-[2rem] border border-stone-200 bg-stone-950 text-stone-50 shadow-[0_30px_80px_rgba(28,25,23,0.18)]">
       <div className="absolute inset-0">
-        <Image
-          src={image}
-          alt=""
-          fill
-          priority
-          className="object-cover opacity-45"
-          sizes="(max-width: 768px) 100vw, 1200px"
-        />
+        {image ? (
+          <Image
+            src={image}
+            alt=""
+            fill
+            priority
+            className="object-cover opacity-45"
+            sizes="(max-width: 768px) 100vw, 1200px"
+          />
+        ) : null}
         <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(12,10,9,0.88),rgba(28,25,23,0.55),rgba(41,37,36,0.2))]" />
       </div>
       <div className="relative flex min-h-[20rem] flex-col justify-end gap-6 px-6 py-8 sm:px-8 sm:py-10 lg:min-h-[26rem] lg:px-10 lg:py-12">

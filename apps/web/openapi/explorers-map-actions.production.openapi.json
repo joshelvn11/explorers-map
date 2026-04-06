@@ -3,7 +3,7 @@
   "info": {
     "title": "Explorers Map Actions API",
     "version": "1.0.0",
-    "description": "Authenticated HTTP API for ChatGPT Actions to inspect existing Explorers Map editorial content and create duplicate-safe draft records. When Web Search is available, the GPT should gather credible evidence itself before calling create endpoints."
+    "description": "Authenticated HTTP API for ChatGPT Actions to inspect existing Explorers Map editorial content and create duplicate-safe records. Search first, reuse exact matches, and create best-effort drafts when the target geography is clear, omitting unknown optional metadata instead of stalling."
   },
   "servers": [
     {
@@ -212,8 +212,7 @@
           "Regions"
         ],
         "summary": "Ensure a region exists",
-        "description": "Check for a safe existing region match first. If no safe match exists, gather credible evidence yourself when possible and create a new region only with evidence-backed fields. Ask the user for help only when the target is ambiguous or credible evidence cannot be found.",
-        "x-openai-isConsequential": true,
+        "description": "Check for a safe existing region match first. If no safe match exists, gather credible evidence yourself when possible and create a new region only with complete evidence-backed fields. Ask the user for help only when the target is ambiguous or credible evidence cannot be found.",
         "parameters": [
           {
             "name": "countrySlug",
@@ -449,8 +448,7 @@
           "Destinations"
         ],
         "summary": "Ensure a destination exists",
-        "description": "Check for an existing destination before creating a new one. If no safe match exists, gather credible evidence yourself when possible and create only with evidence-backed fields. Stop on ambiguous candidates instead of guessing.",
-        "x-openai-isConsequential": true,
+        "description": "Check for an existing destination before creating a new one. If no safe exact match exists and the destination geography is clear, create it immediately with the required title and description. Optional fields such as coverImage, region links, and evidence can be omitted when still unknown. Stop on ambiguous candidates instead of guessing.",
         "parameters": [
           {
             "name": "countrySlug",
@@ -694,8 +692,7 @@
           "Listings"
         ],
         "summary": "Ensure a listing draft exists",
-        "description": "Search for a safe existing listing match before creating a new draft in the target region. Reuse exact matches, but treat fuzzy listing candidates as advisory context rather than automatic hard stops. When the user asks you to add a place, gather credible evidence yourself when possible, then create only with complete evidence-backed fields.",
-        "x-openai-isConsequential": true,
+        "description": "Search for a safe existing listing match before creating a new draft in the target region. Reuse exact matches, but treat fuzzy listing candidates as advisory context rather than automatic hard stops. If the geography is clear, create the draft immediately with title, shortDescription, and description, and omit any optional fields you still cannot verify instead of stalling.",
         "parameters": [
           {
             "name": "countrySlug",
@@ -1130,7 +1127,12 @@
         "required": [
           "label",
           "note"
-        ]
+        ],
+        "example": {
+          "label": "Official tourism page",
+          "note": "Confirmed the place name and regional location.",
+          "url": "https://example.com/place"
+        }
       },
       "CategoryRecord": {
         "type": "object",
@@ -1546,7 +1548,7 @@
       },
       "CreateDestinationBody": {
         "type": "object",
-        "description": "Create a new destination only after search/get checks found no safe existing match. The GPT may gather these facts itself with Web Search before calling this action.",
+        "description": "Create a new destination only after search/get checks found no safe existing match. The GPT may gather these facts itself with Web Search before calling this action, but evidence is recommended rather than required.",
         "properties": {
           "title": {
             "type": "string",
@@ -1558,7 +1560,7 @@
           },
           "coverImage": {
             "type": "string",
-            "description": "Landscape cover image URL for the destination."
+            "description": "Optional landscape cover image URL for the destination."
           },
           "slug": {
             "type": "string",
@@ -1566,7 +1568,7 @@
           },
           "regionSlugs": {
             "type": "array",
-            "description": "Optional list of region slugs that this destination spans.",
+            "description": "Optional list of region slugs that this destination spans when known.",
             "items": {
               "type": "string"
             }
@@ -1574,17 +1576,22 @@
           "evidence": {
             "type": "array",
             "minItems": 1,
-            "description": "One or more sources supporting the new destination and its factual fields.",
+            "description": "Recommended supporting sources for the destination and its factual fields.",
             "items": {
               "$ref": "#/components/schemas/EvidenceItem"
-            }
+            },
+            "example": [
+              {
+                "label": "Official tourism page",
+                "note": "Confirmed the place name and regional location.",
+                "url": "https://example.com/place"
+              }
+            ]
           }
         },
         "required": [
           "title",
-          "description",
-          "coverImage",
-          "evidence"
+          "description"
         ]
       },
       "CreateListingImageBody": {
@@ -1604,7 +1611,7 @@
       },
       "CreateListingBody": {
         "type": "object",
-        "description": "Create a new listing draft only after search/get checks found no safe existing match. The GPT may gather these facts itself with Web Search before calling this action.",
+        "description": "Create a new listing draft only after search/get checks found no safe existing exact match. The GPT may gather these facts itself with Web Search before calling this action. Required editorial copy must always be present; coordinates, category, media, and evidence are optional for draft creation.",
         "properties": {
           "title": {
             "type": "string",
@@ -1620,17 +1627,17 @@
           },
           "latitude": {
             "type": "number",
-            "description": "Latitude for map behavior."
+            "description": "Optional latitude for map behavior. Provide longitude too when known."
           },
           "longitude": {
             "type": "number",
-            "description": "Longitude for map behavior."
+            "description": "Optional longitude for map behavior. Provide latitude too when known."
           },
           "busynessRating": {
             "type": "integer",
             "minimum": 1,
             "maximum": 5,
-            "description": "Curated busyness estimate on a 1 to 5 scale."
+            "description": "Optional curated busyness estimate on a 1 to 5 scale."
           },
           "googleMapsPlaceUrl": {
             "type": [
@@ -1641,11 +1648,11 @@
           },
           "coverImage": {
             "type": "string",
-            "description": "Landscape cover image URL."
+            "description": "Optional landscape cover image URL."
           },
           "categorySlug": {
             "type": "string",
-            "description": "Canonical listing category slug from GET /api/actions/v1/categories."
+            "description": "Optional canonical listing category slug from GET /api/actions/v1/categories when known."
           },
           "slug": {
             "type": "string",
@@ -1668,22 +1675,23 @@
           "evidence": {
             "type": "array",
             "minItems": 1,
-            "description": "One or more sources supporting the listing and its factual fields.",
+            "description": "Recommended supporting sources for the listing and its factual fields.",
             "items": {
               "$ref": "#/components/schemas/EvidenceItem"
-            }
+            },
+            "example": [
+              {
+                "label": "Official tourism page",
+                "note": "Confirmed the place name and regional location.",
+                "url": "https://example.com/place"
+              }
+            ]
           }
         },
         "required": [
           "title",
           "shortDescription",
-          "description",
-          "latitude",
-          "longitude",
-          "busynessRating",
-          "coverImage",
-          "categorySlug",
-          "evidence"
+          "description"
         ]
       },
       "EnsureRegionResult": {

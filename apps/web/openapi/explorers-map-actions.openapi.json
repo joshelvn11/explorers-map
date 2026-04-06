@@ -3,7 +3,7 @@
   "info": {
     "title": "Explorers Map Actions API",
     "version": "1.0.0",
-    "description": "Authenticated HTTP API for ChatGPT Actions to inspect existing Explorers Map editorial content and create duplicate-safe draft records. When Web Search is available, the GPT should gather credible evidence itself before calling create endpoints."
+    "description": "Authenticated HTTP API for ChatGPT Actions to inspect existing Explorers Map editorial content and create duplicate-safe records. Search first, reuse exact matches, and create best-effort drafts when the target geography is clear, omitting unknown optional metadata instead of stalling."
   },
   "servers": [
     {
@@ -33,7 +33,9 @@
     "/api/actions/healthz": {
       "get": {
         "operationId": "actionsHealthz",
-        "tags": ["Reference"],
+        "tags": [
+          "Reference"
+        ],
         "summary": "Health check",
         "description": "Lightweight unauthenticated health check for the Actions API runtime.",
         "security": [],
@@ -49,7 +51,9 @@
                       "type": "boolean"
                     }
                   },
-                  "required": ["ok"]
+                  "required": [
+                    "ok"
+                  ]
                 },
                 "example": {
                   "ok": true
@@ -63,7 +67,9 @@
     "/api/actions/openapi.json": {
       "get": {
         "operationId": "getOpenApiDocument",
-        "tags": ["Reference"],
+        "tags": [
+          "Reference"
+        ],
         "summary": "Get the OpenAPI document",
         "description": "Returns the exact OpenAPI schema intended for ChatGPT Actions configuration.",
         "security": [],
@@ -77,7 +83,9 @@
     "/api/actions/v1/countries": {
       "get": {
         "operationId": "listCountries",
-        "tags": ["Reference"],
+        "tags": [
+          "Reference"
+        ],
         "summary": "List countries",
         "description": "List all countries currently available in Explorers Map.",
         "responses": {
@@ -95,7 +103,9 @@
                       }
                     }
                   },
-                  "required": ["countries"]
+                  "required": [
+                    "countries"
+                  ]
                 },
                 "example": {
                   "countries": [
@@ -119,7 +129,9 @@
     "/api/actions/v1/countries/{countrySlug}": {
       "get": {
         "operationId": "getCountry",
-        "tags": ["Reference"],
+        "tags": [
+          "Reference"
+        ],
         "summary": "Get a country",
         "description": "Fetch one country by slug.",
         "parameters": [
@@ -144,7 +156,9 @@
                       "$ref": "#/components/schemas/CountryRecord"
                     }
                   },
-                  "required": ["country"]
+                  "required": [
+                    "country"
+                  ]
                 }
               }
             }
@@ -161,7 +175,9 @@
     "/api/actions/v1/categories": {
       "get": {
         "operationId": "listCategories",
-        "tags": ["Reference"],
+        "tags": [
+          "Reference"
+        ],
         "summary": "List categories",
         "description": "List the fixed curated categories that can be used for listings.",
         "responses": {
@@ -179,7 +195,9 @@
                       }
                     }
                   },
-                  "required": ["categories"]
+                  "required": [
+                    "categories"
+                  ]
                 }
               }
             }
@@ -193,7 +211,9 @@
     "/api/actions/v1/countries/{countrySlug}/regions": {
       "get": {
         "operationId": "listRegions",
-        "tags": ["Regions"],
+        "tags": [
+          "Regions"
+        ],
         "summary": "List regions",
         "description": "List all regions in a country.",
         "parameters": [
@@ -221,7 +241,9 @@
                       }
                     }
                   },
-                  "required": ["regions"]
+                  "required": [
+                    "regions"
+                  ]
                 }
               }
             }
@@ -236,10 +258,11 @@
       },
       "post": {
         "operationId": "ensureRegion",
-        "tags": ["Regions"],
+        "tags": [
+          "Regions"
+        ],
         "summary": "Ensure a region exists",
-        "description": "Check for a safe existing region match first. If no safe match exists, gather credible evidence yourself when possible and create a new region only with evidence-backed fields. Ask the user for help only when the target is ambiguous or credible evidence cannot be found.",
-        "x-openai-isConsequential": true,
+        "description": "Check for a safe existing region match first. If no safe match exists, gather credible evidence yourself when possible and create a new region only with complete evidence-backed fields. Ask the user for help only when the target is ambiguous or credible evidence cannot be found.",
         "parameters": [
           {
             "name": "countrySlug",
@@ -302,7 +325,9 @@
     "/api/actions/v1/countries/{countrySlug}/regions/search": {
       "get": {
         "operationId": "findRegion",
-        "tags": ["Regions"],
+        "tags": [
+          "Regions"
+        ],
         "summary": "Search regions",
         "description": "Search regions by title or slug and return exact, candidate, or not-found results.",
         "parameters": [
@@ -359,7 +384,9 @@
     "/api/actions/v1/countries/{countrySlug}/regions/{regionSlug}": {
       "get": {
         "operationId": "getRegion",
-        "tags": ["Regions"],
+        "tags": [
+          "Regions"
+        ],
         "summary": "Get a region",
         "description": "Fetch one region by country and region slug.",
         "parameters": [
@@ -392,7 +419,9 @@
                       "$ref": "#/components/schemas/RegionRecord"
                     }
                   },
-                  "required": ["region"]
+                  "required": [
+                    "region"
+                  ]
                 }
               }
             }
@@ -409,7 +438,9 @@
     "/api/actions/v1/countries/{countrySlug}/destinations": {
       "get": {
         "operationId": "listDestinations",
-        "tags": ["Destinations"],
+        "tags": [
+          "Destinations"
+        ],
         "summary": "List destinations",
         "description": "List all destinations in a country, optionally narrowed to destinations linked to one region.",
         "parameters": [
@@ -446,7 +477,9 @@
                       }
                     }
                   },
-                  "required": ["destinations"]
+                  "required": [
+                    "destinations"
+                  ]
                 }
               }
             }
@@ -461,10 +494,11 @@
       },
       "post": {
         "operationId": "ensureDestination",
-        "tags": ["Destinations"],
+        "tags": [
+          "Destinations"
+        ],
         "summary": "Ensure a destination exists",
-        "description": "Check for an existing destination before creating a new one. If no safe match exists, gather credible evidence yourself when possible and create only with evidence-backed fields. Stop on ambiguous candidates instead of guessing.",
-        "x-openai-isConsequential": true,
+        "description": "Check for an existing destination before creating a new one. If no safe exact match exists and the destination geography is clear, create it immediately with the required title and description. Optional fields such as coverImage, region links, and evidence can be omitted when still unknown. Stop on ambiguous candidates instead of guessing.",
         "parameters": [
           {
             "name": "countrySlug",
@@ -527,7 +561,9 @@
     "/api/actions/v1/countries/{countrySlug}/destinations/search": {
       "get": {
         "operationId": "findDestination",
-        "tags": ["Destinations"],
+        "tags": [
+          "Destinations"
+        ],
         "summary": "Search destinations",
         "description": "Search destinations by title or slug, optionally boosting results linked to a specific region.",
         "parameters": [
@@ -593,7 +629,9 @@
     "/api/actions/v1/countries/{countrySlug}/destinations/{destinationSlug}": {
       "get": {
         "operationId": "getDestination",
-        "tags": ["Destinations"],
+        "tags": [
+          "Destinations"
+        ],
         "summary": "Get a destination",
         "description": "Fetch one destination by country and destination slug.",
         "parameters": [
@@ -626,7 +664,9 @@
                       "$ref": "#/components/schemas/DestinationRecord"
                     }
                   },
-                  "required": ["destination"]
+                  "required": [
+                    "destination"
+                  ]
                 }
               }
             }
@@ -643,7 +683,9 @@
     "/api/actions/v1/countries/{countrySlug}/regions/{regionSlug}/listings": {
       "get": {
         "operationId": "listListingsForRegion",
-        "tags": ["Listings"],
+        "tags": [
+          "Listings"
+        ],
         "summary": "List listings in a region",
         "description": "List editorial-visible listings in a region. Drafts are included and trashed listings are excluded.",
         "parameters": [
@@ -679,7 +721,9 @@
                       }
                     }
                   },
-                  "required": ["listings"]
+                  "required": [
+                    "listings"
+                  ]
                 }
               }
             }
@@ -694,10 +738,11 @@
       },
       "post": {
         "operationId": "ensureListingDraft",
-        "tags": ["Listings"],
+        "tags": [
+          "Listings"
+        ],
         "summary": "Ensure a listing draft exists",
-        "description": "Search for a safe existing listing match before creating a new draft in the target region. Reuse exact matches, but treat fuzzy listing candidates as advisory context rather than automatic hard stops. When the user asks you to add a place, gather credible evidence yourself when possible, then create only with complete evidence-backed fields.",
-        "x-openai-isConsequential": true,
+        "description": "Search for a safe existing listing match before creating a new draft in the target region. Reuse exact matches, but treat fuzzy listing candidates as advisory context rather than automatic hard stops. If the geography is clear, create the draft immediately with title, shortDescription, and description, and omit any optional fields you still cannot verify instead of stalling.",
         "parameters": [
           {
             "name": "countrySlug",
@@ -768,7 +813,9 @@
     "/api/actions/v1/countries/{countrySlug}/destinations/{destinationSlug}/listings": {
       "get": {
         "operationId": "listListingsForDestination",
-        "tags": ["Listings"],
+        "tags": [
+          "Listings"
+        ],
         "summary": "List listings in a destination",
         "description": "List editorial-visible listings explicitly linked to a destination. Drafts are included and trashed listings are excluded.",
         "parameters": [
@@ -804,7 +851,9 @@
                       }
                     }
                   },
-                  "required": ["listings"]
+                  "required": [
+                    "listings"
+                  ]
                 }
               }
             }
@@ -821,7 +870,9 @@
     "/api/actions/v1/countries/{countrySlug}/listings/search": {
       "get": {
         "operationId": "findListing",
-        "tags": ["Listings"],
+        "tags": [
+          "Listings"
+        ],
         "summary": "Search listings",
         "description": "Search listings by title or slug, optionally scoped by region or destination and optionally boosted by coordinates.",
         "parameters": [
@@ -910,7 +961,9 @@
     "/api/actions/v1/countries/{countrySlug}/regions/{regionSlug}/listings/{listingSlug}": {
       "get": {
         "operationId": "getListing",
-        "tags": ["Listings"],
+        "tags": [
+          "Listings"
+        ],
         "summary": "Get a listing",
         "description": "Fetch one non-trashed listing by country, region, and listing slug.",
         "parameters": [
@@ -951,7 +1004,9 @@
                       "$ref": "#/components/schemas/ListingRecord"
                     }
                   },
-                  "required": ["listing"]
+                  "required": [
+                    "listing"
+                  ]
                 }
               }
             }
@@ -1092,10 +1147,15 @@
                 "type": "string"
               }
             },
-            "required": ["code", "message"]
+            "required": [
+              "code",
+              "message"
+            ]
           }
         },
-        "required": ["error"]
+        "required": [
+          "error"
+        ]
       },
       "EvidenceItem": {
         "type": "object",
@@ -1114,7 +1174,15 @@
             "description": "Source URL when available."
           }
         },
-        "required": ["label", "note"]
+        "required": [
+          "label",
+          "note"
+        ],
+        "example": {
+          "label": "Official tourism page",
+          "note": "Confirmed the place name and regional location.",
+          "url": "https://example.com/place"
+        }
       },
       "CategoryRecord": {
         "type": "object",
@@ -1126,7 +1194,10 @@
             "type": "string"
           }
         },
-        "required": ["slug", "title"]
+        "required": [
+          "slug",
+          "title"
+        ]
       },
       "CountryRecord": {
         "type": "object",
@@ -1144,7 +1215,12 @@
             "type": "string"
           }
         },
-        "required": ["slug", "title", "description", "coverImage"]
+        "required": [
+          "slug",
+          "title",
+          "description",
+          "coverImage"
+        ]
       },
       "RegionRecord": {
         "type": "object",
@@ -1168,7 +1244,14 @@
             "type": "string"
           }
         },
-        "required": ["id", "countrySlug", "slug", "title", "description", "coverImage"]
+        "required": [
+          "id",
+          "countrySlug",
+          "slug",
+          "title",
+          "description",
+          "coverImage"
+        ]
       },
       "DestinationRegionRecord": {
         "type": "object",
@@ -1180,7 +1263,10 @@
             "type": "string"
           }
         },
-        "required": ["slug", "title"]
+        "required": [
+          "slug",
+          "title"
+        ]
       },
       "DestinationRecord": {
         "type": "object",
@@ -1210,7 +1296,15 @@
             }
           }
         },
-        "required": ["id", "countrySlug", "slug", "title", "description", "coverImage", "regions"]
+        "required": [
+          "id",
+          "countrySlug",
+          "slug",
+          "title",
+          "description",
+          "coverImage",
+          "regions"
+        ]
       },
       "ListingCategoryRecord": {
         "type": "object",
@@ -1222,7 +1316,10 @@
             "type": "string"
           }
         },
-        "required": ["slug", "title"]
+        "required": [
+          "slug",
+          "title"
+        ]
       },
       "ListingDestinationRecord": {
         "type": "object",
@@ -1234,7 +1331,10 @@
             "type": "string"
           }
         },
-        "required": ["slug", "title"]
+        "required": [
+          "slug",
+          "title"
+        ]
       },
       "ListingImageRecord": {
         "type": "object",
@@ -1249,7 +1349,11 @@
             "type": "integer"
           }
         },
-        "required": ["id", "imageUrl", "sortOrder"]
+        "required": [
+          "id",
+          "imageUrl",
+          "sortOrder"
+        ]
       },
       "ListingRecord": {
         "type": "object",
@@ -1271,10 +1375,16 @@
           },
           "status": {
             "type": "string",
-            "enum": ["draft", "published"]
+            "enum": [
+              "draft",
+              "published"
+            ]
           },
           "deletedAt": {
-            "type": ["string", "null"],
+            "type": [
+              "string",
+              "null"
+            ],
             "format": "date-time"
           },
           "shortDescription": {
@@ -1295,7 +1405,10 @@
             "maximum": 5
           },
           "googleMapsPlaceUrl": {
-            "type": ["string", "null"]
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "coverImage": {
             "type": "string"
@@ -1319,10 +1432,16 @@
             "type": "string"
           },
           "createdBy": {
-            "type": ["string", "null"]
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "updatedBy": {
-            "type": ["string", "null"]
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "createdAt": {
             "type": "string",
@@ -1366,7 +1485,11 @@
           },
           "type": {
             "type": "string",
-            "enum": ["region", "destination", "listing"]
+            "enum": [
+              "region",
+              "destination",
+              "listing"
+            ]
           },
           "countrySlug": {
             "type": "string"
@@ -1393,14 +1516,26 @@
             }
           }
         },
-        "required": ["id", "type", "countrySlug", "slug", "title", "confidence", "reasons"]
+        "required": [
+          "id",
+          "type",
+          "countrySlug",
+          "slug",
+          "title",
+          "confidence",
+          "reasons"
+        ]
       },
       "FindResult": {
         "type": "object",
         "properties": {
           "status": {
             "type": "string",
-            "enum": ["exact_match", "candidate_matches", "not_found"]
+            "enum": [
+              "exact_match",
+              "candidate_matches",
+              "not_found"
+            ]
           },
           "confidence": {
             "type": "number"
@@ -1418,7 +1553,12 @@
             }
           }
         },
-        "required": ["status", "confidence", "reasons", "candidates"]
+        "required": [
+          "status",
+          "confidence",
+          "reasons",
+          "candidates"
+        ]
       },
       "CreateRegionBody": {
         "type": "object",
@@ -1449,11 +1589,16 @@
             }
           }
         },
-        "required": ["title", "description", "coverImage", "evidence"]
+        "required": [
+          "title",
+          "description",
+          "coverImage",
+          "evidence"
+        ]
       },
       "CreateDestinationBody": {
         "type": "object",
-        "description": "Create a new destination only after search/get checks found no safe existing match. The GPT may gather these facts itself with Web Search before calling this action.",
+        "description": "Create a new destination only after search/get checks found no safe existing match. The GPT may gather these facts itself with Web Search before calling this action, but evidence is recommended rather than required.",
         "properties": {
           "title": {
             "type": "string",
@@ -1465,7 +1610,7 @@
           },
           "coverImage": {
             "type": "string",
-            "description": "Landscape cover image URL for the destination."
+            "description": "Optional landscape cover image URL for the destination."
           },
           "slug": {
             "type": "string",
@@ -1473,7 +1618,7 @@
           },
           "regionSlugs": {
             "type": "array",
-            "description": "Optional list of region slugs that this destination spans.",
+            "description": "Optional list of region slugs that this destination spans when known.",
             "items": {
               "type": "string"
             }
@@ -1481,13 +1626,23 @@
           "evidence": {
             "type": "array",
             "minItems": 1,
-            "description": "One or more sources supporting the new destination and its factual fields.",
+            "description": "Recommended supporting sources for the destination and its factual fields.",
             "items": {
               "$ref": "#/components/schemas/EvidenceItem"
-            }
+            },
+            "example": [
+              {
+                "label": "Official tourism page",
+                "note": "Confirmed the place name and regional location.",
+                "url": "https://example.com/place"
+              }
+            ]
           }
         },
-        "required": ["title", "description", "coverImage", "evidence"]
+        "required": [
+          "title",
+          "description"
+        ]
       },
       "CreateListingImageBody": {
         "type": "object",
@@ -1499,11 +1654,14 @@
             "type": "integer"
           }
         },
-        "required": ["imageUrl", "sortOrder"]
+        "required": [
+          "imageUrl",
+          "sortOrder"
+        ]
       },
       "CreateListingBody": {
         "type": "object",
-        "description": "Create a new listing draft only after search/get checks found no safe existing match. The GPT may gather these facts itself with Web Search before calling this action.",
+        "description": "Create a new listing draft only after search/get checks found no safe existing exact match. The GPT may gather these facts itself with Web Search before calling this action. Required editorial copy must always be present; coordinates, category, media, and evidence are optional for draft creation.",
         "properties": {
           "title": {
             "type": "string",
@@ -1519,29 +1677,32 @@
           },
           "latitude": {
             "type": "number",
-            "description": "Latitude for map behavior."
+            "description": "Optional latitude for map behavior. Provide longitude too when known."
           },
           "longitude": {
             "type": "number",
-            "description": "Longitude for map behavior."
+            "description": "Optional longitude for map behavior. Provide latitude too when known."
           },
           "busynessRating": {
             "type": "integer",
             "minimum": 1,
             "maximum": 5,
-            "description": "Curated busyness estimate on a 1 to 5 scale."
+            "description": "Optional curated busyness estimate on a 1 to 5 scale."
           },
           "googleMapsPlaceUrl": {
-            "type": ["string", "null"],
+            "type": [
+              "string",
+              "null"
+            ],
             "description": "Optional Google Maps place URL."
           },
           "coverImage": {
             "type": "string",
-            "description": "Landscape cover image URL."
+            "description": "Optional landscape cover image URL."
           },
           "categorySlug": {
             "type": "string",
-            "description": "Canonical listing category slug from GET /api/actions/v1/categories."
+            "description": "Optional canonical listing category slug from GET /api/actions/v1/categories when known."
           },
           "slug": {
             "type": "string",
@@ -1564,22 +1725,23 @@
           "evidence": {
             "type": "array",
             "minItems": 1,
-            "description": "One or more sources supporting the listing and its factual fields.",
+            "description": "Recommended supporting sources for the listing and its factual fields.",
             "items": {
               "$ref": "#/components/schemas/EvidenceItem"
-            }
+            },
+            "example": [
+              {
+                "label": "Official tourism page",
+                "note": "Confirmed the place name and regional location.",
+                "url": "https://example.com/place"
+              }
+            ]
           }
         },
         "required": [
           "title",
           "shortDescription",
-          "description",
-          "latitude",
-          "longitude",
-          "busynessRating",
-          "coverImage",
-          "categorySlug",
-          "evidence"
+          "description"
         ]
       },
       "EnsureRegionResult": {
@@ -1596,7 +1758,12 @@
         "properties": {
           "status": {
             "type": "string",
-            "enum": ["matched", "created", "candidate_matches", "insufficient_evidence"]
+            "enum": [
+              "matched",
+              "created",
+              "candidate_matches",
+              "insufficient_evidence"
+            ]
           },
           "confidence": {
             "type": "number"
@@ -1630,14 +1797,24 @@
             }
           }
         },
-        "required": ["status", "confidence", "reasons", "warnings"]
+        "required": [
+          "status",
+          "confidence",
+          "reasons",
+          "warnings"
+        ]
       },
       "EnsureDestinationLikeResult": {
         "type": "object",
         "properties": {
           "status": {
             "type": "string",
-            "enum": ["matched", "created", "candidate_matches", "insufficient_evidence"]
+            "enum": [
+              "matched",
+              "created",
+              "candidate_matches",
+              "insufficient_evidence"
+            ]
           },
           "confidence": {
             "type": "number"
@@ -1671,14 +1848,24 @@
             }
           }
         },
-        "required": ["status", "confidence", "reasons", "warnings"]
+        "required": [
+          "status",
+          "confidence",
+          "reasons",
+          "warnings"
+        ]
       },
       "EnsureListingLikeResult": {
         "type": "object",
         "properties": {
           "status": {
             "type": "string",
-            "enum": ["matched", "created", "candidate_matches", "insufficient_evidence"]
+            "enum": [
+              "matched",
+              "created",
+              "candidate_matches",
+              "insufficient_evidence"
+            ]
           },
           "confidence": {
             "type": "number"
@@ -1712,7 +1899,12 @@
             }
           }
         },
-        "required": ["status", "confidence", "reasons", "warnings"]
+        "required": [
+          "status",
+          "confidence",
+          "reasons",
+          "warnings"
+        ]
       }
     }
   }

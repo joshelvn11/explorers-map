@@ -25,9 +25,9 @@
 
 ## Listing Write Services
 
-- `createListingDraft` creates a fully populated listing row with `status = draft`, matching the current non-null schema contract.
-- `updateListingCopyAndMetadata` owns title, slug, short description, description, cover image, category, and busyness rating edits.
-- `setListingLocation` owns latitude, longitude, and optional Google Maps place URL updates.
+- `createListingDraft` now creates best-effort listing drafts with required editorial copy and optional metadata fields such as coordinates, category, busyness, and cover image.
+- `updateListingCopyAndMetadata` owns title, slug, short description, description, cover image, category, and busyness rating edits, including clearing optional metadata back to `null`.
+- `setListingLocation` owns latitude, longitude, and optional Google Maps place URL updates, and now allows coordinates to be cleared as a pair.
 - `assignListingDestinations` is replace-all and validates that assigned destinations live in the same country as the listing.
 - `setListingImages` is replace-all and recreates ordered gallery rows with fresh UUIDs, removing stale gallery rows in the same transaction.
 - `publishListing`, `unpublishListing`, `trashListing`, and `restoreListing` own lifecycle transitions.
@@ -40,8 +40,8 @@
 - `getRegionForEditor`, `getDestinationForEditor`, and `getListingForEditor` return MCP-friendly record shapes with IDs and linked editorial metadata.
 - `createRegion`, `createDestination`, and `assignDestinationRegions` centralize non-listing editorial writes needed by the MCP server.
 - `findRegion`, `findDestination`, and `findListing` apply shared fuzzy matching with confidence and reason output.
-- `ensureRegion`, `ensureDestination`, and `ensureListing` reuse those matchers so MCP creation flows stop on candidate ambiguity instead of guessing.
-- `createListingDraftForEditor` derives the slug when omitted, validates evidence and related destination/image inputs up front, then reuses the existing listing write path.
+- `ensureRegion`, `ensureDestination`, and `ensureListing` reuse those matchers so MCP and Actions creation flows stay duplicate-safe; regions still stop on missing evidence, while destinations and listings can now create best-effort drafts when no safe exact match exists.
+- `createListingDraftForEditor` derives the slug when omitted, validates required editorial copy plus optional destination/image inputs up front, then reuses the existing listing write path.
 
 ## CMS/Auth Services
 
@@ -73,14 +73,16 @@
 - Listing matching can still boost confidence when the scoped region, scoped destination, or nearby coordinates support an existing candidate.
 - Listing create flows now treat fuzzy candidate matches as advisory context rather than hard blockers. Exact matches still reuse the existing listing, while fuzzy same-region or out-of-scope lookalikes are returned as `candidates` plus advisory `warnings`.
 - Listing create flows also run a second unscoped lookup after a successful scoped duplicate check so out-of-scope lookalikes can be returned as non-blocking warnings instead of hard stops.
+- Destination create flows still stop on ambiguous candidate matches, but no longer require evidence or cover images when the destination itself is otherwise clear.
+- Listing create flows no longer require evidence and can omit optional metadata, but they still require `title`, `shortDescription`, and `description`.
 - Find helpers return `exact_match`, `candidate_matches`, or `not_found` with shared `MatchCandidate` output fields.
 
 ## Validation and Error Rules
 
 - Listing slugs stay unique within a region.
-- Category slugs must exist before listing writes are accepted.
-- Busyness rating must stay on the editorial `1` to `5` integer scale.
-- Latitude and longitude remain the source of truth for map behavior and are validated for real-world bounds.
+- Category slugs must exist before non-null listing category writes are accepted.
+- Busyness rating must stay on the editorial `1` to `5` integer scale when provided.
+- Latitude and longitude remain the source of truth for map behavior, must be provided together, and are validated for real-world bounds when present.
 - Trashed listings cannot be edited, published, or unpublished until restored.
 - Service-layer validation and authorization errors raise `ServiceError` values with `NOT_FOUND`, `CONFLICT`, `INVALID_INPUT`, `INVALID_STATE`, `FORBIDDEN`, or `INSUFFICIENT_EVIDENCE` codes.
 
@@ -116,8 +118,8 @@
 - SQLite constraint failures inside the import transaction roll back the full seed write.
 - Service writes reject invalid state transitions such as editing or publishing trashed listings.
 - Service writes reject cross-country destination assignment and unknown category or parent lookups before mutating the database.
-- Editorial create services reject missing evidence with `INSUFFICIENT_EVIDENCE`.
-- Editorial ensure services stop on candidate matches rather than auto-creating nearby duplicates.
+- Editorial region creation still rejects missing evidence with `INSUFFICIENT_EVIDENCE`.
+- Editorial destination and listing ensure services can now create best-effort drafts without evidence once no safe exact match exists.
 
 ## Tests
 

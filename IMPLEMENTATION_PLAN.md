@@ -102,7 +102,7 @@ Note:
 Note:
 
 - [x] Country, region, and destination detail lookups ship alongside the Phase 4 browse queries so Phase 5 page metadata, headers, and 404 handling can stay on shared query modules.
-- [x] `create listing draft` currently means creating a fully populated listing row with `status = draft`, because the current MVP schema does not support sparse placeholder drafts.
+- [x] `create listing draft` now means creating a draft row with required editorial copy and optional best-effort metadata, because the schema now supports sparse draft fields for machine-assisted creation.
 
 ### Agent Tasks
 
@@ -162,12 +162,12 @@ Note:
 
 Note:
 
-- [x] MCP `create listing draft` should reuse the Phase 4 shared service semantics, which create a complete draft listing rather than a sparse placeholder row.
+- [x] MCP `create listing draft` should reuse the Phase 4 shared service semantics, which now allow sparse draft metadata while still requiring listing editorial copy.
 - [x] The initial MCP workflow is personal editorial use through ChatGPT, not generic external automation.
 - [x] MCP auth should ship in two stages: private API key first, OAuth later.
 - [x] MCP creation workflows should be evidence-first and should stop instead of inventing missing facts.
 - [x] MCP fuzzy lookup workflows should stop on ambiguity and return candidate matches rather than guessing.
-- [x] MCP should not support placeholder-only drafts in MVP because the current listing schema requires a complete draft row.
+- [x] MCP should allow best-effort sparse drafts for listings and destinations, while still keeping regions strict and evidence-backed.
 
 ### Agent Tasks
 
@@ -212,7 +212,7 @@ Note:
 - [x] Ensure listing matching considers region scope, likely title similarity, and location evidence where available before creating new drafts.
 - [x] Require non-empty structured `evidence[]` input for tools that create records or introduce new factual claims, validate it, and echo it back in structured responses without persisting it yet.
 - [x] Accept optional explicit slugs on create and ensure tools, but if a slug is omitted derive it from the title and reject collisions rather than silently suffixing them.
-- [x] Require complete listing-draft payloads for MCP creation, including `categorySlug`, coordinates, `busynessRating`, `coverImage`, `shortDescription`, and `description`.
+- [x] Require listing editorial copy for MCP draft creation (`title`, `shortDescription`, and `description`), while allowing optional best-effort metadata such as coordinates, category, busyness, and media.
 - [x] Ensure write tools default to draft behavior unless the user explicitly requests publish behavior.
 - [x] Ensure MCP writes always set `source = mcp` and populate audit metadata where available.
 - [x] Add simple private MCP authentication for MVP using a bearer token or API key.
@@ -239,7 +239,7 @@ Note:
 - [x] The Actions API is intended for private custom GPT and ChatGPT Actions use, not for broad public CRUD.
 - [x] The Actions API must stay a thin adapter over shared services and must not introduce direct DB writes in route handlers.
 - [x] Actions reads default to editor-visible draft inclusion while excluding trashed listings.
-- [x] Actions creation flows must remain duplicate-safe, evidence-first, and draft-first.
+- [x] Actions creation flows must remain duplicate-safe and draft-first, while allowing best-effort listing and destination creation when geography is clear.
 
 ### Agent Tasks
 
@@ -257,7 +257,7 @@ Note:
 - [x] Reuse existing fuzzy matching, ensure flows, evidence rules, and draft-only listing creation semantics.
 - [x] Add a checked-in OpenAPI 3.1 schema at `apps/web/openapi/explorers-map-actions.openapi.json`.
 - [x] Serve the same Actions contract from `/api/actions/openapi.json`.
-- [x] Mark mutating endpoints as consequential in the OpenAPI contract.
+- [x] Remove consequential confirmations from create endpoints so ChatGPT can fire best-effort create requests without an extra confirmation barrier.
 - [x] Add HTTP Actions API documentation in `apps/web/API.md`.
 - [x] Add root-level `CHATGPT_ACTIONS_CONTEXT.md` guidance for custom GPT usage.
 - [x] Add route and integration tests covering auth rejection, schema serving, read/search/get behavior, duplicate-safe create flows, and trash exclusion.

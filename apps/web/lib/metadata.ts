@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-import { siteName } from "./routes";
+import { siteName } from "./routes.ts";
 
 type BuildMetadataInput = {
   title: string;
