@@ -119,6 +119,9 @@ Expected flow:
 - A second checked-in GPT-facing production schema lives at `apps/web/openapi/explorers-map-actions.production.openapi.json`, and the runtime serves it from `/api/actions/openapi.production.json`.
 - Future schema changes must update both schema files so the general runtime contract and the trimmed ChatGPT import contract do not drift.
 - `CHATGPT_ACTIONS_CONTEXT.md` is the root-level GPT instruction document for this HTTP surface.
+- The Actions guidance now explicitly allows GPTs to gather their own evidence with Web Search before calling create endpoints, while still preserving evidence-first and ambiguity-stop behavior.
+- Shared listing matching now honors requested region and destination scope as a real candidate filter, which prevents weak cross-region fuzzy matches from blocking scoped create flows.
+- Successful listing creates can now also return advisory warnings for weak out-of-scope lookalikes, giving the GPT reference context without turning those lookalikes into hard blockers.
 
 ## Service Tests
 

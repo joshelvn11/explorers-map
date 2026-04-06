@@ -19,6 +19,8 @@ This API gives a custom GPT a small OpenAPI-described HTTP surface for:
 
 The API is intentionally narrow. It is not broad CRUD.
 
+For autonomous ChatGPT creation workflows, the GPT should be configured with Web Search as well as Actions. The model should gather credible evidence itself, then call the duplicate-safe create endpoints with structured `evidence[]`.
+
 ## Authentication
 
 All `/api/actions/v1/...` endpoints require:
@@ -46,7 +48,9 @@ Unauthenticated requests return HTTP `401` with:
 - Always list, search, or get existing content before creating anything.
 - Regions, destinations, and listings use duplicate-safe ensure flows rather than blind creation.
 - Create flows require non-empty `evidence[]`.
+- If the user asks for creation without supplying sources, the GPT should gather evidence itself before calling create endpoints.
 - Ambiguous matches stop with `candidate_matches` instead of guessing.
+- Listing create responses may also include non-blocking `warnings` for weak out-of-scope lookalikes that did not prevent creation.
 - New listings are created as `draft` only.
 - Listing reads include drafts but exclude trashed content.
 - All write logic stays in shared services. Route handlers do not write to the DB directly.
@@ -107,9 +111,11 @@ Response semantics:
 1. Call `listCountries` and `listCategories` when you need canonical slugs.
 2. Use search and get endpoints to inspect current regions, destinations, and listings.
 3. For new content, call the matching `POST` ensure endpoint with `evidence[]`.
-4. If the API returns `candidate_matches`, stop and review candidates instead of retrying with a slightly different title.
-5. If the API returns `insufficient_evidence`, gather evidence before trying again.
-6. Treat listing creation as draft-only. There are no publish or trash endpoints in this phase.
+4. When the user has not provided evidence, gather it through ChatGPT Web Search first if that capability is enabled for the GPT.
+5. If the API returns `candidate_matches`, stop and review candidates instead of retrying with a slightly different title.
+6. If the API returns `insufficient_evidence`, gather evidence before trying again.
+7. If a listing create succeeds with `warnings`, treat them as advisory review notes rather than as a failed write.
+8. Treat listing creation as draft-only. There are no publish or trash endpoints in this phase.
 
 ## OpenAPI
 

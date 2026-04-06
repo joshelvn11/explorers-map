@@ -69,7 +69,9 @@
 - Region, destination, and listing create and ensure flows derive slugs from titles when no explicit slug is supplied.
 - Derived or explicit slug collisions raise `CONFLICT`; services never auto-suffix.
 - Name matching scores exact title and slug matches highest, then prefix and containment, then token overlap.
-- Listing matching can boost confidence when region scope, destination scope, or nearby coordinates support an existing candidate.
+- Listing matching now truly narrows the candidate set when `regionSlug` or `destinationSlug` is supplied, so cross-region or cross-destination lookalikes do not block create flows that are already scoped more tightly.
+- Listing matching can still boost confidence when the scoped region, scoped destination, or nearby coordinates support an existing candidate.
+- Listing create flows now run a second unscoped lookup after a successful scoped duplicate check so out-of-scope lookalikes can be returned as non-blocking warnings instead of hard stops.
 - Find helpers return `exact_match`, `candidate_matches`, or `not_found` with shared `MatchCandidate` output fields.
 
 ## Validation and Error Rules

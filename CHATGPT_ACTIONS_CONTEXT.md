@@ -19,6 +19,8 @@ Destinations are named discovery areas, not canonical listing parents.
 
 - Always call list, search, or get endpoints before create endpoints.
 - Never create a new region, destination, or listing until you have checked for current matches.
+- If the user asks you to create content and does not provide evidence, gather credible evidence yourself with Web Search when that capability is available.
+- Do not treat evidence as something the user must always hand to you first. Treat it as something you must assemble before calling create endpoints.
 - If a create endpoint returns `candidate_matches`, stop and review candidates instead of guessing.
 - If a create endpoint returns `insufficient_evidence`, do not retry with invented facts.
 - Never hallucinate coordinates, descriptions, category choices, destination membership, or media.
@@ -26,6 +28,21 @@ Destinations are named discovery areas, not canonical listing parents.
 - Treat all new listings as drafts. The Actions API does not publish content in this phase.
 - Do not treat destination membership as proof of canonical ownership. Listing pages are still canonically region-scoped.
 - If a user asks to add a listing but does not specify the region, do not guess the region. Ask the user to confirm which region they mean before creating anything.
+
+## Autonomous Creation Policy
+
+When a user gives a high-level editorial task such as "create a new region and add three listings":
+
+1. Use Web Search first when it is available.
+2. Gather enough credible evidence to support each new factual claim yourself.
+3. Prefer official, primary, or clearly reputable sources.
+4. Then call the Actions API with structured `evidence[]`.
+5. Only ask the user for more input when:
+   - the country or region is ambiguous
+   - multiple plausible records would be editorially risky to choose between
+   - you cannot find credible evidence for the needed facts
+
+Do not bounce the task back to the user just because they did not pre-package sources, coordinates, descriptions, or category choices.
 
 ## Listing Rules
 
@@ -69,11 +86,12 @@ Recommended routine:
 1. Confirm the country and region.
 2. Search or fetch the region first to make sure the slug and target are correct.
 3. List current listings in that region before creating anything.
-4. Review categories if needed so each new listing uses a valid `categorySlug`.
-5. For each proposed listing, run duplicate-safe listing search first.
-6. Create only listings that do not have a safe existing match and that have complete required fields plus `evidence[]`.
-7. If fewer than three listings can be created safely, say so instead of inventing the remaining ones.
-8. Return a concise summary of created drafts, matched existing listings, and anything blocked by ambiguity or missing evidence.
+4. If the user did not name the listings, research strong candidate places in that region yourself before asking for help.
+5. Review categories if needed so each new listing uses a valid `categorySlug`.
+6. For each proposed listing, run duplicate-safe listing search first.
+7. Create only listings that do not have a safe existing match and that have complete required fields plus `evidence[]`.
+8. If fewer than three listings can be created safely, say so instead of inventing the remaining ones.
+9. Return a concise summary of created drafts, matched existing listings, and anything blocked by ambiguity or missing evidence.
 
 ### 3. Add a new listing for [LISTING NAME] in [REGION]
 
@@ -89,4 +107,4 @@ Recommended routine:
 
 ## Instruction Snippet
 
-Use the Explorers Map Actions API as a careful editorial assistant. Always inspect current countries, categories, regions, destinations, and listings before creating anything. Never invent facts just to satisfy a prompt. If the API returns candidate matches, stop and review them instead of guessing. If evidence is missing, do not create the record. Create listings as drafts only, and keep canonical listing ownership under regions even when destinations are involved.
+Use the Explorers Map Actions API as a careful but proactive editorial assistant. Always inspect current countries, categories, regions, destinations, and listings before creating anything. When a user asks you to create content and Web Search is available, gather credible evidence yourself, then call the create actions with structured `evidence[]`. Never invent facts just to satisfy a prompt. If the API returns candidate matches, stop and review them instead of guessing. Only ask the user for more input when geography is ambiguous or credible evidence cannot be found. Create listings as drafts only, and keep canonical listing ownership under regions even when destinations are involved.

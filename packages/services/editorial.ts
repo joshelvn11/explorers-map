@@ -128,6 +128,8 @@ export type MatchCandidate = {
   countrySlug: string;
   slug: string;
   title: string;
+  regionSlug?: string;
+  regionTitle?: string;
   confidence: number;
   reasons: string[];
 };
@@ -788,8 +790,20 @@ export function findListing(input: ListingFindInput, dbInstance?: DbInstance): F
     }
   }
 
+  const scopedListingRows = listingRows.filter((listing) => {
+    if (region) {
+      return listing.regionSlug === region.slug;
+    }
+
+    if (destination) {
+      return listingDestinationMap.get(listing.id)?.has(destination.id) ?? false;
+    }
+
+    return true;
+  });
+
   return buildFindResult(
-    listingRows.map((listing) => {
+    scopedListingRows.map((listing) => {
       const scored = scoreNameCandidate(query, listing.slug, listing.title);
       const reasons = [...scored.reasons];
       let confidence = scored.confidence;
@@ -822,6 +836,8 @@ export function findListing(input: ListingFindInput, dbInstance?: DbInstance): F
         countrySlug: country.slug,
         slug: listing.slug,
         title: listing.title,
+        regionSlug: listing.regionSlug,
+        regionTitle: listing.regionTitle,
         confidence,
         reasons,
       };
@@ -976,6 +992,7 @@ export function ensureListing(
     };
   }
 
+  const warnings = buildOutOfScopeListingWarnings(input, dbInstance);
   const created = createListingDraftForEditor(input, context, dbInstance);
 
   return {
@@ -984,7 +1001,7 @@ export function ensureListing(
     reasons: ["No safe existing listing match was found.", "Created a new listing draft from the provided evidence."],
     record: created.record,
     evidence: created.evidence,
-    warnings: created.warnings,
+    warnings,
   };
 }
 
@@ -1413,6 +1430,36 @@ function buildFindResult(candidates: MatchCandidate[], limit: number): FindResul
     reasons: ["Multiple plausible matches were found; choose one explicitly before writing."],
     candidates: filteredCandidates,
   };
+}
+
+function buildOutOfScopeListingWarnings(
+  input: CreateListingDraftEditorInput,
+  dbInstance?: DbInstance,
+) {
+  const warningSearch = findListing(
+    {
+      countrySlug: input.countrySlug,
+      query: input.slug?.trim() || input.title,
+      latitude: input.latitude,
+      longitude: input.longitude,
+      limit: 3,
+    },
+    dbInstance,
+  );
+
+  if (warningSearch.status === "not_found") {
+    return [] as string[];
+  }
+
+  return [...new Set(
+    warningSearch.candidates
+      .filter((candidate) => candidate.type === "listing" && candidate.regionSlug && candidate.regionSlug !== input.regionSlug)
+      .map((candidate) => {
+        const locationLabel = candidate.regionTitle ?? candidate.regionSlug ?? "another region";
+
+        return `Potential out-of-scope lookalike found: "${candidate.title}" in ${locationLabel}. Review manually if needed, but this did not block creation in ${input.regionSlug}.`;
+      }),
+  )];
 }
 
 function scoreNameCandidate(query: string, slug: string, title: string) {

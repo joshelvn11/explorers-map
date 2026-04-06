@@ -49,6 +49,9 @@ The format is based on Keep a Changelog.
 
 ### Changed
 
+- Changed listing create flows to return weak out-of-scope lookalikes as advisory warnings instead of blocking creation after the scoped duplicate check passes.
+- Changed shared listing fuzzy matching so `findListing` now truly scopes candidate search by requested region or destination, preventing weak cross-region lookalikes from blocking listing creation in a specific region.
+- Changed the ChatGPT Actions guidance and OpenAPI descriptions so GPTs are instructed to gather their own credible evidence with Web Search before creating records, instead of assuming the user must provide every source manually.
 - Changed the CMS shell and docs so listing management now sits alongside destination management for admins and region-scoped moderators.
 - Changed the public web app from build-time DB-backed static params to runtime DB-backed rendering for country, region, destination, catalog, and listing pages so content updates no longer require rebuilding the image.
 - Changed `pnpm dev:web` / `pnpm dev` in `apps/web` to run shared DB migrations and bootstrap-admin initialization before Next.js starts, which keeps older local SQLite files compatible with the new auth tables.

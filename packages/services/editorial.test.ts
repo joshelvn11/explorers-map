@@ -263,6 +263,90 @@ test("ensureRegion and ensureListing stop without evidence and reuse existing ex
   assert.equal(matchedListing.record?.slug, "durdle-door");
 });
 
+test("region-scoped listing matching ignores weak cross-region candidates during create flows", (t) => {
+  const dbInstance = createSeededTestDb(t);
+
+  createRegion(
+    {
+      countrySlug: "united-kingdom",
+      title: "Somerset",
+      description: "Editorial region for Somerset coverage.",
+      coverImage: "https://example.com/somerset.jpg",
+      evidence,
+    },
+    dbInstance,
+  );
+
+  createRegion(
+    {
+      countrySlug: "united-kingdom",
+      title: "Derbyshire",
+      description: "Editorial region for Derbyshire coverage.",
+      coverImage: "https://example.com/derbyshire.jpg",
+      evidence,
+    },
+    dbInstance,
+  );
+
+  createListingDraftForEditor(
+    {
+      countrySlug: "united-kingdom",
+      regionSlug: "derbyshire",
+      title: "Mam Tor",
+      shortDescription: "Peak District hill listing for duplicate-scope coverage.",
+      description: "A seeded cross-region listing used to verify scoped matching.",
+      latitude: 53.3492,
+      longitude: -1.8093,
+      busynessRating: 4,
+      coverImage: "https://example.com/mam-tor.jpg",
+      categorySlug: "viewpoint",
+      evidence,
+    },
+    { source: "mcp", actorId: null },
+    dbInstance,
+  );
+
+  const scopedSearch = findListing(
+    {
+      countrySlug: "united-kingdom",
+      regionSlug: "somerset",
+      query: "Glastonbury Tor",
+      latitude: 51.1456,
+      longitude: -2.6877,
+    },
+    dbInstance,
+  );
+
+  assert.equal(scopedSearch.status, "not_found");
+
+  const createdListing = ensureListing(
+    {
+      countrySlug: "united-kingdom",
+      regionSlug: "somerset",
+      title: "Glastonbury Tor",
+      shortDescription: "A hilltop landmark above Glastonbury.",
+      description: "A new Somerset draft used to verify region-scoped duplicate protection.",
+      latitude: 51.1456,
+      longitude: -2.6877,
+      busynessRating: 4,
+      coverImage: "https://example.com/glastonbury-tor.jpg",
+      categorySlug: "viewpoint",
+      evidence,
+    },
+    { source: "mcp", actorId: null },
+    dbInstance,
+  );
+
+  assert.equal(createdListing.status, "created");
+  assert.equal(createdListing.record?.slug, "glastonbury-tor");
+  assert.equal(createdListing.record?.regionSlug, "somerset");
+  assert.ok(
+    (createdListing.warnings ?? []).some(
+      (warning) => warning.includes("Mam Tor") && warning.includes("Derbyshire"),
+    ),
+  );
+});
+
 test("listing creation requires evidence and still rejects derived slug collisions", (t) => {
   const dbInstance = createSeededTestDb(t);
 

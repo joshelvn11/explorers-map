@@ -3,7 +3,7 @@
   "info": {
     "title": "Explorers Map Actions API",
     "version": "1.0.0",
-    "description": "Authenticated HTTP API for ChatGPT Actions to inspect existing Explorers Map editorial content and create duplicate-safe draft records."
+    "description": "Authenticated HTTP API for ChatGPT Actions to inspect existing Explorers Map editorial content and create duplicate-safe draft records. When Web Search is available, the GPT should gather credible evidence itself before calling create endpoints."
   },
   "servers": [
     {
@@ -212,7 +212,7 @@
           "Regions"
         ],
         "summary": "Ensure a region exists",
-        "description": "Check for a safe existing region match first. Create a new region only when no safe match exists and evidence is provided.",
+        "description": "Check for a safe existing region match first. If no safe match exists, gather credible evidence yourself when possible and create a new region only with evidence-backed fields. Ask the user for help only when the target is ambiguous or credible evidence cannot be found.",
         "x-openai-isConsequential": true,
         "parameters": [
           {
@@ -449,7 +449,7 @@
           "Destinations"
         ],
         "summary": "Ensure a destination exists",
-        "description": "Check for an existing destination before creating a new one. Creation requires evidence and stops on ambiguous candidates.",
+        "description": "Check for an existing destination before creating a new one. If no safe match exists, gather credible evidence yourself when possible and create only with evidence-backed fields. Stop on ambiguous candidates instead of guessing.",
         "x-openai-isConsequential": true,
         "parameters": [
           {
@@ -694,7 +694,7 @@
           "Listings"
         ],
         "summary": "Ensure a listing draft exists",
-        "description": "Search for a safe existing listing match before creating a new draft in the target region.",
+        "description": "Search for a safe existing listing match before creating a new draft in the target region. When the user asks you to add a place, gather credible evidence yourself when possible, then create only with complete evidence-backed fields.",
         "x-openai-isConsequential": true,
         "parameters": [
           {
@@ -1114,14 +1114,17 @@
         "type": "object",
         "properties": {
           "label": {
-            "type": "string"
+            "type": "string",
+            "description": "Short source label, usually the publication or page title."
           },
           "note": {
-            "type": "string"
+            "type": "string",
+            "description": "Concise factual note describing what this source supports."
           },
           "url": {
             "type": "string",
-            "format": "uri"
+            "format": "uri",
+            "description": "Source URL when available."
           }
         },
         "required": [
@@ -1445,6 +1448,12 @@
           "title": {
             "type": "string"
           },
+          "regionSlug": {
+            "type": "string"
+          },
+          "regionTitle": {
+            "type": "string"
+          },
           "confidence": {
             "type": "number"
           },
@@ -1501,21 +1510,28 @@
       },
       "CreateRegionBody": {
         "type": "object",
+        "description": "Create a new region only after search/get checks found no safe existing match. The GPT may gather these facts itself with Web Search before calling this action.",
         "properties": {
           "title": {
-            "type": "string"
+            "type": "string",
+            "description": "Canonical region title."
           },
           "description": {
-            "type": "string"
+            "type": "string",
+            "description": "Editorial description grounded in evidence."
           },
           "coverImage": {
-            "type": "string"
+            "type": "string",
+            "description": "Landscape cover image URL for the region."
           },
           "slug": {
-            "type": "string"
+            "type": "string",
+            "description": "Optional explicit slug. If omitted, the API derives one from the title."
           },
           "evidence": {
             "type": "array",
+            "minItems": 1,
+            "description": "One or more sources supporting the new region and its factual fields.",
             "items": {
               "$ref": "#/components/schemas/EvidenceItem"
             }
@@ -1530,27 +1546,35 @@
       },
       "CreateDestinationBody": {
         "type": "object",
+        "description": "Create a new destination only after search/get checks found no safe existing match. The GPT may gather these facts itself with Web Search before calling this action.",
         "properties": {
           "title": {
-            "type": "string"
+            "type": "string",
+            "description": "Canonical destination title."
           },
           "description": {
-            "type": "string"
+            "type": "string",
+            "description": "Editorial description grounded in evidence."
           },
           "coverImage": {
-            "type": "string"
+            "type": "string",
+            "description": "Landscape cover image URL for the destination."
           },
           "slug": {
-            "type": "string"
+            "type": "string",
+            "description": "Optional explicit slug. If omitted, the API derives one from the title."
           },
           "regionSlugs": {
             "type": "array",
+            "description": "Optional list of region slugs that this destination spans.",
             "items": {
               "type": "string"
             }
           },
           "evidence": {
             "type": "array",
+            "minItems": 1,
+            "description": "One or more sources supporting the new destination and its factual fields.",
             "items": {
               "$ref": "#/components/schemas/EvidenceItem"
             }
@@ -1580,56 +1604,71 @@
       },
       "CreateListingBody": {
         "type": "object",
+        "description": "Create a new listing draft only after search/get checks found no safe existing match. The GPT may gather these facts itself with Web Search before calling this action.",
         "properties": {
           "title": {
-            "type": "string"
+            "type": "string",
+            "description": "Canonical listing title."
           },
           "shortDescription": {
-            "type": "string"
+            "type": "string",
+            "description": "Short summary grounded in evidence."
           },
           "description": {
-            "type": "string"
+            "type": "string",
+            "description": "Longer editorial description grounded in evidence."
           },
           "latitude": {
-            "type": "number"
+            "type": "number",
+            "description": "Latitude for map behavior."
           },
           "longitude": {
-            "type": "number"
+            "type": "number",
+            "description": "Longitude for map behavior."
           },
           "busynessRating": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 5
+            "maximum": 5,
+            "description": "Curated busyness estimate on a 1 to 5 scale."
           },
           "googleMapsPlaceUrl": {
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "description": "Optional Google Maps place URL."
           },
           "coverImage": {
-            "type": "string"
+            "type": "string",
+            "description": "Landscape cover image URL."
           },
           "categorySlug": {
-            "type": "string"
+            "type": "string",
+            "description": "Canonical listing category slug from GET /api/actions/v1/categories."
           },
           "slug": {
-            "type": "string"
+            "type": "string",
+            "description": "Optional explicit slug. If omitted, the API derives one from the title."
           },
           "destinationSlugs": {
             "type": "array",
+            "description": "Optional destination slugs to link after the listing is created in its canonical region.",
             "items": {
               "type": "string"
             }
           },
           "images": {
             "type": "array",
+            "description": "Optional gallery images with explicit sort order.",
             "items": {
               "$ref": "#/components/schemas/CreateListingImageBody"
             }
           },
           "evidence": {
             "type": "array",
+            "minItems": 1,
+            "description": "One or more sources supporting the listing and its factual fields.",
             "items": {
               "$ref": "#/components/schemas/EvidenceItem"
             }
@@ -1694,6 +1733,7 @@
           },
           "warnings": {
             "type": "array",
+            "description": "Advisory notes such as weak out-of-scope lookalikes that did not block creation.",
             "items": {
               "type": "string"
             }
@@ -1744,6 +1784,7 @@
           },
           "warnings": {
             "type": "array",
+            "description": "Advisory notes such as weak out-of-scope lookalikes that did not block creation.",
             "items": {
               "type": "string"
             }
@@ -1794,6 +1835,7 @@
           },
           "warnings": {
             "type": "array",
+            "description": "Advisory notes such as weak out-of-scope lookalikes that did not block creation.",
             "items": {
               "type": "string"
             }

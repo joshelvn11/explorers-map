@@ -355,6 +355,91 @@ test("Actions create handlers return ensure-style results and hide trashed listi
   assert.equal(getResponse.status, 404);
 });
 
+test("Actions listing create returns non-blocking warnings for weak out-of-scope lookalikes", async (t) => {
+  const original = process.env.EXPLORERS_MAP_ACTIONS_AUTH_TOKEN;
+  process.env.EXPLORERS_MAP_ACTIONS_AUTH_TOKEN = token;
+  t.after(() => {
+    process.env.EXPLORERS_MAP_ACTIONS_AUTH_TOKEN = original;
+  });
+
+  const dbInstance = createSeededTestDb(t);
+
+  await createRegionHandler(
+    authorizedRequest("/api/actions/v1/countries/united-kingdom/regions", {
+      method: "POST",
+      body: JSON.stringify({
+        title: "Somerset",
+        description: "Editorial region for Somerset coverage.",
+        coverImage: "https://example.com/somerset.jpg",
+        evidence,
+      }),
+    }),
+    { countrySlug: "united-kingdom" },
+    dbInstance,
+  );
+
+  await createRegionHandler(
+    authorizedRequest("/api/actions/v1/countries/united-kingdom/regions", {
+      method: "POST",
+      body: JSON.stringify({
+        title: "Derbyshire",
+        description: "Editorial region for Derbyshire coverage.",
+        coverImage: "https://example.com/derbyshire.jpg",
+        evidence,
+      }),
+    }),
+    { countrySlug: "united-kingdom" },
+    dbInstance,
+  );
+
+  createListingDraftForEditor(
+    {
+      countrySlug: "united-kingdom",
+      regionSlug: "derbyshire",
+      title: "Mam Tor",
+      shortDescription: "Peak District hill listing for warning coverage.",
+      description: "A cross-region listing used to verify non-blocking warning behavior.",
+      latitude: 53.3492,
+      longitude: -1.8093,
+      busynessRating: 4,
+      coverImage: "https://example.com/mam-tor.jpg",
+      categorySlug: "viewpoint",
+      evidence,
+    },
+    { source: "actions-test", actorId: null },
+    dbInstance,
+  );
+
+  const response = await createListingHandler(
+    authorizedRequest("/api/actions/v1/countries/united-kingdom/regions/somerset/listings", {
+      method: "POST",
+      body: JSON.stringify({
+        title: "Glastonbury Tor",
+        shortDescription: "A hilltop landmark above Glastonbury.",
+        description: "A new Somerset draft used to verify non-blocking out-of-scope warnings.",
+        latitude: 51.1456,
+        longitude: -2.6877,
+        busynessRating: 4,
+        coverImage: "https://example.com/glastonbury-tor.jpg",
+        categorySlug: "viewpoint",
+        evidence,
+      }),
+    }),
+    { countrySlug: "united-kingdom", regionSlug: "somerset" },
+    dbInstance,
+  );
+
+  const payload = await readJson(response);
+
+  assert.equal(response.status, 201);
+  assert.equal(payload.status, "created");
+  assert.ok(
+    ((payload.warnings as string[] | undefined) ?? []).some(
+      (warning) => warning.includes("Mam Tor") && warning.includes("Derbyshire"),
+    ),
+  );
+});
+
 test("OpenAPI contract includes the planned routes and consequential mutations", async (t) => {
   const original = process.env.EXPLORERS_MAP_ACTIONS_AUTH_TOKEN;
   process.env.EXPLORERS_MAP_ACTIONS_AUTH_TOKEN = token;
