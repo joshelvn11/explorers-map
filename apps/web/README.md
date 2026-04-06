@@ -68,6 +68,7 @@ Shared packages are transpiled through Next.js so they can be imported directly 
   - `/api/actions/healthz`
   - `/api/actions/openapi.json`
   - `/api/actions/openapi.production.json`
+  - `/api/actions/openapi.draft-only.json`
   - `/api/actions/v1/...`
 - The browser-auth route tree now includes:
   - `/api/auth/[...all]`
@@ -120,3 +121,5 @@ The repository root ships a web-only `Dockerfile` and `docker-compose.yml` for D
   Full local/runtime Actions contract, including utility endpoints.
 - `openapi/explorers-map-actions.production.openapi.json`
   Trimmed production ChatGPT import contract for `https://explorersmap.org`.
+- `openapi/explorers-map-actions.draft-only.openapi.json`
+  Trimmed read-only ChatGPT import contract for the separate draft-only GPT on `https://explorersmap.org`.

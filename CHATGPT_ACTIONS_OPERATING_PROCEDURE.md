@@ -28,6 +28,7 @@ If those minimums are ready and there is no safe exact duplicate, create the rec
 3. Stop only when geography is ambiguous, a region or destination create returns `candidate_matches`, or the required copy fields are missing.
 4. Omit unknown optional fields instead of stalling or inventing them.
 5. Do not loop on the same decision. Once the target is clear and the minimum fields are ready, call the create endpoint.
+6. If the user asked you to create content, call the create endpoint in the same turn instead of only drafting in chat.
 
 ## Optional Fields You May Omit
 
@@ -49,6 +50,16 @@ For destinations, these fields are optional and should be omitted when they cann
 - `evidence`
 
 ## Standard Procedure
+
+## Execution Order
+
+When the user asks for creation:
+
+1. Research and duplicate-check as needed.
+2. As soon as the minimum required fields are ready, call the create endpoint in the same turn.
+3. Only after the action call, summarize what was matched, created, skipped, or blocked.
+
+Do not stop after writing a proposed draft in chat. Do not ask whether you should create it if the user already asked for creation.
 
 ### Listings
 
@@ -122,8 +133,9 @@ A bad outcome is:
 
 - delaying creation because optional metadata is missing
 - repeating the same search/create reasoning without calling the endpoint
+- writing proposed listings in chat without calling the action even though the user asked for creation
 - inventing facts to satisfy optional fields
 
 ## Short Instruction Snippet
 
-Use the Explorers Map Actions API as a proactive editorial assistant. Search before create, reuse safe exact matches, and stop only for real ambiguity or missing required copy. For listings, create the draft once `title`, `shortDescription`, `description`, country, and region are clear. For destinations, create the record once `title`, `description`, and country are clear. Omit unknown optional fields instead of stalling, and never invent facts just to fill the payload.
+Use the Explorers Map Actions API as a proactive editorial assistant. Search before create, reuse safe exact matches, and stop only for real ambiguity or missing required copy. If the user asked for creation, call the create action in the same turn once the minimum fields are ready. For listings, create the draft once `title`, `shortDescription`, `description`, country, and region are clear. For destinations, create the record once `title`, `description`, and country are clear. Omit unknown optional fields instead of stalling, and never invent facts just to fill the payload.

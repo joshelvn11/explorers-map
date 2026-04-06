@@ -9,6 +9,7 @@ The runtime serves:
 - `GET /api/actions/healthz`
 - `GET /api/actions/openapi.json`
 - `GET /api/actions/openapi.production.json`
+- `GET /api/actions/openapi.draft-only.json`
 - `GET` and `POST` endpoints under `/api/actions/v1/...`
 
 ## Purpose
@@ -44,6 +45,7 @@ Unauthenticated requests return HTTP `401` with:
 
 `/api/actions/healthz` and `/api/actions/openapi.json` are intentionally unauthenticated.
 `/api/actions/openapi.production.json` is also intentionally unauthenticated so it can be imported directly into a custom GPT.
+`/api/actions/openapi.draft-only.json` is also intentionally unauthenticated so it can be imported directly into a separate read-only custom GPT.
 
 ## Core Rules
 
@@ -139,10 +141,14 @@ Recommended `evidence[]` example when the GPT has sources available:
   `apps/web/openapi/explorers-map-actions.openapi.json`
 - Checked-in production GPT contract:
   `apps/web/openapi/explorers-map-actions.production.openapi.json`
+- Checked-in draft-only GPT contract:
+  `apps/web/openapi/explorers-map-actions.draft-only.openapi.json`
 - Served contract:
   `GET /api/actions/openapi.json`
 - Served production GPT contract:
   `GET /api/actions/openapi.production.json`
+- Served draft-only GPT contract:
+  `GET /api/actions/openapi.draft-only.json`
 
 Schema intent:
 
@@ -150,7 +156,9 @@ Schema intent:
   Full local/runtime contract, including utility endpoints such as health and schema discovery.
 - `explorers-map-actions.production.openapi.json`
   Trimmed ChatGPT-facing contract for live import on `https://explorersmap.org`, omitting utility endpoints so the GPT only sees editorial actions.
+- `explorers-map-actions.draft-only.openapi.json`
+  Trimmed read-only ChatGPT-facing contract for live import on `https://explorersmap.org`, exposing only `GET` operations for countries, categories, regions, destinations, and listings.
 
 Maintenance rule:
 
-- Future Actions contract changes must be reflected in both checked-in schema files and both served schema routes.
+- Future Actions contract changes must be reflected in all checked-in schema files and all served schema routes.

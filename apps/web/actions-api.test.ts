@@ -16,13 +16,18 @@ import {
   listDestinationsHandler,
   listRegionListingsHandler,
   listRegionsHandler,
+  openApiDraftOnlyHandler,
   openApiHandler,
   openApiProductionHandler,
   searchDestinationsHandler,
   searchListingsHandler,
   searchRegionsHandler,
 } from "./lib/actions-handlers.ts";
-import { readOpenApiDocumentText, readProductionOpenApiDocumentText } from "./lib/actions-api.ts";
+import {
+  readDraftOnlyOpenApiDocumentText,
+  readOpenApiDocumentText,
+  readProductionOpenApiDocumentText,
+} from "./lib/actions-api.ts";
 import { createListingDraftForEditor, trashListingForEditor } from "../../packages/services/index.ts";
 import { createSeededTestDb } from "../../packages/services/test-helpers.ts";
 
@@ -54,6 +59,7 @@ test("health and OpenAPI endpoints are available without auth", async () => {
   const health = await healthzHandler();
   const openApi = await openApiHandler();
   const productionOpenApi = await openApiProductionHandler();
+  const draftOnlyOpenApi = await openApiDraftOnlyHandler();
 
   assert.equal(health.status, 200);
   assert.deepEqual(await readJson(health), { ok: true });
@@ -62,6 +68,8 @@ test("health and OpenAPI endpoints are available without auth", async () => {
   assert.equal(await openApi.text(), readOpenApiDocumentText());
   assert.equal(productionOpenApi.status, 200);
   assert.equal(await productionOpenApi.text(), readProductionOpenApiDocumentText());
+  assert.equal(draftOnlyOpenApi.status, 200);
+  assert.equal(await draftOnlyOpenApi.text(), readDraftOnlyOpenApiDocumentText());
 });
 
 test("protected Actions endpoints reject unauthenticated requests", async (t) => {
@@ -532,4 +540,25 @@ test("production OpenAPI contract is trimmed for ChatGPT import and points at ex
   assert.ok(document.paths["/api/actions/v1/countries"]);
   assert.ok(document.paths["/api/actions/v1/countries/{countrySlug}/regions"]);
   assert.ok(document.paths["/api/actions/v1/countries/{countrySlug}/regions/{regionSlug}/listings"]);
+});
+
+test("draft-only OpenAPI contract is read-only and points at explorersmap.org", async () => {
+  const response = await openApiDraftOnlyHandler();
+  const document = JSON.parse(await response.text()) as {
+    info: { title: string };
+    servers: Array<{ url: string }>;
+    paths: Record<string, Record<string, unknown>>;
+  };
+
+  assert.equal(document.info.title, "Explorers Map Actions API (Draft-Only)");
+  assert.deepEqual(document.servers, [{ url: "https://explorersmap.org" }]);
+  assert.ok(document.paths["/api/actions/v1/countries"]);
+  assert.ok(document.paths["/api/actions/v1/countries/{countrySlug}/regions"]);
+  assert.ok(document.paths["/api/actions/v1/countries/{countrySlug}/regions/{regionSlug}/listings"]);
+  assert.equal(document.paths["/api/actions/v1/countries/{countrySlug}/regions"].post, undefined);
+  assert.equal(document.paths["/api/actions/v1/countries/{countrySlug}/destinations"].post, undefined);
+  assert.equal(
+    document.paths["/api/actions/v1/countries/{countrySlug}/regions/{regionSlug}/listings"].post,
+    undefined,
+  );
 });
