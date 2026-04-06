@@ -498,7 +498,7 @@
           "Destinations"
         ],
         "summary": "Ensure a destination exists",
-        "description": "Check for an existing destination before creating a new one. If no safe exact match exists and the destination geography is clear, create it immediately with the required title and description. Optional fields such as coverImage, region links, and evidence can be omitted when still unknown. Stop on ambiguous candidates instead of guessing.",
+        "description": "Check for an existing destination first. If no safe exact match exists and geography is clear, create it with title and description. Omit unknown optional fields such as coverImage, region links, or evidence. Stop on candidate matches instead of guessing.",
         "parameters": [
           {
             "name": "countrySlug",
@@ -742,7 +742,7 @@
           "Listings"
         ],
         "summary": "Ensure a listing draft exists",
-        "description": "Search for a safe existing listing match before creating a new draft in the target region. Reuse exact matches, but treat fuzzy listing candidates as advisory context rather than automatic hard stops. If the geography is clear, create the draft immediately with title, shortDescription, and description, and omit any optional fields you still cannot verify instead of stalling.",
+        "description": "Search for an existing listing match first. Reuse exact matches and treat fuzzy candidates as advisory. If geography is clear, create the draft with title, shortDescription, and description, and omit any optional fields you still cannot verify.",
         "parameters": [
           {
             "name": "countrySlug",
