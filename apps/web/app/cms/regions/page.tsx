@@ -2,9 +2,9 @@ import Link from "next/link";
 
 import { listCountriesForCms, listRegionsForCms } from "@explorers-map/services";
 
-import { EmptyState } from "../../../../components/empty-state";
-import { getCmsNewRegionHref, getCmsRegionHref } from "../../../../lib/routes";
-import { requireAdminActor } from "../../../../lib/session";
+import { EmptyState } from "../../../components/empty-state";
+import { getCmsNewRegionHref, getCmsRegionHref } from "../../../lib/routes";
+import { requireCountryModeratorActor } from "../../../lib/session";
 
 type RegionFilters = {
   country?: string;
@@ -15,13 +15,13 @@ export default async function CmsRegionsPage({
 }: {
   searchParams: Promise<RegionFilters>;
 }) {
-  await requireAdminActor("/cms/regions");
+  const actor = await requireCountryModeratorActor("/cms/regions");
   const filters = await searchParams;
-  const countries = listCountriesForCms().map((country) => ({
+  const countries = listCountriesForCms(actor).map((country) => ({
     slug: country.slug,
     title: country.title,
   }));
-  const regions = listRegionsForCms();
+  const regions = listRegionsForCms(actor);
   const filteredRegions = regions.filter(
     (region) => !filters.country || filters.country === "all" || region.countrySlug === filters.country,
   );
@@ -33,7 +33,7 @@ export default async function CmsRegionsPage({
           <p className="text-sm font-semibold uppercase tracking-[0.24em] text-sky-800">Regions</p>
           <h2 className="mt-3 font-serif text-3xl text-stone-950">Region records</h2>
           <p className="mt-3 max-w-3xl text-sm leading-7 text-stone-600">
-            Regions stay tied to a single parent country in Phase 9. Country reassignment is intentionally deferred.
+            Regions stay tied to a single parent country. Country reassignment is still intentionally deferred.
           </p>
         </div>
         <Link
@@ -85,7 +85,7 @@ export default async function CmsRegionsPage({
             description={
               filters.country && filters.country !== "all"
                 ? "No regions match the current country filter yet."
-                : "No regions exist yet. Create a region under an existing country to expand public browsing."
+                : "No regions exist yet in your current management scope."
             }
             title="No regions yet"
           />

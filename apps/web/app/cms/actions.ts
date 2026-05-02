@@ -27,10 +27,10 @@ import {
   unpublishCmsListing,
   updateCmsListing,
 } from "../../lib/cms-listings.ts";
-import { requireAdminActor, requireCmsActor } from "../../lib/session.ts";
+import { requireAdminActor, requireCmsActor, requireCountryModeratorActor } from "../../lib/session.ts";
 
 export async function createUserAction(_: CmsFormState, formData: FormData): Promise<CmsFormState> {
-  const actor = await requireAdminActor("/cms/users/new");
+  const actor = await requireCountryModeratorActor("/cms/users/new");
 
   try {
     const result = await createCmsUser(
@@ -38,8 +38,9 @@ export async function createUserAction(_: CmsFormState, formData: FormData): Pro
         name: String(formData.get("name") ?? ""),
         email: String(formData.get("email") ?? ""),
         password: String(formData.get("password") ?? ""),
-        role: String(formData.get("role") ?? "viewer") as "admin" | "moderator" | "viewer",
+        role: String(formData.get("role") ?? "viewer") as "admin" | "country_moderator" | "moderator" | "viewer",
         moderatorRegionIds: formData.getAll("moderatorRegionIds").map(String),
+        countryModeratorCountryIds: formData.getAll("countryModeratorCountryIds").map(String),
       },
       actor,
     );
@@ -57,14 +58,15 @@ export async function createUserAction(_: CmsFormState, formData: FormData): Pro
 }
 
 export async function updateUserAction(_: CmsFormState, formData: FormData): Promise<CmsFormState> {
-  const actor = await requireAdminActor(`/cms/users/${String(formData.get("userId") ?? "")}`);
+  const actor = await requireCountryModeratorActor(`/cms/users/${String(formData.get("userId") ?? "")}`);
 
   try {
     const result = await updateCmsUser(
       {
         userId: String(formData.get("userId") ?? ""),
-        role: String(formData.get("role") ?? "viewer") as "admin" | "moderator" | "viewer",
+        role: String(formData.get("role") ?? "viewer") as "admin" | "country_moderator" | "moderator" | "viewer",
         moderatorRegionIds: formData.getAll("moderatorRegionIds").map(String),
+        countryModeratorCountryIds: formData.getAll("countryModeratorCountryIds").map(String),
       },
       actor,
     );
@@ -109,7 +111,7 @@ export async function createCountryAction(_: CmsFormState, formData: FormData): 
 
 export async function updateCountryAction(_: CmsFormState, formData: FormData): Promise<CmsFormState> {
   const currentSlug = String(formData.get("currentSlug") ?? "");
-  const actor = await requireAdminActor(`/cms/countries/${currentSlug}`);
+  const actor = await requireCountryModeratorActor(`/cms/countries/${currentSlug}`);
 
   try {
     const result = await updateCmsCountry(
@@ -136,7 +138,7 @@ export async function updateCountryAction(_: CmsFormState, formData: FormData): 
 }
 
 export async function createRegionAction(_: CmsFormState, formData: FormData): Promise<CmsFormState> {
-  const actor = await requireAdminActor("/cms/regions/new");
+  const actor = await requireCountryModeratorActor("/cms/regions/new");
 
   try {
     const result = await createCmsRegion(
@@ -165,7 +167,7 @@ export async function createRegionAction(_: CmsFormState, formData: FormData): P
 export async function updateRegionAction(_: CmsFormState, formData: FormData): Promise<CmsFormState> {
   const currentCountrySlug = String(formData.get("currentCountrySlug") ?? "");
   const currentRegionSlug = String(formData.get("currentRegionSlug") ?? "");
-  const actor = await requireAdminActor(`/cms/regions/${currentCountrySlug}/${currentRegionSlug}`);
+  const actor = await requireCountryModeratorActor(`/cms/regions/${currentCountrySlug}/${currentRegionSlug}`);
 
   try {
     const result = await updateCmsRegion(

@@ -2,11 +2,13 @@ import Link from "next/link";
 
 import { listCountriesForCms } from "@explorers-map/services";
 
-import { EmptyState } from "../../../../components/empty-state";
-import { getCmsCountryHref, getCmsNewCountryHref } from "../../../../lib/routes";
+import { EmptyState } from "../../../components/empty-state";
+import { getCmsCountryHref, getCmsNewCountryHref } from "../../../lib/routes";
+import { requireCountryModeratorActor } from "../../../lib/session";
 
-export default function CmsCountriesPage() {
-  const countries = listCountriesForCms();
+export default async function CmsCountriesPage() {
+  const actor = await requireCountryModeratorActor("/cms/countries");
+  const countries = listCountriesForCms(actor);
 
   return (
     <section className="rounded-[1.75rem] border border-white/70 bg-white/88 p-6 shadow-[0_20px_50px_rgba(15,23,42,0.08)] backdrop-blur sm:p-8">
@@ -15,29 +17,35 @@ export default function CmsCountriesPage() {
           <p className="text-sm font-semibold uppercase tracking-[0.24em] text-sky-800">Countries</p>
           <h2 className="mt-3 font-serif text-3xl text-stone-950">Country records</h2>
           <p className="mt-3 max-w-3xl text-sm leading-7 text-stone-600">
-            Edit canonical country slugs directly. Redirect history remains out of scope in v1, so changes take effect immediately.
+            {actor.role === "admin"
+              ? "Edit canonical country slugs directly. Redirect history remains out of scope in v1, so changes take effect immediately."
+              : "Country moderators can edit only their assigned country records. Country creation stays admin-only."}
           </p>
         </div>
-        <Link
-          className="inline-flex min-w-40 items-center justify-center whitespace-nowrap rounded-full bg-sky-600 px-6 py-2 text-sm font-semibold text-white transition hover:bg-sky-500"
-          href={getCmsNewCountryHref()}
-        >
-          Create country
-        </Link>
+        {actor.role === "admin" ? (
+          <Link
+            className="inline-flex min-w-40 items-center justify-center whitespace-nowrap rounded-full bg-sky-600 px-6 py-2 text-sm font-semibold text-white transition hover:bg-sky-500"
+            href={getCmsNewCountryHref()}
+          >
+            Create country
+          </Link>
+        ) : null}
       </div>
 
       {countries.length === 0 ? (
         <div className="mt-8">
           <EmptyState
             action={
-              <Link
-                className="inline-flex min-w-40 items-center justify-center whitespace-nowrap rounded-full bg-sky-600 px-6 py-2 text-sm font-semibold text-white transition hover:bg-sky-500"
-                href={getCmsNewCountryHref()}
-              >
-                Create country
-              </Link>
+              actor.role === "admin" ? (
+                <Link
+                  className="inline-flex min-w-40 items-center justify-center whitespace-nowrap rounded-full bg-sky-600 px-6 py-2 text-sm font-semibold text-white transition hover:bg-sky-500"
+                  href={getCmsNewCountryHref()}
+                >
+                  Create country
+                </Link>
+              ) : undefined
             }
-            description="Create the first country record to expand the public browse tree."
+            description="No countries are visible in your current management scope."
             title="No countries yet"
           />
         </div>

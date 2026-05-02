@@ -59,7 +59,7 @@ Seed command behavior:
 Public app note:
 
 - The public Next.js app now reads countries, regions, destinations, and listings directly from the shared SQLite database during page rendering.
-- The web app now also includes Better Auth browser sessions, signed-in account pages, a protected CMS shell, Phase 9 admin tooling for users, countries, and regions, Phase 10a destination management, and Phase 10b listing management for admins plus region-scoped moderators.
+- The web app now also includes Better Auth browser sessions, signed-in account pages, a protected CMS shell, Phase 9 admin tooling for users, countries, and regions, Phase 10a destination management, Phase 10b listing management, and Phase 10c country-scoped editorial ownership for admins, country moderators, and region-scoped moderators.
 - `pnpm dev:web` now runs `pnpm db:migrate` and the idempotent bootstrap-admin initializer before Next.js starts.
 - Run `pnpm seed` before `pnpm dev:web` only when you need to populate a fresh local database with the curated development content.
 - Production builds no longer require seeded SQLite content because DB-backed public routes now render dynamically against the runtime database.
@@ -156,12 +156,18 @@ Browser auth note:
 
 - Browser auth in `apps/web` is for signed-in humans and is separate from MCP token auth and Actions token auth.
 - Open signup now defaults new users to a non-CMS `viewer` role.
-- `/account` is available to any signed-in user, while `/cms` is reserved for `admin` and region-scoped `moderator` roles.
-- Phase 9 adds admin-only CMS routes for `/cms/users`, `/cms/countries`, and `/cms/regions`, plus create/edit subroutes for those records.
+- `/account` is available to any signed-in user, while `/cms` is reserved for `admin`, `country_moderator`, and region-scoped `moderator` roles.
+- Phase 10c expands the CMS role model with `country_moderator`, which can be assigned to one or more countries and can edit assigned country records plus all regions, destinations, and listings inside those countries.
+- Phase 10c also keeps `moderator` users single-country only across all CMS saves: moderator region assignments must stay non-empty and all belong to exactly one country.
+- `/cms/users`, `/cms/countries`, and `/cms/regions` are now actor-aware shared CMS route families instead of admin-only route groups, while `/cms/countries/new` remains admin-only.
 - Phase 10b adds shared CMS listing routes at `/cms/listings`, `/cms/listings/new`, and `/cms/listings/[countrySlug]/[regionSlug]/[listingSlug]`.
 - Phase 10a adds shared CMS destination routes at `/cms/destinations`, `/cms/destinations/new`, and `/cms/destinations/[countrySlug]/[destinationSlug]`.
+- Country moderators can create and manage `viewer` and `moderator` users only. They cannot create, manage, promote, or demote `admin` or `country_moderator` accounts.
+- Viewer accounts remain globally scoped. In Phase 10c, country moderators may edit any viewer account globally, while moderator management stays limited to moderators whose assignments stay inside one of the country moderator's assigned countries.
 - Destination editing now supports moderator-safe partial control: moderators can create or edit only inside their managed regions, and out-of-scope existing destination links are preserved unless an admin changes them.
+- Country-moderator destination editing is country-scoped rather than region-partial: inside assigned countries they can fully replace destination-region links.
 - Listing editing now supports the same region-scoped moderator control: moderators can create, edit, publish, unpublish, trash, and restore listings only inside their managed regions, while out-of-scope existing destination links are preserved unless an admin changes them.
+- Country moderators can create, edit, publish, unpublish, trash, and restore any listing in their assigned countries, with full-country destination replacement inside those countries.
 - Listing parent region is chosen at creation time and remains fixed in Phase 10b; slug edits still update canonical CMS and public routes immediately.
 - `pnpm auth:bootstrap-admin` runs the explicit one-time bootstrap-admin initializer, and the same initializer also runs during `pnpm docker:start:web`.
 - `pnpm dev:web` now also runs the same bootstrap-admin initializer after migrations so local auth/CMS work starts from a migrated schema.

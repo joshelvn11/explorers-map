@@ -8,7 +8,7 @@
 
 - Define the MVP relational schema for countries, regions, destinations, listings, tags, categories, images, and join tables
 - Define Better Auth-owned `user`, `session`, `account`, `verification`, and `rate_limit` tables
-- Define app-owned `cms_user_roles` and `moderator_region_assignments` tables
+- Define app-owned `cms_user_roles`, `moderator_region_assignments`, and `country_moderator_country_assignments` tables
 - Export a shared Drizzle client for Node-based consumers
 - Keep migration files in sync with the schema
 - Provide a stable path contract for the local SQLite database
@@ -23,8 +23,9 @@
 - Destinations now allow `coverImage = null` so ChatGPT and MCP can create best-effort destination records before media is curated.
 - Listings now allow nullable `latitude`, `longitude`, `busynessRating`, `coverImage`, and `categorySlug` so machine-assisted flows can create sparse drafts while keeping editorial copy required.
 - Soft delete is represented by nullable `deletedAt`. Query-layer behavior stays outside this package.
-- Better Auth should own the auth/session/account tables, while app-owned schema additions should carry CMS role data and moderator-region assignments.
+- Better Auth should own the auth/session/account tables, while app-owned schema additions should carry CMS role data, moderator-region assignments, and country-moderator country assignments.
 - Phase 9 extends those app-owned CMS tables with nullable actor-attribution columns for admin-managed role changes and moderator-region assignments.
+- Phase 10c extends that model with a separate assignment join table for `country_moderator` users.
 - `rate_limit` now uses a generated Better Auth `id` plus a unique `key`, which lets Better Auth keep database-backed rate limiting in SQLite without bypassing the shared migration flow.
 - Phase 10a now extends content audit tracking to destinations via nullable `created_by` and `updated_by` foreign keys, while countries and regions still remain unaudited for now.
 

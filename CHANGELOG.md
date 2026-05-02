@@ -8,6 +8,9 @@ The format is based on Keep a Changelog.
 
 ### Added
 
+- Added the Phase 10c DB migration `0006_magenta_mimic.sql` plus the `country_moderator_country_assignments` table for assigning country moderators to one or more countries.
+- Added the Phase 10c country editorial ownership layer, including the new `country_moderator` CMS role, actor-context country assignments, global single-country moderator enforcement, and country-scoped RBAC for countries, regions, destinations, listings, and limited user management.
+- Added Phase 10c service and web tests covering country-moderator actor hydration, admin country assignment flows, country-scoped CMS access, global viewer management, rejection of cross-country moderator assignments, shared CMS route guards, and country-moderator helper redirects.
 - Added a third Actions OpenAPI schema at `apps/web/openapi/explorers-map-actions.read-only.openapi.json` plus `GET /api/actions/openapi.read-only.json` for a separate read-only Custom GPT import.
 - Added `CHATGPT_DRAFT_ONLY_GPT_INSTRUCTIONS.md` with a separate paste-ready Custom GPT instruction set for read-only Actions usage that inspects current records and drafts listings in chat without writing or publishing through the API.
 - Added the Phase 10b DB migration `0005_same_doctor_strange.sql` to allow sparse listing draft metadata and optional destination cover images for best-effort machine-created records.
@@ -55,6 +58,9 @@ The format is based on Keep a Changelog.
 
 ### Changed
 
+- Changed the CMS shell, shared route guards, and user-management flows so `/cms/users`, `/cms/countries`, and `/cms/regions` are now actor-aware pages for admins plus country moderators, while `/cms/countries/new` remains admin-only.
+- Changed moderator assignment validation so every saved moderator assignment set must be non-empty and belong to exactly one country, regardless of whether the save came from an admin or a country moderator flow.
+- Changed Phase 10c user management so country moderators may edit any globally scoped viewer account, but may create or manage moderator assignments only inside their assigned countries and may never create or manage admin or country-moderator accounts.
 - Changed the shared listing and destination create semantics so Actions, MCP, and CMS flows can create best-effort drafts without requiring evidence, cover images, categories, coordinates, or busyness up front, while still requiring editorial copy.
 - Changed the Actions OpenAPI contracts, HTTP docs, and ChatGPT guidance so listing and destination create endpoints no longer use consequential confirmations and now explicitly tell GPTs to omit unknown optional metadata instead of stalling.
 - Changed the ChatGPT operating docs and example prompts to explicitly require calling the create action in the same turn for safe create requests, instead of only presenting proposed drafts in chat.

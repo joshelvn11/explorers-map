@@ -30,10 +30,10 @@ The web app dev script also runs the shared DB migrations and the idempotent boo
 - Region catalog filtering via shared services
 - Narrow authenticated HTTP Actions API for private custom GPT integrations
 - Better Auth browser-session auth for signed-in humans
-- Protected CMS shell routes for admins and moderators
-- Admin-only CMS routes for user, country, and region management
-- Shared CMS destination routes for admins and region-scoped moderators
-- Shared CMS listing routes for admins and region-scoped moderators
+- Protected CMS shell routes for admins, country moderators, and moderators
+- Shared CMS routes for actor-aware user, country, and region management
+- Shared CMS destination routes for admins, country moderators, and region-scoped moderators
+- Shared CMS listing routes for admins, country moderators, and region-scoped moderators
 - Signed-in account surfaces for authenticated users
 
 ## Shared Workspace Packages
@@ -53,6 +53,7 @@ Shared packages are transpiled through Next.js so they can be imported directly 
 - The Actions API under `/api/actions` is an exception to the earlier no-Next.js-API assumption, but it must stay thin and delegate all domain logic to shared services.
 - Browser auth now lives under `/api/auth`, `/sign-in`, `/sign-up`, `/sign-out`, and `/account`.
 - The current CMS/auth foundation keeps auth/session concerns in the web app while delegating role lookup and CMS authorization helpers to shared services.
+- Phase 10c extends that pattern to `country_moderator`, country assignments, shared user/country/region pages, and country-scoped moderator management without moving Better Auth concerns out of `apps/web`.
 - The public route tree now includes:
   - `/`
   - `/countries`
@@ -95,8 +96,13 @@ Shared packages are transpiled through Next.js so they can be imported directly 
 - The Actions API expects `EXPLORERS_MAP_ACTIONS_AUTH_TOKEN` to be set before use.
 - Browser auth requires `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, and optional bootstrap-admin env values for the one-time admin initializer.
 - Phase 9 admin-created users receive an initial password set inside the CMS; password reset and first-login password change flows remain out of scope for now.
+- `country_moderator` users can edit assigned country records plus the regions, destinations, and listings within those countries.
+- Country moderators can create and manage `viewer` and `moderator` users only. They cannot create, manage, promote, or demote `admin` or `country_moderator` accounts.
+- Moderator users are now globally constrained to one country worth of region assignments on every CMS save, even when an admin is editing them.
+- Viewer users remain globally scoped. Phase 10c intentionally allows country moderators to edit any viewer account globally.
 - Phase 10a destination editing stays on the same thin server-action pattern as the rest of the CMS: browser auth and redirects live here, while authorization, audit stamping, slug validation, and destination-region merge rules live in `@explorers-map/services`.
 - Moderator destination edits only expose moderator-managed regions as editable options, and direct links to out-of-scope destination pages redirect back to `/cms/destinations`.
+- Country-moderator destination editing uses full-country access inside assigned countries instead of the moderator partial-scope merge behavior.
 - Phase 10b listing editing follows the same thin server-action pattern through `lib/cms-listings.ts`, with shared services owning listing RBAC, audit stamping, lifecycle rules, slug updates, and moderator destination-scope preservation.
 - Listing parent region is chosen at creation time and stays fixed in Phase 10b, while direct links to out-of-scope listing pages redirect moderators back to `/cms/listings`.
 - Production runtime requires `BETTER_AUTH_SECRET`, but the Docker/Next build step no longer needs the real secret because auth uses a build-only placeholder during `next build` and reads the real secret only at runtime.

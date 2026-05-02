@@ -399,29 +399,29 @@ This sub-phase expands the CMS permission model above region-scoped moderation. 
 
 Note:
 
-- [ ] `country_moderator` should be a separate role from `moderator`.
-- [ ] `country_moderator` should be assignable to one or more countries.
-- [ ] `country_moderator` should be able to edit assigned country records.
-- [ ] `country_moderator` should be able to create, edit, publish, unpublish, trash, and restore listings in assigned countries.
-- [ ] `country_moderator` should be able to create and edit regions and destinations in assigned countries.
-- [ ] `country_moderator` can create and manage country-scoped moderator users within assigned countries, and can create viewer users but viewer accounts remain globally scoped.”
-- [ ] `country_moderator` should not be able to create, manage, promote, or demote `admin` or other `country_moderator` accounts.
-- [ ] Region moderators managed through this phase should be single-country moderators.
-- [ ] Keep browser-auth account and session concerns inside `apps/web`; shared services should continue to own CMS authorization, validation, and persistence rather than importing Better Auth into `packages/services`.
+- [x] `country_moderator` should be a separate role from `moderator`.
+- [x] `country_moderator` should be assignable to one or more countries.
+- [x] `country_moderator` should be able to edit assigned country records.
+- [x] `country_moderator` should be able to create, edit, publish, unpublish, trash, and restore listings in assigned countries.
+- [x] `country_moderator` should be able to create and edit regions and destinations in assigned countries.
+- [x] `country_moderator` can create and manage country-scoped moderator users within assigned countries, and can create viewer users but viewer accounts remain globally scoped.
+- [x] `country_moderator` should not be able to create, manage, promote, or demote `admin` or other `country_moderator` accounts.
+- [x] Region moderators managed through this phase should be single-country moderators.
+- [x] Keep browser-auth account and session concerns inside `apps/web`; shared services should continue to own CMS authorization, validation, and persistence rather than importing Better Auth into `packages/services`.
 
 ### Agent Tasks
 
-- [ ] Plan the shared schema changes needed for country-moderator country assignments and any supporting user-management constraints.
-- [ ] Plan the shared auth and actor-context expansion needed for the `country_moderator` role.
-- [ ] Plan admin-only user-management updates for assigning one or more countries to `country_moderator` users.
-- [ ] Plan country-moderator CMS access for editing assigned country metadata without granting global country management.
-- [ ] Plan country-scoped authorization changes for region create/edit flows.
-- [ ] Plan country-scoped authorization changes for destination create/edit flows.
-- [ ] Plan country-scoped authorization changes for listing create/edit/lifecycle flows.
-- [ ] Plan user-management flows that allow a `country_moderator` to create and manage only `viewer` and `moderator` users within assigned countries.
-- [ ] Plan enforcement of the single-country moderator rule for moderators managed through this phase.
-- [ ] Plan tests covering role assignment, country scoping, country-record editing, region/destination/listing permissions, user-management boundaries, and rejection of cross-country moderator assignments.
-- [ ] Update documentation to describe the planned `country_moderator` role, authority boundaries, and sequencing before implementation begins.
+- [x] Plan the shared schema changes needed for country-moderator country assignments and any supporting user-management constraints.
+- [x] Plan the shared auth and actor-context expansion needed for the `country_moderator` role.
+- [x] Plan admin-only user-management updates for assigning one or more countries to `country_moderator` users.
+- [x] Plan country-moderator CMS access for editing assigned country metadata without granting global country management.
+- [x] Plan country-scoped authorization changes for region create/edit flows.
+- [x] Plan country-scoped authorization changes for destination create/edit flows.
+- [x] Plan country-scoped authorization changes for listing create/edit/lifecycle flows.
+- [x] Plan user-management flows that allow a `country_moderator` to create and manage only `viewer` and `moderator` users within assigned countries.
+- [x] Plan enforcement of the single-country moderator rule for moderators managed through this phase.
+- [x] Plan tests covering role assignment, country scoping, country-record editing, region/destination/listing permissions, user-management boundaries, and rejection of cross-country moderator assignments.
+- [x] Update documentation to describe the planned `country_moderator` role, authority boundaries, and sequencing before implementation begins.
 
 ### Human Required Steps
 

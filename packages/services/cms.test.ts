@@ -10,14 +10,18 @@ import {
   createDestinationForCms,
   createCountryForCms,
   createRegionForCms,
+  getCountryForCms,
+  getRegionForCms,
   getListingForCms,
   getDestinationForCms,
   getAuthActorContext,
   getCmsUserDetail,
   getCountryBySlug,
   getRegionBySlug,
+  listCountriesForCms,
   listCmsUsers,
   listListingsForCms,
+  listRegionsForCms,
   publishListingForCms,
   restoreListingForCms,
   setModeratorRegionAssignments,
@@ -80,7 +84,7 @@ test("admin can manage CMS roles, moderator assignments, and user listings", (t)
   assert.equal(roleRecord.role, "moderator");
   assert.equal(roleRecord.updatedBy, "admin-1");
 
-  const detail = getCmsUserDetail("user-1", dbInstance);
+  const detail = getCmsUserDetail("user-1", adminActor, dbInstance);
   assert.equal(detail?.role, "moderator");
   assert.equal(detail?.moderatorRegionAssignments.length, 1);
   assert.equal(detail?.moderatorRegionAssignments[0]?.regionSlug, "dorset");
@@ -90,7 +94,7 @@ test("admin can manage CMS roles, moderator assignments, and user listings", (t)
     .get("user-1", dorset.id) as { assigned_by: string | null } | undefined;
 
   assert.equal(assignmentRow?.assigned_by, "admin-1");
-  assert.ok(listCmsUsers(dbInstance).some((record) => record.userId === "user-1" && record.role === "moderator"));
+  assert.ok(listCmsUsers(adminActor, dbInstance).some((record) => record.userId === "user-1" && record.role === "moderator"));
 
   updateCmsUserAccess(
     {
@@ -101,10 +105,147 @@ test("admin can manage CMS roles, moderator assignments, and user listings", (t)
     dbInstance,
   );
 
-  assert.equal(getCmsUserDetail("user-1", dbInstance)?.moderatorRegionAssignments.length, 0);
+  assert.equal(getCmsUserDetail("user-1", adminActor, dbInstance)?.moderatorRegionAssignments.length, 0);
   assert.equal(
     dbInstance.db.select().from(moderatorRegionAssignments).where(eq(moderatorRegionAssignments.userId, "user-1")).all().length,
     0,
+  );
+});
+
+test("admins can assign country moderators to one or many countries and country moderators get scoped user listings", (t) => {
+  const dbInstance = createSeededTestDb(t);
+
+  dbInstance.db.insert(user).values([
+    {
+      id: "admin-1",
+      name: "Admin User",
+      email: "admin@example.com",
+    },
+    {
+      id: "country-mod-uk",
+      name: "UK Country Moderator",
+      email: "country-mod-uk@example.com",
+    },
+    {
+      id: "country-mod-multi",
+      name: "Multi Country Moderator",
+      email: "country-mod-multi@example.com",
+    },
+    {
+      id: "viewer-1",
+      name: "Global Viewer",
+      email: "viewer@example.com",
+    },
+    {
+      id: "moderator-uk",
+      name: "UK Moderator",
+      email: "moderator-uk@example.com",
+    },
+    {
+      id: "moderator-fr",
+      name: "France Moderator",
+      email: "moderator-fr@example.com",
+    },
+  ]).run();
+
+  setUserRole("admin-1", "admin", dbInstance);
+  setUserRole("country-mod-uk", "viewer", dbInstance);
+  setUserRole("country-mod-multi", "viewer", dbInstance);
+  setUserRole("viewer-1", "viewer", dbInstance);
+  setUserRole("moderator-uk", "viewer", dbInstance);
+  setUserRole("moderator-fr", "viewer", dbInstance);
+
+  const adminActor = getAuthActorContext("admin-1", dbInstance);
+  const unitedKingdom = dbInstance.sqlite
+    .prepare("select id from countries where slug = ?")
+    .get("united-kingdom") as { id: string } | undefined;
+  const dorset = dbInstance.sqlite
+    .prepare("select id from regions where slug = ?")
+    .get("dorset") as { id: string } | undefined;
+
+  assert.ok(unitedKingdom);
+  assert.ok(dorset);
+
+  const france = createCountryForCms(
+    {
+      title: "France",
+      description: "Atlantic coast and mountain ranges.",
+      coverImage: "https://example.com/france.jpg",
+    },
+    adminActor,
+    dbInstance,
+  );
+  const brittany = createRegionForCms(
+    {
+      countrySlug: france.slug,
+      title: "Brittany",
+      description: "France moderation coverage.",
+      coverImage: "https://example.com/brittany.jpg",
+    },
+    adminActor,
+    dbInstance,
+  );
+
+  updateCmsUserAccess(
+    {
+      userId: "country-mod-uk",
+      role: "country_moderator",
+      countryModeratorCountryIds: [unitedKingdom.id],
+    },
+    adminActor,
+    dbInstance,
+  );
+  updateCmsUserAccess(
+    {
+      userId: "country-mod-multi",
+      role: "country_moderator",
+      countryModeratorCountryIds: [unitedKingdom.id, france.id],
+    },
+    adminActor,
+    dbInstance,
+  );
+  updateCmsUserAccess(
+    {
+      userId: "moderator-uk",
+      role: "moderator",
+      moderatorRegionIds: [dorset.id],
+    },
+    adminActor,
+    dbInstance,
+  );
+  updateCmsUserAccess(
+    {
+      userId: "moderator-fr",
+      role: "moderator",
+      moderatorRegionIds: [brittany.id],
+    },
+    adminActor,
+    dbInstance,
+  );
+
+  const singleCountryDetail = getCmsUserDetail("country-mod-uk", adminActor, dbInstance);
+  const multiCountryDetail = getCmsUserDetail("country-mod-multi", adminActor, dbInstance);
+
+  assert.equal(singleCountryDetail?.role, "country_moderator");
+  assert.deepEqual(
+    singleCountryDetail?.countryModeratorCountryAssignments.map((assignment) => assignment.countrySlug),
+    ["united-kingdom"],
+  );
+  assert.equal(multiCountryDetail?.role, "country_moderator");
+  assert.deepEqual(
+    multiCountryDetail?.countryModeratorCountryAssignments.map((assignment) => assignment.countrySlug).sort(),
+    ["france", "united-kingdom"],
+  );
+
+  const countryModeratorActor = getAuthActorContext("country-mod-uk", dbInstance);
+  const manageableUserIds = listCmsUsers(countryModeratorActor, dbInstance).map((record) => record.userId);
+
+  assert.deepEqual(manageableUserIds, ["viewer-1", "moderator-uk"]);
+  assert.equal(getCmsUserDetail("viewer-1", countryModeratorActor, dbInstance)?.role, "viewer");
+  assert.equal(getCmsUserDetail("moderator-uk", countryModeratorActor, dbInstance)?.role, "moderator");
+  assert.throws(
+    () => getCmsUserDetail("moderator-fr", countryModeratorActor, dbInstance),
+    (error) => error instanceof ServiceError && error.code === "FORBIDDEN",
   );
 });
 
@@ -130,6 +271,249 @@ test("last remaining admin cannot be demoted", (t) => {
         dbInstance,
       ),
     (error) => error instanceof ServiceError && error.code === "INVALID_STATE",
+  );
+});
+
+test("country moderators can manage global viewers and in-country moderators but not higher roles or out-of-country assignments", (t) => {
+  const dbInstance = createSeededTestDb(t);
+
+  dbInstance.db.insert(user).values([
+    {
+      id: "admin-1",
+      name: "Admin User",
+      email: "admin@example.com",
+    },
+    {
+      id: "admin-2",
+      name: "Second Admin",
+      email: "admin-2@example.com",
+    },
+    {
+      id: "country-mod-1",
+      name: "Country Moderator",
+      email: "country-mod@example.com",
+    },
+    {
+      id: "country-mod-2",
+      name: "Second Country Moderator",
+      email: "country-mod-2@example.com",
+    },
+    {
+      id: "viewer-global",
+      name: "Global Viewer",
+      email: "viewer@example.com",
+    },
+    {
+      id: "moderator-uk",
+      name: "UK Moderator",
+      email: "moderator-uk@example.com",
+    },
+    {
+      id: "moderator-fr",
+      name: "France Moderator",
+      email: "moderator-fr@example.com",
+    },
+  ]).run();
+
+  setUserRole("admin-1", "admin", dbInstance);
+  setUserRole("admin-2", "admin", dbInstance);
+  setUserRole("country-mod-1", "viewer", dbInstance);
+  setUserRole("country-mod-2", "viewer", dbInstance);
+  setUserRole("viewer-global", "viewer", dbInstance);
+  setUserRole("moderator-uk", "viewer", dbInstance);
+  setUserRole("moderator-fr", "viewer", dbInstance);
+
+  const adminActor = getAuthActorContext("admin-1", dbInstance);
+  const unitedKingdom = dbInstance.sqlite
+    .prepare("select id from countries where slug = ?")
+    .get("united-kingdom") as { id: string } | undefined;
+  const dorset = dbInstance.sqlite
+    .prepare("select id from regions where slug = ?")
+    .get("dorset") as { id: string } | undefined;
+  const devon = dbInstance.sqlite
+    .prepare("select id from regions where slug = ?")
+    .get("devon") as { id: string } | undefined;
+
+  assert.ok(unitedKingdom);
+  assert.ok(dorset);
+  assert.ok(devon);
+
+  const france = createCountryForCms(
+    {
+      title: "France",
+      description: "Country moderator boundary coverage.",
+      coverImage: "https://example.com/france.jpg",
+    },
+    adminActor,
+    dbInstance,
+  );
+  const brittany = createRegionForCms(
+    {
+      countrySlug: france.slug,
+      title: "Brittany",
+      description: "Out-of-scope moderator assignment coverage.",
+      coverImage: "https://example.com/brittany.jpg",
+    },
+    adminActor,
+    dbInstance,
+  );
+
+  updateCmsUserAccess(
+    {
+      userId: "country-mod-1",
+      role: "country_moderator",
+      countryModeratorCountryIds: [unitedKingdom.id],
+    },
+    adminActor,
+    dbInstance,
+  );
+  updateCmsUserAccess(
+    {
+      userId: "country-mod-2",
+      role: "country_moderator",
+      countryModeratorCountryIds: [france.id],
+    },
+    adminActor,
+    dbInstance,
+  );
+  updateCmsUserAccess(
+    {
+      userId: "moderator-uk",
+      role: "moderator",
+      moderatorRegionIds: [dorset.id],
+    },
+    adminActor,
+    dbInstance,
+  );
+  updateCmsUserAccess(
+    {
+      userId: "moderator-fr",
+      role: "moderator",
+      moderatorRegionIds: [brittany.id],
+    },
+    adminActor,
+    dbInstance,
+  );
+
+  const countryModeratorActor = getAuthActorContext("country-mod-1", dbInstance);
+
+  const promotedViewer = updateCmsUserAccess(
+    {
+      userId: "viewer-global",
+      role: "moderator",
+      moderatorRegionIds: [devon.id],
+    },
+    countryModeratorActor,
+    dbInstance,
+  );
+
+  assert.equal(promotedViewer.role, "moderator");
+  assert.deepEqual(
+    getCmsUserDetail("viewer-global", adminActor, dbInstance)?.moderatorRegionAssignments.map((assignment) => assignment.regionSlug),
+    ["devon"],
+  );
+
+  const updatedModerator = updateCmsUserAccess(
+    {
+      userId: "moderator-uk",
+      role: "moderator",
+      moderatorRegionIds: [devon.id],
+    },
+    countryModeratorActor,
+    dbInstance,
+  );
+
+  assert.equal(updatedModerator.role, "moderator");
+  assert.deepEqual(
+    getCmsUserDetail("moderator-uk", adminActor, dbInstance)?.moderatorRegionAssignments.map((assignment) => assignment.regionSlug),
+    ["devon"],
+  );
+
+  const demotedViewer = updateCmsUserAccess(
+    {
+      userId: "viewer-global",
+      role: "viewer",
+    },
+    countryModeratorActor,
+    dbInstance,
+  );
+
+  assert.equal(demotedViewer.role, "viewer");
+  assert.equal(getCmsUserDetail("viewer-global", adminActor, dbInstance)?.moderatorRegionAssignments.length, 0);
+
+  assert.throws(
+    () =>
+      updateCmsUserAccess(
+        {
+          userId: "viewer-global",
+          role: "moderator",
+          moderatorRegionIds: [brittany.id],
+        },
+        countryModeratorActor,
+        dbInstance,
+      ),
+    (error) => error instanceof ServiceError && error.code === "FORBIDDEN",
+  );
+  assert.throws(
+    () =>
+      updateCmsUserAccess(
+        {
+          userId: "moderator-fr",
+          role: "viewer",
+        },
+        countryModeratorActor,
+        dbInstance,
+      ),
+    (error) => error instanceof ServiceError && error.code === "FORBIDDEN",
+  );
+  assert.throws(
+    () =>
+      updateCmsUserAccess(
+        {
+          userId: "admin-2",
+          role: "viewer",
+        },
+        countryModeratorActor,
+        dbInstance,
+      ),
+    (error) => error instanceof ServiceError && error.code === "FORBIDDEN",
+  );
+  assert.throws(
+    () =>
+      updateCmsUserAccess(
+        {
+          userId: "country-mod-2",
+          role: "viewer",
+        },
+        countryModeratorActor,
+        dbInstance,
+      ),
+    (error) => error instanceof ServiceError && error.code === "FORBIDDEN",
+  );
+  assert.throws(
+    () =>
+      updateCmsUserAccess(
+        {
+          userId: "viewer-global",
+          role: "admin",
+        },
+        countryModeratorActor,
+        dbInstance,
+      ),
+    (error) => error instanceof ServiceError && error.code === "FORBIDDEN",
+  );
+  assert.throws(
+    () =>
+      updateCmsUserAccess(
+        {
+          userId: "viewer-global",
+          role: "country_moderator",
+          countryModeratorCountryIds: [unitedKingdom.id],
+        },
+        countryModeratorActor,
+        dbInstance,
+      ),
+    (error) => error instanceof ServiceError && error.code === "FORBIDDEN",
   );
 });
 
@@ -230,6 +614,346 @@ test("admin country and region updates preserve canonical slug behavior and regi
   assert.equal(
     getRegionBySlug({ countrySlug: updatedCountry.slug, regionSlug: "northern-dunes" }, dbInstance)?.title,
     "Northern Dunes",
+  );
+});
+
+test("country moderators can edit assigned countries and fully manage regions, destinations, and listings inside those countries", (t) => {
+  const dbInstance = createSeededTestDb(t);
+
+  dbInstance.db.insert(user).values([
+    {
+      id: "admin-1",
+      name: "Admin User",
+      email: "admin@example.com",
+    },
+    {
+      id: "country-mod-1",
+      name: "Country Moderator",
+      email: "country-mod@example.com",
+    },
+  ]).run();
+
+  setUserRole("admin-1", "admin", dbInstance);
+  setUserRole("country-mod-1", "viewer", dbInstance);
+
+  const adminActor = getAuthActorContext("admin-1", dbInstance);
+  const unitedKingdom = dbInstance.sqlite
+    .prepare("select id from countries where slug = ?")
+    .get("united-kingdom") as { id: string } | undefined;
+  const dorset = dbInstance.sqlite
+    .prepare("select id from regions where slug = ?")
+    .get("dorset") as { id: string } | undefined;
+  const devon = dbInstance.sqlite
+    .prepare("select id from regions where slug = ?")
+    .get("devon") as { id: string } | undefined;
+
+  assert.ok(unitedKingdom);
+  assert.ok(dorset);
+  assert.ok(devon);
+
+  const france = createCountryForCms(
+    {
+      title: "France",
+      description: "Country-scope coverage.",
+      coverImage: "https://example.com/france.jpg",
+    },
+    adminActor,
+    dbInstance,
+  );
+  const brittany = createRegionForCms(
+    {
+      countrySlug: france.slug,
+      title: "Brittany",
+      description: "France region coverage.",
+      coverImage: "https://example.com/brittany.jpg",
+    },
+    adminActor,
+    dbInstance,
+  );
+
+  updateCmsUserAccess(
+    {
+      userId: "country-mod-1",
+      role: "country_moderator",
+      countryModeratorCountryIds: [unitedKingdom.id],
+    },
+    adminActor,
+    dbInstance,
+  );
+
+  const countryModeratorActor = getAuthActorContext("country-mod-1", dbInstance);
+
+  assert.deepEqual(listCountriesForCms(countryModeratorActor, dbInstance).map((country) => country.slug), ["united-kingdom"]);
+  assert.ok(listRegionsForCms(countryModeratorActor, dbInstance).every((region) => region.countrySlug === "united-kingdom"));
+  assert.equal(getCountryForCms("united-kingdom", countryModeratorActor, dbInstance)?.slug, "united-kingdom");
+  assert.throws(
+    () => getCountryForCms(france.slug, countryModeratorActor, dbInstance),
+    (error) => error instanceof ServiceError && error.code === "FORBIDDEN",
+  );
+
+  const updatedCountry = updateCountryForCms(
+    {
+      currentSlug: "united-kingdom",
+      title: "United Kingdom Coast",
+      slug: "united-kingdom",
+      description: "Updated assigned country metadata.",
+      coverImage: "https://example.com/united-kingdom-coast.jpg",
+    },
+    countryModeratorActor,
+    dbInstance,
+  );
+
+  assert.equal(updatedCountry.title, "United Kingdom Coast");
+  assert.throws(
+    () =>
+      updateCountryForCms(
+        {
+          currentSlug: france.slug,
+          title: "France Atlantic",
+          slug: france.slug,
+          description: "Attempted out-of-scope update.",
+          coverImage: "https://example.com/france-atlantic.jpg",
+        },
+        countryModeratorActor,
+        dbInstance,
+      ),
+    (error) => error instanceof ServiceError && error.code === "FORBIDDEN",
+  );
+
+  const createdRegion = createRegionForCms(
+    {
+      countrySlug: "united-kingdom",
+      title: "South Downs",
+      description: "Created by a country moderator.",
+      coverImage: "https://example.com/south-downs.jpg",
+    },
+    countryModeratorActor,
+    dbInstance,
+  );
+
+  assert.equal(createdRegion.countrySlug, "united-kingdom");
+  assert.throws(
+    () =>
+      createRegionForCms(
+        {
+          countrySlug: france.slug,
+          title: "Normandy Coast",
+          description: "Should be blocked.",
+          coverImage: "https://example.com/normandy-coast.jpg",
+        },
+        countryModeratorActor,
+        dbInstance,
+      ),
+    (error) => error instanceof ServiceError && error.code === "FORBIDDEN",
+  );
+  assert.throws(
+    () => getRegionForCms(france.slug, brittany.slug, countryModeratorActor, dbInstance),
+    (error) => error instanceof ServiceError && error.code === "FORBIDDEN",
+  );
+
+  const dorsetDestination = createDestinationForCms(
+    {
+      countrySlug: "united-kingdom",
+      title: "Pebble Harbours",
+      description: "Initial in-country destination.",
+      coverImage: "https://example.com/pebble-harbours.jpg",
+      regionIds: [dorset.id],
+    },
+    countryModeratorActor,
+    dbInstance,
+  );
+  const updatedDestination = updateDestinationForCms(
+    {
+      currentCountrySlug: "united-kingdom",
+      currentDestinationSlug: dorsetDestination.slug,
+      countrySlug: "united-kingdom",
+      title: "Pebble Harbours West",
+      slug: "pebble-harbours-west",
+      description: "Country moderators replace destination regions within their countries.",
+      coverImage: "https://example.com/pebble-harbours-west.jpg",
+      regionIds: [devon.id],
+    },
+    countryModeratorActor,
+    dbInstance,
+  );
+
+  assert.deepEqual(updatedDestination.regions.map((region) => region.regionSlug), ["devon"]);
+
+  const franceDestination = createDestinationForCms(
+    {
+      countrySlug: france.slug,
+      title: "Brittany Coast",
+      description: "Admin-created out-of-scope destination.",
+      coverImage: "https://example.com/brittany-coast.jpg",
+      regionIds: [brittany.id],
+    },
+    adminActor,
+    dbInstance,
+  );
+
+  assert.throws(
+    () =>
+      createDestinationForCms(
+        {
+          countrySlug: france.slug,
+          title: "Blocked France Destination",
+          description: "Should be blocked for the country moderator.",
+          coverImage: "https://example.com/blocked-france-destination.jpg",
+          regionIds: [brittany.id],
+        },
+        countryModeratorActor,
+        dbInstance,
+      ),
+    (error) => error instanceof ServiceError && error.code === "FORBIDDEN",
+  );
+  assert.throws(
+    () => getDestinationForCms(france.slug, franceDestination.slug, countryModeratorActor, dbInstance),
+    (error) => error instanceof ServiceError && error.code === "FORBIDDEN",
+  );
+
+  const replacementDestination = createDestinationForCms(
+    {
+      countrySlug: "united-kingdom",
+      title: "Jurassic Harbours",
+      description: "Replacement destination for listing edits.",
+      coverImage: "https://example.com/jurassic-harbours.jpg",
+      regionIds: [dorset.id],
+    },
+    countryModeratorActor,
+    dbInstance,
+  );
+
+  const createdListing = createListingForCms(
+    {
+      regionId: dorset.id,
+      title: "Cliff Path",
+      shortDescription: "Country moderator listing create.",
+      description: "Created inside an assigned country.",
+      coverImage: "https://example.com/cliff-path.jpg",
+      categorySlug: "beach",
+      busynessRating: 2,
+      latitude: 50.61,
+      longitude: -2.45,
+      destinationIds: [replacementDestination.id],
+    },
+    countryModeratorActor,
+    dbInstance,
+  );
+  const updatedListing = updateListingForCms(
+    {
+      currentCountrySlug: createdListing.countrySlug,
+      currentRegionSlug: createdListing.regionSlug,
+      currentListingSlug: createdListing.slug,
+      title: "Cliff Path Viewpoint",
+      shortDescription: "Country moderator listing update.",
+      description: "Destination replacement should be full-country scoped.",
+      coverImage: "https://example.com/cliff-path-viewpoint.jpg",
+      categorySlug: "beach",
+      busynessRating: 3,
+      latitude: 50.62,
+      longitude: -2.44,
+      destinationIds: [updatedDestination.id],
+    },
+    countryModeratorActor,
+    dbInstance,
+  );
+
+  assert.deepEqual(updatedListing.destinations.map((destination) => destination.destinationSlug), [updatedDestination.slug]);
+
+  const publishedListing = publishListingForCms(
+    {
+      countrySlug: updatedListing.countrySlug,
+      regionSlug: updatedListing.regionSlug,
+      listingSlug: updatedListing.slug,
+    },
+    countryModeratorActor,
+    dbInstance,
+  );
+  assert.equal(publishedListing.status, "published");
+
+  const unpublishedListing = unpublishListingForCms(
+    {
+      countrySlug: updatedListing.countrySlug,
+      regionSlug: updatedListing.regionSlug,
+      listingSlug: updatedListing.slug,
+    },
+    countryModeratorActor,
+    dbInstance,
+  );
+  assert.equal(unpublishedListing.status, "draft");
+
+  const trashedListing = trashListingForCms(
+    {
+      countrySlug: updatedListing.countrySlug,
+      regionSlug: updatedListing.regionSlug,
+      listingSlug: updatedListing.slug,
+    },
+    countryModeratorActor,
+    dbInstance,
+  );
+  assert.ok(trashedListing.deletedAt);
+
+  const restoredListing = restoreListingForCms(
+    {
+      countrySlug: updatedListing.countrySlug,
+      regionSlug: updatedListing.regionSlug,
+      listingSlug: updatedListing.slug,
+    },
+    countryModeratorActor,
+    dbInstance,
+  );
+  assert.equal(restoredListing.deletedAt, null);
+
+  assert.throws(
+    () =>
+      createListingForCms(
+        {
+          regionId: brittany.id,
+          title: "Blocked France Listing",
+          shortDescription: "Should fail.",
+          description: "Out-of-country listing creation should fail.",
+          coverImage: "https://example.com/blocked-france-listing.jpg",
+          categorySlug: "beach",
+          busynessRating: 2,
+          latitude: 48.1,
+          longitude: -3.2,
+          destinationIds: [],
+        },
+        countryModeratorActor,
+        dbInstance,
+      ),
+    (error) => error instanceof ServiceError && error.code === "FORBIDDEN",
+  );
+
+  const franceListing = createListingForCms(
+    {
+      regionId: brittany.id,
+      title: "Brittany Watchpoint",
+      shortDescription: "Admin-created France listing.",
+      description: "Out-of-scope listing visibility coverage.",
+      coverImage: "https://example.com/brittany-watchpoint.jpg",
+      categorySlug: "beach",
+      busynessRating: 2,
+      latitude: 48.2,
+      longitude: -3.4,
+      destinationIds: [franceDestination.id],
+    },
+    adminActor,
+    dbInstance,
+  );
+
+  assert.ok(listListingsForCms(countryModeratorActor, dbInstance).some((listing) => listing.slug === updatedListing.slug));
+  assert.ok(!listListingsForCms(countryModeratorActor, dbInstance).some((listing) => listing.slug === franceListing.slug));
+  assert.throws(
+    () =>
+      getListingForCms(
+        franceListing.countrySlug,
+        franceListing.regionSlug,
+        franceListing.slug,
+        countryModeratorActor,
+        dbInstance,
+      ),
+    (error) => error instanceof ServiceError && error.code === "FORBIDDEN",
   );
 });
 

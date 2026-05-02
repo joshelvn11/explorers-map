@@ -12,7 +12,7 @@ import {
 
 export const listingStatusValues = ["draft", "published"] as const;
 export type ListingStatus = (typeof listingStatusValues)[number];
-export const cmsRoleValues = ["admin", "moderator", "viewer"] as const;
+export const cmsRoleValues = ["admin", "country_moderator", "moderator", "viewer"] as const;
 export type CmsRole = (typeof cmsRoleValues)[number];
 
 const currentTimestamp = sql`(unixepoch())`;
@@ -172,7 +172,7 @@ export const cmsUserRoles = sqliteTable(
     createdAt: integer("created_at", { mode: "timestamp" }).notNull().default(currentTimestamp),
     updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().default(currentTimestamp),
   },
-  (table) => [check("cms_user_roles_role_check", sql`${table.role} in ('admin', 'moderator', 'viewer')`)],
+  (table) => [check("cms_user_roles_role_check", sql`${table.role} in ('admin', 'country_moderator', 'moderator', 'viewer')`)],
 );
 
 export const moderatorRegionAssignments = sqliteTable(
@@ -190,6 +190,24 @@ export const moderatorRegionAssignments = sqliteTable(
   (table) => [
     primaryKey({ columns: [table.userId, table.regionId] }),
     index("moderator_region_assignments_region_id_idx").on(table.regionId),
+  ],
+);
+
+export const countryModeratorCountryAssignments = sqliteTable(
+  "country_moderator_country_assignments",
+  {
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade", onUpdate: "cascade" }),
+    countryId: text("country_id")
+      .notNull()
+      .references(() => countries.id, { onDelete: "cascade", onUpdate: "cascade" }),
+    assignedBy: text("assigned_by").references(() => user.id, { onDelete: "set null", onUpdate: "cascade" }),
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull().default(currentTimestamp),
+  },
+  (table) => [
+    primaryKey({ columns: [table.userId, table.countryId] }),
+    index("country_moderator_country_assignments_country_id_idx").on(table.countryId),
   ],
 );
 
@@ -321,6 +339,7 @@ export const listingTags = sqliteTable(
 export const countriesRelations = relations(countries, ({ many }) => ({
   regions: many(regions),
   destinations: many(destinations),
+  countryModeratorCountryAssignments: many(countryModeratorCountryAssignments),
 }));
 
 export const regionsRelations = relations(regions, ({ one, many }) => ({
@@ -350,6 +369,7 @@ export const userRelations = relations(user, ({ one, many }) => ({
     references: [cmsUserRoles.userId],
   }),
   moderatorRegionAssignments: many(moderatorRegionAssignments),
+  countryModeratorCountryAssignments: many(countryModeratorCountryAssignments),
 }));
 
 export const sessionRelations = relations(session, ({ one }) => ({
@@ -383,6 +403,20 @@ export const moderatorRegionAssignmentsRelations = relations(moderatorRegionAssi
     references: [regions.id],
   }),
 }));
+
+export const countryModeratorCountryAssignmentsRelations = relations(
+  countryModeratorCountryAssignments,
+  ({ one }) => ({
+    user: one(user, {
+      fields: [countryModeratorCountryAssignments.userId],
+      references: [user.id],
+    }),
+    country: one(countries, {
+      fields: [countryModeratorCountryAssignments.countryId],
+      references: [countries.id],
+    }),
+  }),
+);
 
 export const destinationRegionsRelations = relations(destinationRegions, ({ one }) => ({
   destination: one(destinations, {

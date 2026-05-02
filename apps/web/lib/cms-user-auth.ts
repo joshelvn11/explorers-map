@@ -1,5 +1,10 @@
 import { getDb, type DbInstance } from "@explorers-map/db";
-import { requireAdminActor, requireCmsRole, updateCmsUserAccess, type AuthActorContext } from "@explorers-map/services";
+import {
+  assertCanPrepareCmsUserAccess,
+  requireCmsRole,
+  updateCmsUserAccess,
+  type AuthActorContext,
+} from "@explorers-map/services";
 
 import { createAuth, getBetterAuthBaseUrl, type ExplorersMapAuth } from "./auth.ts";
 
@@ -7,8 +12,9 @@ export type CreateCmsUserInput = {
   name: string;
   email: string;
   password: string;
-  role: "admin" | "moderator" | "viewer";
+  role: "admin" | "country_moderator" | "moderator" | "viewer";
   moderatorRegionIds?: string[];
+  countryModeratorCountryIds?: string[];
 };
 
 export async function createCmsUserAccount(
@@ -17,11 +23,19 @@ export async function createCmsUserAccount(
   dbInstance: DbInstance = getDb(),
   authInstance: ExplorersMapAuth = createAuth({ dbInstance, enableNextCookies: false }),
 ) {
-  requireAdminActor(actor);
   const name = requireName(input.name);
   const email = requireEmail(input.email);
   const password = requirePassword(input.password);
   const role = requireCmsRole(input.role);
+  assertCanPrepareCmsUserAccess(
+    {
+      role,
+      moderatorRegionIds: input.moderatorRegionIds ?? [],
+      countryModeratorCountryIds: input.countryModeratorCountryIds ?? [],
+    },
+    actor,
+    dbInstance,
+  );
   const existingUser = dbInstance.sqlite.prepare("select id from user where email = ?").get(email) as { id: string } | undefined;
 
   if (existingUser) {
@@ -37,7 +51,7 @@ export async function createCmsUserAccount(
     headers: new Headers({
       origin: getBetterAuthBaseUrl(),
       "x-forwarded-for": "127.0.0.1",
-      "user-agent": "explorers-map-admin-create-user",
+      "user-agent": "explorers-map-cms-create-user",
     }),
   });
 
@@ -51,6 +65,7 @@ export async function createCmsUserAccount(
       userId: result.user.id,
       role,
       moderatorRegionIds: input.moderatorRegionIds ?? [],
+      countryModeratorCountryIds: input.countryModeratorCountryIds ?? [],
     },
     actor,
     dbInstance,

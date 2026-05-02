@@ -3,6 +3,7 @@ import { asc, eq, inArray } from "drizzle-orm";
 import {
   cmsUserRoles,
   countries,
+  countryModeratorCountryAssignments,
   destinationRegions,
   destinations,
   moderatorRegionAssignments,
@@ -36,12 +37,23 @@ export type ModeratorRegionAssignmentRecord = {
   regionId: string;
   regionSlug: string;
   regionTitle: string;
+  countryId: string;
   countrySlug: string;
+  countryTitle: string;
+  createdAt: string;
+};
+
+export type CountryModeratorCountryAssignmentRecord = {
+  userId: string;
+  countryId: string;
+  countrySlug: string;
+  countryTitle: string;
   createdAt: string;
 };
 
 export type DestinationRegionOption = {
   regionId: string;
+  countryId: string;
   countrySlug: string;
   countryTitle: string;
   regionSlug: string;
@@ -63,16 +75,13 @@ export type AuthActorContext = {
   userId: string;
   role: CmsRole;
   moderatorRegionAssignments: ModeratorRegionAssignmentRecord[];
+  countryModeratorCountryAssignments: CountryModeratorCountryAssignmentRecord[];
 };
 
 export function getUserRole(userId: string, dbInstance?: DbInstance): UserRoleRecord | null {
   const { db } = resolveDb(dbInstance);
   const normalizedUserId = requireNonEmptyString(userId, "userId");
-  const row = db
-    .select()
-    .from(cmsUserRoles)
-    .where(eq(cmsUserRoles.userId, normalizedUserId))
-    .get();
+  const row = db.select().from(cmsUserRoles).where(eq(cmsUserRoles.userId, normalizedUserId)).get();
 
   return row ? mapUserRoleRow(row) : null;
 }
@@ -160,27 +169,60 @@ export function listModeratorRegionAssignments(
       regionId: moderatorRegionAssignments.regionId,
       regionSlug: regions.slug,
       regionTitle: regions.title,
+      countryId: countries.id,
       countrySlug: countries.slug,
+      countryTitle: countries.title,
       createdAt: moderatorRegionAssignments.createdAt,
     })
     .from(moderatorRegionAssignments)
     .innerJoin(regions, eq(moderatorRegionAssignments.regionId, regions.id))
     .innerJoin(countries, eq(regions.countryId, countries.id))
     .where(eq(moderatorRegionAssignments.userId, normalizedUserId))
-    .orderBy(asc(regions.title))
+    .orderBy(asc(countries.title), asc(regions.title))
     .all()
     .map((row) => ({
       userId: row.userId,
       regionId: row.regionId,
       regionSlug: row.regionSlug,
       regionTitle: row.regionTitle,
+      countryId: row.countryId,
       countrySlug: row.countrySlug,
+      countryTitle: row.countryTitle,
+      createdAt: row.createdAt.toISOString(),
+    }));
+}
+
+export function listCountryModeratorCountryAssignments(
+  userId: string,
+  dbInstance?: DbInstance,
+): CountryModeratorCountryAssignmentRecord[] {
+  const { db } = resolveDb(dbInstance);
+  const normalizedUserId = requireNonEmptyString(userId, "userId");
+
+  return db
+    .select({
+      userId: countryModeratorCountryAssignments.userId,
+      countryId: countryModeratorCountryAssignments.countryId,
+      countrySlug: countries.slug,
+      countryTitle: countries.title,
+      createdAt: countryModeratorCountryAssignments.createdAt,
+    })
+    .from(countryModeratorCountryAssignments)
+    .innerJoin(countries, eq(countryModeratorCountryAssignments.countryId, countries.id))
+    .where(eq(countryModeratorCountryAssignments.userId, normalizedUserId))
+    .orderBy(asc(countries.title))
+    .all()
+    .map((row) => ({
+      userId: row.userId,
+      countryId: row.countryId,
+      countrySlug: row.countrySlug,
+      countryTitle: row.countryTitle,
       createdAt: row.createdAt.toISOString(),
     }));
 }
 
 export function listManageableDestinationRegionOptions(
-  actor: Pick<AuthActorContext, "role" | "moderatorRegionAssignments"> | null | undefined,
+  actor: Pick<AuthActorContext, "role" | "moderatorRegionAssignments" | "countryModeratorCountryAssignments"> | null | undefined,
   dbInstance?: DbInstance,
 ): DestinationRegionOption[] {
   assertCanAccessCms(actor);
@@ -191,6 +233,7 @@ export function listManageableDestinationRegionOptions(
     return db
       .select({
         regionId: regions.id,
+        countryId: countries.id,
         countrySlug: countries.slug,
         countryTitle: countries.title,
         regionSlug: regions.slug,
@@ -198,6 +241,29 @@ export function listManageableDestinationRegionOptions(
       })
       .from(regions)
       .innerJoin(countries, eq(regions.countryId, countries.id))
+      .orderBy(asc(countries.title), asc(regions.title))
+      .all();
+  }
+
+  if (cmsActor.role === "country_moderator") {
+    const manageableCountryIds = cmsActor.countryModeratorCountryAssignments.map((assignment) => assignment.countryId);
+
+    if (manageableCountryIds.length === 0) {
+      return [];
+    }
+
+    return db
+      .select({
+        regionId: regions.id,
+        countryId: countries.id,
+        countrySlug: countries.slug,
+        countryTitle: countries.title,
+        regionSlug: regions.slug,
+        regionTitle: regions.title,
+      })
+      .from(regions)
+      .innerJoin(countries, eq(regions.countryId, countries.id))
+      .where(inArray(regions.countryId, manageableCountryIds))
       .orderBy(asc(countries.title), asc(regions.title))
       .all();
   }
@@ -211,6 +277,7 @@ export function listManageableDestinationRegionOptions(
   return db
     .select({
       regionId: regions.id,
+      countryId: countries.id,
       countrySlug: countries.slug,
       countryTitle: countries.title,
       regionSlug: regions.slug,
@@ -224,7 +291,7 @@ export function listManageableDestinationRegionOptions(
 }
 
 export function listManageableListingRegionOptions(
-  actor: Pick<AuthActorContext, "role" | "moderatorRegionAssignments"> | null | undefined,
+  actor: Pick<AuthActorContext, "role" | "moderatorRegionAssignments" | "countryModeratorCountryAssignments"> | null | undefined,
   dbInstance?: DbInstance,
 ): ListingRegionOption[] {
   return listManageableDestinationRegionOptions(actor, dbInstance);
@@ -238,17 +305,14 @@ export function getAuthActorContext(userId: string, dbInstance?: DbInstance): Au
     userId: normalizedUserId,
     role,
     moderatorRegionAssignments: listModeratorRegionAssignments(normalizedUserId, dbInstance),
+    countryModeratorCountryAssignments: listCountryModeratorCountryAssignments(normalizedUserId, dbInstance),
   };
 }
 
 export function countAdminUsers(dbInstance?: DbInstance) {
   const { db } = resolveDb(dbInstance);
 
-  return db
-    .select()
-    .from(cmsUserRoles)
-    .where(eq(cmsUserRoles.role, "admin"))
-    .all().length;
+  return db.select().from(cmsUserRoles).where(eq(cmsUserRoles.role, "admin")).all().length;
 }
 
 export function hasAnyAdminUser(dbInstance?: DbInstance) {
@@ -256,11 +320,15 @@ export function hasAnyAdminUser(dbInstance?: DbInstance) {
 }
 
 export function canAccessCms(actor: Pick<AuthActorContext, "role"> | null | undefined) {
-  return actor?.role === "admin" || actor?.role === "moderator";
+  return actor?.role === "admin" || actor?.role === "country_moderator" || actor?.role === "moderator";
 }
 
 export function canAccessAdminCms(actor: Pick<AuthActorContext, "role"> | null | undefined) {
   return actor?.role === "admin";
+}
+
+export function canAccessCountryModeratorCms(actor: Pick<AuthActorContext, "role"> | null | undefined) {
+  return actor?.role === "admin" || actor?.role === "country_moderator";
 }
 
 export function assertCanAccessCms(actor: Pick<AuthActorContext, "role"> | null | undefined) {
@@ -275,6 +343,12 @@ export function requireAdminActor(actor: Pick<AuthActorContext, "role"> | null |
   }
 }
 
+export function requireCountryModeratorActor(actor: Pick<AuthActorContext, "role"> | null | undefined) {
+  if (!canAccessCountryModeratorCms(actor)) {
+    throw new ServiceError("FORBIDDEN", "You do not have country-level CMS access.");
+  }
+}
+
 export function createCmsWriteContext(actor: AuthActorContext, source = "web"): WriteContext {
   assertCanAccessCms(actor);
 
@@ -284,14 +358,60 @@ export function createCmsWriteContext(actor: AuthActorContext, source = "web"): 
   };
 }
 
+export function canManageCountrySlug(
+  actor: Pick<AuthActorContext, "role" | "countryModeratorCountryAssignments"> | null | undefined,
+  countrySlug: string,
+) {
+  const normalizedCountrySlug = requireNonEmptyString(countrySlug, "countrySlug");
+
+  if (actor?.role === "admin") {
+    return true;
+  }
+
+  if (actor?.role !== "country_moderator") {
+    return false;
+  }
+
+  return actor.countryModeratorCountryAssignments.some((assignment) => assignment.countrySlug === normalizedCountrySlug);
+}
+
+export function assertCanManageCountrySlug(
+  actor: Pick<AuthActorContext, "role" | "countryModeratorCountryAssignments"> | null | undefined,
+  countrySlug: string,
+) {
+  requireCountryModeratorActor(actor);
+
+  if (!canManageCountrySlug(actor, countrySlug)) {
+    throw new ServiceError("FORBIDDEN", "You can only manage countries assigned to you.");
+  }
+}
+
 export function canManageListingInRegion(
-  actor: Pick<AuthActorContext, "role" | "moderatorRegionAssignments"> | null | undefined,
+  actor: Pick<AuthActorContext, "role" | "moderatorRegionAssignments" | "countryModeratorCountryAssignments"> | null | undefined,
   regionId: string,
+  dbInstance?: DbInstance,
 ) {
   const normalizedRegionId = requireNonEmptyString(regionId, "regionId");
 
   if (actor?.role === "admin") {
     return true;
+  }
+
+  if (actor?.role === "country_moderator") {
+    const { db } = resolveDb(dbInstance);
+    const region = db
+      .select({
+        countryId: regions.countryId,
+      })
+      .from(regions)
+      .where(eq(regions.id, normalizedRegionId))
+      .get();
+
+    if (!region) {
+      return false;
+    }
+
+    return actor.countryModeratorCountryAssignments.some((assignment) => assignment.countryId === region.countryId);
   }
 
   if (actor?.role !== "moderator") {
@@ -302,48 +422,59 @@ export function canManageListingInRegion(
 }
 
 export function assertCanManageListingInRegion(
-  actor: Pick<AuthActorContext, "role" | "moderatorRegionAssignments"> | null | undefined,
+  actor: Pick<AuthActorContext, "role" | "moderatorRegionAssignments" | "countryModeratorCountryAssignments"> | null | undefined,
   regionId: string,
+  dbInstance?: DbInstance,
 ) {
   assertCanAccessCms(actor);
 
-  if (!canManageListingInRegion(actor, regionId)) {
-    throw new ServiceError("FORBIDDEN", "You can only manage listings inside regions you manage.");
+  if (!canManageListingInRegion(actor, regionId, dbInstance)) {
+    throw new ServiceError("FORBIDDEN", "You can only manage listings inside regions or countries you manage.");
   }
 }
 
 export function canManageListing(
-  actor: Pick<AuthActorContext, "role" | "moderatorRegionAssignments"> | null | undefined,
+  actor: Pick<AuthActorContext, "role" | "moderatorRegionAssignments" | "countryModeratorCountryAssignments"> | null | undefined,
   listing: Pick<ResolvedListingRecord, "regionId">,
+  dbInstance?: DbInstance,
 ) {
-  return canManageListingInRegion(actor, listing.regionId);
+  return canManageListingInRegion(actor, listing.regionId, dbInstance);
 }
 
 export function assertCanManageListing(
-  actor: Pick<AuthActorContext, "role" | "moderatorRegionAssignments"> | null | undefined,
+  actor: Pick<AuthActorContext, "role" | "moderatorRegionAssignments" | "countryModeratorCountryAssignments"> | null | undefined,
   listing: Pick<ResolvedListingRecord, "regionId">,
+  dbInstance?: DbInstance,
 ) {
-  assertCanManageListingInRegion(actor, listing.regionId);
+  assertCanManageListingInRegion(actor, listing.regionId, dbInstance);
 }
 
 export function canManageDestinationWithRegionIds(
-  actor: Pick<AuthActorContext, "role" | "moderatorRegionAssignments"> | null | undefined,
+  actor: Pick<AuthActorContext, "role" | "moderatorRegionAssignments" | "countryModeratorCountryAssignments"> | null | undefined,
   destinationRegionIds: string[],
+  dbInstance?: DbInstance,
 ) {
   if (actor?.role === "admin") {
     return true;
+  }
+
+  const manageableRegionIds = new Set(
+    listManageableDestinationRegionOptions(actor, dbInstance).map((assignment) => assignment.regionId),
+  );
+
+  if (actor?.role === "country_moderator") {
+    return destinationRegionIds.every((regionId) => manageableRegionIds.has(regionId));
   }
 
   if (actor?.role !== "moderator") {
     return false;
   }
 
-  const manageableRegionIds = new Set(actor.moderatorRegionAssignments.map((assignment) => assignment.regionId));
   return destinationRegionIds.some((regionId) => manageableRegionIds.has(regionId));
 }
 
 export function listManageableListingDestinationOptions(
-  actor: Pick<AuthActorContext, "role" | "moderatorRegionAssignments"> | null | undefined,
+  actor: Pick<AuthActorContext, "role" | "moderatorRegionAssignments" | "countryModeratorCountryAssignments"> | null | undefined,
   countrySlug: string,
   dbInstance?: DbInstance,
 ): ListingDestinationOption[] {
@@ -351,7 +482,9 @@ export function listManageableListingDestinationOptions(
   const cmsActor = actor!;
   const { db } = resolveDb(dbInstance);
   const normalizedCountrySlug = requireNonEmptyString(countrySlug, "countrySlug");
-  const manageableRegionIds = new Set(cmsActor.moderatorRegionAssignments.map((assignment) => assignment.regionId));
+  const manageableRegionIds = new Set(
+    listManageableDestinationRegionOptions(cmsActor, dbInstance).map((assignment) => assignment.regionId),
+  );
   const rows = db
     .select({
       destinationId: destinations.id,
@@ -373,7 +506,7 @@ export function listManageableListingDestinationOptions(
   const options = new Map<string, ListingDestinationOption>();
 
   for (const row of rows) {
-    if (cmsActor.role === "moderator" && !manageableRegionIds.has(row.regionId)) {
+    if (cmsActor.role !== "admin" && !manageableRegionIds.has(row.regionId)) {
       continue;
     }
 
@@ -398,7 +531,7 @@ export function listManageableListingDestinationOptions(
 }
 
 export function canAssignListingDestinationIds(
-  actor: Pick<AuthActorContext, "role" | "moderatorRegionAssignments"> | null | undefined,
+  actor: Pick<AuthActorContext, "role" | "moderatorRegionAssignments" | "countryModeratorCountryAssignments"> | null | undefined,
   destinationIds: string[],
   dbInstance?: DbInstance,
 ) {
@@ -413,7 +546,9 @@ export function canAssignListingDestinationIds(
   }
 
   const { db } = resolveDb(dbInstance);
-  const manageableRegionIds = new Set(cmsActor.moderatorRegionAssignments.map((assignment) => assignment.regionId));
+  const manageableRegionIds = new Set(
+    listManageableDestinationRegionOptions(cmsActor, dbInstance).map((assignment) => assignment.regionId),
+  );
 
   if (manageableRegionIds.size === 0) {
     return false;
@@ -444,35 +579,39 @@ export function canAssignListingDestinationIds(
 }
 
 export function assertCanAssignListingDestinationIds(
-  actor: Pick<AuthActorContext, "role" | "moderatorRegionAssignments"> | null | undefined,
+  actor: Pick<AuthActorContext, "role" | "moderatorRegionAssignments" | "countryModeratorCountryAssignments"> | null | undefined,
   destinationIds: string[],
   dbInstance?: DbInstance,
 ) {
   if (!canAssignListingDestinationIds(actor, destinationIds, dbInstance)) {
     throw new ServiceError(
       "FORBIDDEN",
-      "You can only assign destinations that overlap at least one region you manage.",
+      "You can only assign destinations that overlap at least one region or country you manage.",
     );
   }
 }
 
 export function assertCanManageDestinationWithRegionIds(
-  actor: Pick<AuthActorContext, "role" | "moderatorRegionAssignments"> | null | undefined,
+  actor: Pick<AuthActorContext, "role" | "moderatorRegionAssignments" | "countryModeratorCountryAssignments"> | null | undefined,
   destinationRegionIds: string[],
+  dbInstance?: DbInstance,
 ) {
   assertCanAccessCms(actor);
 
-  if (!canManageDestinationWithRegionIds(actor, destinationRegionIds)) {
+  if (!canManageDestinationWithRegionIds(actor, destinationRegionIds, dbInstance)) {
     throw new ServiceError(
       "FORBIDDEN",
-      "You can only manage destinations that overlap at least one region you manage.",
+      "You can only manage destinations that overlap the regions or countries you manage.",
     );
   }
 }
 
 export function resolveDestinationRegionIdsForActor(
   input: {
-    actor: Pick<AuthActorContext, "role" | "moderatorRegionAssignments"> | null | undefined;
+    actor:
+      | Pick<AuthActorContext, "role" | "moderatorRegionAssignments" | "countryModeratorCountryAssignments">
+      | null
+      | undefined;
     submittedRegionIds: string[];
     existingRegionIds?: string[];
   },
@@ -498,6 +637,14 @@ export function resolveDestinationRegionIdsForActor(
     return submittedRegionIds;
   }
 
+  if (cmsActor.role === "country_moderator") {
+    if (submittedRegionIds.some((regionId) => !manageableRegionIds.has(regionId))) {
+      throw new ServiceError("FORBIDDEN", "You can only attach destinations to regions inside countries you manage.");
+    }
+
+    return submittedRegionIds;
+  }
+
   if (submittedRegionIds.length === 0 && existingRegionIds.length === 0) {
     throw new ServiceError("FORBIDDEN", "Moderators must attach destinations to at least one region they manage.");
   }
@@ -509,7 +656,7 @@ export function resolveDestinationRegionIdsForActor(
   const preservedRegionIds = existingRegionIds.filter((regionId) => !manageableRegionIds.has(regionId));
   const finalRegionIds = Array.from(new Set([...preservedRegionIds, ...submittedRegionIds]));
 
-  assertCanManageDestinationWithRegionIds(cmsActor, finalRegionIds);
+  assertCanManageDestinationWithRegionIds(cmsActor, finalRegionIds, dbInstance);
 
   return finalRegionIds;
 }
@@ -550,6 +697,7 @@ export function setModeratorRegionAssignmentsWithExecutor(
     const existingRegions = executor
       .select({
         id: regions.id,
+        countryId: regions.countryId,
       })
       .from(regions)
       .where(inArray(regions.id, normalizedRegionIds))
@@ -557,6 +705,12 @@ export function setModeratorRegionAssignmentsWithExecutor(
 
     if (existingRegions.length !== normalizedRegionIds.length) {
       throw new ServiceError("INVALID_INPUT", "One or more moderator regions do not exist.");
+    }
+
+    const countryIds = new Set(existingRegions.map((region) => region.countryId));
+
+    if (countryIds.size > 1) {
+      throw new ServiceError("INVALID_INPUT", "Moderators can only be assigned regions from a single country.");
     }
   }
 
@@ -577,6 +731,69 @@ export function setModeratorRegionAssignmentsWithExecutor(
     .run();
 }
 
+export function setCountryModeratorCountryAssignments(
+  userId: string,
+  countryIds: string[],
+  actorId?: string | null,
+  dbInstance?: DbInstance,
+) {
+  const { db } = resolveDb(dbInstance);
+  setCountryModeratorCountryAssignmentsWithExecutor(db, userId, countryIds, actorId);
+}
+
+export function setCountryModeratorCountryAssignmentsWithExecutor(
+  executor: DbExecutor,
+  userId: string,
+  countryIds: string[],
+  actorId?: string | null,
+) {
+  const normalizedUserId = requireNonEmptyString(userId, "userId");
+  const normalizedActorId = requireOptionalString(actorId, "actorId");
+  const normalizedCountryIds = Array.from(new Set(countryIds.map((value) => requireNonEmptyString(value, "countryId"))));
+
+  const existingUser = executor
+    .select({
+      id: user.id,
+    })
+    .from(user)
+    .where(eq(user.id, normalizedUserId))
+    .get();
+
+  if (!existingUser) {
+    throw new ServiceError("NOT_FOUND", `User "${normalizedUserId}" was not found.`);
+  }
+
+  if (normalizedCountryIds.length > 0) {
+    const existingCountries = executor
+      .select({
+        id: countries.id,
+      })
+      .from(countries)
+      .where(inArray(countries.id, normalizedCountryIds))
+      .all();
+
+    if (existingCountries.length !== normalizedCountryIds.length) {
+      throw new ServiceError("INVALID_INPUT", "One or more moderator countries do not exist.");
+    }
+  }
+
+  executor.delete(countryModeratorCountryAssignments).where(eq(countryModeratorCountryAssignments.userId, normalizedUserId)).run();
+
+  if (normalizedCountryIds.length === 0) {
+    return;
+  }
+
+  executor.insert(countryModeratorCountryAssignments)
+    .values(
+      normalizedCountryIds.map((countryId) => ({
+        userId: normalizedUserId,
+        countryId,
+        assignedBy: normalizedActorId,
+      })),
+    )
+    .run();
+}
+
 export function mapUserRoleRow(row: typeof cmsUserRoles.$inferSelect): UserRoleRecord {
   return {
     userId: row.userId,
@@ -589,8 +806,11 @@ export function mapUserRoleRow(row: typeof cmsUserRoles.$inferSelect): UserRoleR
 }
 
 export function requireCmsRole(value: string): CmsRole {
-  if (value !== "admin" && value !== "moderator" && value !== "viewer") {
-    throw new ServiceError("INVALID_INPUT", "role must be one of admin, moderator, or viewer.");
+  if (value !== "admin" && value !== "country_moderator" && value !== "moderator" && value !== "viewer") {
+    throw new ServiceError(
+      "INVALID_INPUT",
+      "role must be one of admin, country_moderator, moderator, or viewer.",
+    );
   }
 
   return value;

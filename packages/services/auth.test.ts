@@ -3,13 +3,15 @@ import test from "node:test";
 
 import { eq } from "drizzle-orm";
 
-import { moderatorRegionAssignments, regions, user } from "@explorers-map/db";
+import { countries, moderatorRegionAssignments, regions, user } from "@explorers-map/db";
 
 import {
   createCmsWriteContext,
   ensureUserRole,
   getAuthActorContext,
   hasAnyAdminUser,
+  setCountryModeratorCountryAssignments,
+  setModeratorRegionAssignments,
   setUserRole,
 } from "./index.ts";
 import { ServiceError } from "./errors.ts";
@@ -74,4 +76,78 @@ test("cms write context requires a CMS-capable role and admin detection stays ac
   assert.equal(writeContext.actorId, "user-2");
   assert.equal(writeContext.source, "web-cms");
   assert.equal(hasAnyAdminUser(dbInstance), true);
+});
+
+test("country moderator assignments resolve into actor context and moderator assignments stay single-country", (t) => {
+  const dbInstance = createSeededTestDb(t);
+
+  dbInstance.db.insert(user).values([
+    {
+      id: "admin-1",
+      name: "Admin User",
+      email: "admin@example.com",
+    },
+    {
+      id: "country-mod-1",
+      name: "Country Moderator",
+      email: "country-mod@example.com",
+    },
+    {
+      id: "moderator-1",
+      name: "Scoped Moderator",
+      email: "scoped-moderator@example.com",
+    },
+  ]).run();
+
+  ensureUserRole("admin-1", "admin", dbInstance);
+  ensureUserRole("country-mod-1", "country_moderator", dbInstance);
+  ensureUserRole("moderator-1", "moderator", dbInstance);
+
+  const unitedKingdom = dbInstance.db
+    .select({ id: countries.id })
+    .from(countries)
+    .where(eq(countries.slug, "united-kingdom"))
+    .get();
+  const dorset = dbInstance.db
+    .select({ id: regions.id })
+    .from(regions)
+    .where(eq(regions.slug, "dorset"))
+    .get();
+
+  assert.ok(unitedKingdom);
+  assert.ok(dorset);
+
+  dbInstance.db.insert(countries).values({
+    id: "country-france",
+    slug: "france",
+    title: "France",
+    description: "Second test country.",
+    coverImage: "https://example.com/france.jpg",
+  }).run();
+  dbInstance.db.insert(regions).values({
+    id: "region-brittany",
+    countryId: "country-france",
+    slug: "brittany",
+    title: "Brittany",
+    description: "Second test region.",
+    coverImage: "https://example.com/brittany.jpg",
+  }).run();
+
+  setCountryModeratorCountryAssignments("country-mod-1", [unitedKingdom.id], "admin-1", dbInstance);
+  const countryModerator = getAuthActorContext("country-mod-1", dbInstance);
+
+  assert.equal(countryModerator.role, "country_moderator");
+  assert.equal(countryModerator.countryModeratorCountryAssignments.length, 1);
+  assert.equal(countryModerator.countryModeratorCountryAssignments[0]?.countrySlug, "united-kingdom");
+
+  assert.throws(
+    () =>
+      setModeratorRegionAssignments(
+        "moderator-1",
+        [dorset.id, "region-brittany"],
+        "admin-1",
+        dbInstance,
+      ),
+    (error) => error instanceof ServiceError && error.code === "INVALID_INPUT",
+  );
 });

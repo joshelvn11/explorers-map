@@ -22,8 +22,8 @@ export default async function CmsListingsPage({
   const filters = await searchParams;
   const listings = listListingsForCms(actor);
   const countryOptions =
-    actor.role === "admin"
-      ? listCountriesForCms().map((country) => ({
+    actor.role === "admin" || actor.role === "country_moderator"
+      ? listCountriesForCms(actor).map((country) => ({
           slug: country.slug,
           title: country.title,
         }))
@@ -70,7 +70,9 @@ export default async function CmsListingsPage({
           <p className="mt-3 max-w-3xl text-sm leading-7 text-stone-600">
             {actor.role === "admin"
               ? "Admins can create, edit, publish, unpublish, trash, and restore any listing."
-              : "You can manage listings only inside your assigned regions, and destination edits stay scoped to the destinations you can manage."}
+              : actor.role === "country_moderator"
+                ? "You can manage listings across your assigned countries, while listing parent regions still stay fixed after creation."
+                : "You can manage listings only inside your assigned regions, and destination edits stay scoped to the destinations you can manage."}
           </p>
         </div>
         <Link

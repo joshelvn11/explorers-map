@@ -59,7 +59,9 @@ export default async function CmsDestinationsPage({
           <p className="mt-3 max-w-3xl text-sm leading-7 text-stone-600">
             {actor.role === "admin"
               ? "Admins can create and edit any destination, including global destination-region linking."
-              : "You can edit destinations only when they overlap one of your managed regions, and your edits stay scoped to those regions."}
+              : actor.role === "country_moderator"
+                ? "You can create and edit destinations across your assigned countries, including full destination-region replacement inside those countries."
+                : "You can edit destinations only when they overlap one of your managed regions, and your edits stay scoped to those regions."}
           </p>
         </div>
         <Link

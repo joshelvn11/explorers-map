@@ -1,4 +1,4 @@
-import { canAccessAdminCms, canAccessCms, getAuthActorContext } from "@explorers-map/services";
+import { canAccessAdminCms, canAccessCms, canAccessCountryModeratorCms, getAuthActorContext } from "@explorers-map/services";
 import type { DbInstance } from "@explorers-map/db";
 import { headers } from "next/headers.js";
 import { redirect } from "next/navigation.js";
@@ -89,12 +89,36 @@ export async function requireAdminActorFromHeaders(
   return actor;
 }
 
+export async function requireCountryModeratorActorFromHeaders(
+  requestHeaders: HeadersInit,
+  returnTo?: string | null,
+  authInstance: ExplorersMapAuth = getAuth(),
+  dbInstance?: DbInstance,
+) {
+  const session = await requireAuthenticatedSessionFromHeaders(requestHeaders, returnTo ?? getCmsHref(), authInstance);
+  const actor = getAuthActorContext(session.user.id, dbInstance);
+
+  if (!canAccessCountryModeratorCms(actor)) {
+    redirect(getCmsHref());
+  }
+
+  return actor;
+}
+
 export async function requireAdminActor(
   returnTo?: string | null,
   authInstance: ExplorersMapAuth = getAuth(),
   dbInstance?: DbInstance,
 ) {
   return requireAdminActorFromHeaders(await headers(), returnTo, authInstance, dbInstance);
+}
+
+export async function requireCountryModeratorActor(
+  returnTo?: string | null,
+  authInstance: ExplorersMapAuth = getAuth(),
+  dbInstance?: DbInstance,
+) {
+  return requireCountryModeratorActorFromHeaders(await headers(), returnTo, authInstance, dbInstance);
 }
 
 export async function redirectIfAuthenticated(returnTo?: string | null, authInstance: ExplorersMapAuth = getAuth()) {

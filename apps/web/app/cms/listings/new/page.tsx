@@ -13,7 +13,11 @@ export default async function NewCmsListingPage() {
     return (
       <section className="rounded-[1.75rem] border border-white/70 bg-white/88 p-6 shadow-[0_20px_50px_rgba(15,23,42,0.08)] backdrop-blur sm:p-8">
         <EmptyState
-          description="An admin needs to assign you at least one region before you can create listings."
+          description={
+            actor.role === "country_moderator"
+              ? "An admin needs to assign you at least one country with available regions before you can create listings."
+              : "An admin needs to assign you at least one region before you can create listings."
+          }
           title="No listing regions available"
         />
       </section>

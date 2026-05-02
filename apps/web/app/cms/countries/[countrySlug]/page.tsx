@@ -1,17 +1,30 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import { getCountryForCms } from "@explorers-map/services";
+import { isServiceError } from "@explorers-map/services/errors";
 
-import { CmsCountryForm } from "../../../../../components/cms-country-form";
-import { updateCountryAction } from "../../../actions";
+import { CmsCountryForm } from "../../../../components/cms-country-form";
+import { updateCountryAction } from "../../actions";
+import { requireCountryModeratorActor } from "../../../../lib/session";
 
 export default async function CmsCountryDetailPage({
   params,
 }: {
   params: Promise<{ countrySlug: string }>;
 }) {
+  const actor = await requireCountryModeratorActor("/cms/countries");
   const { countrySlug } = await params;
-  const country = getCountryForCms(countrySlug);
+  let country;
+
+  try {
+    country = getCountryForCms(countrySlug, actor);
+  } catch (error) {
+    if (isServiceError(error) && error.code === "FORBIDDEN") {
+      redirect("/cms/countries");
+    }
+
+    throw error;
+  }
 
   if (!country) {
     notFound();

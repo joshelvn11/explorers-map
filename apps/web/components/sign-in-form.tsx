@@ -42,7 +42,7 @@ export function SignInForm({ returnTo }: { returnTo?: string | null }) {
       <div className="space-y-2">
         <h2 className="font-serif text-3xl text-stone-950">Sign in</h2>
         <p className="text-sm leading-6 text-stone-600">
-          Viewer accounts can access personal account pages now, while CMS access stays limited to admins and moderators.
+          Viewer accounts can access personal account pages now, while CMS access stays limited to admins, country moderators, and moderators.
         </p>
       </div>
 

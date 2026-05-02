@@ -3,27 +3,33 @@
 import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
 
-import type { ModeratorRegionOption } from "@explorers-map/services";
+import type { CountryCmsRecord, ModeratorRegionOption } from "@explorers-map/services";
 
 import type { CmsFormState } from "../lib/cms-form-state";
 import { initialCmsFormState } from "../lib/cms-form-state";
+import { getCmsUserRoleOptions, type CmsUserFormActorRole } from "../lib/cms-user-form-options.ts";
 
 type CmsUserFormProps = {
   mode: "create" | "edit";
   action: (state: CmsFormState, formData: FormData) => Promise<CmsFormState>;
+  actorRole: CmsUserFormActorRole;
+  countryOptions: CountryCmsRecord[];
   regionOptions: ModeratorRegionOption[];
   initialValues?: {
     userId: string;
     name: string;
     email: string;
-    role: "admin" | "moderator" | "viewer";
+    role: "admin" | "country_moderator" | "moderator" | "viewer";
     moderatorRegionIds: string[];
+    countryModeratorCountryIds: string[];
   };
 };
 
-export function CmsUserForm({ mode, action, regionOptions, initialValues }: CmsUserFormProps) {
+export function CmsUserForm({ mode, action, actorRole, countryOptions, regionOptions, initialValues }: CmsUserFormProps) {
   const [state, formAction] = useActionState(action, initialCmsFormState);
-  const [role, setRole] = useState<"admin" | "moderator" | "viewer">(initialValues?.role ?? "viewer");
+  const [role, setRole] = useState<"admin" | "country_moderator" | "moderator" | "viewer">(
+    initialValues?.role ?? "viewer",
+  );
 
   return (
     <form action={formAction} className="space-y-6">
@@ -82,20 +88,65 @@ export function CmsUserForm({ mode, action, regionOptions, initialValues }: CmsU
           className="w-full rounded-2xl border border-stone-300 bg-stone-50 px-4 py-3 text-sm text-stone-950 outline-none transition focus:border-sky-500 focus:bg-white"
           defaultValue={initialValues?.role ?? "viewer"}
           name="role"
-          onChange={(event) => setRole(event.currentTarget.value as "admin" | "moderator" | "viewer")}
+          onChange={(event) =>
+            setRole(event.currentTarget.value as "admin" | "country_moderator" | "moderator" | "viewer")
+          }
         >
-          <option value="viewer">Viewer</option>
-          <option value="moderator">Moderator</option>
-          <option value="admin">Admin</option>
+          {getCmsUserRoleOptions(actorRole).map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
         </select>
       </label>
+
+      {actorRole === "admin" ? (
+        <section className="rounded-[1.5rem] border border-stone-200 bg-stone-50/80 p-5">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="text-sm font-semibold text-stone-950">Country moderator countries</p>
+              <p className="mt-1 text-sm leading-6 text-stone-600">
+                Required when the selected role is country moderator. Other roles ignore these assignments.
+              </p>
+            </div>
+            <span
+              className={`rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] ${
+                role === "country_moderator" ? "bg-sky-100 text-sky-900" : "bg-stone-200 text-stone-600"
+              }`}
+            >
+              {role === "country_moderator" ? "Required" : "Optional"}
+            </span>
+          </div>
+
+          <div className="mt-4 grid gap-3 md:grid-cols-2">
+            {countryOptions.map((country) => (
+              <label
+                key={country.id}
+                className="flex items-start gap-3 rounded-2xl border border-stone-200 bg-white px-4 py-3 text-sm text-stone-700"
+              >
+                <input
+                  className="mt-1 h-4 w-4 rounded border-stone-300 text-sky-600 focus:ring-sky-500"
+                  defaultChecked={initialValues?.countryModeratorCountryIds.includes(country.id)}
+                  name="countryModeratorCountryIds"
+                  type="checkbox"
+                  value={country.id}
+                />
+                <span>
+                  <span className="block font-medium text-stone-900">{country.title}</span>
+                  <span className="block text-xs uppercase tracking-[0.18em] text-stone-500">{country.slug}</span>
+                </span>
+              </label>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       <section className="rounded-[1.5rem] border border-stone-200 bg-stone-50/80 p-5">
         <div className="flex items-center justify-between gap-4">
           <div>
             <p className="text-sm font-semibold text-stone-950">Moderator regions</p>
             <p className="mt-1 text-sm leading-6 text-stone-600">
-              Required when the selected role is moderator. Changing away from moderator clears these assignments.
+              Required when the selected role is moderator. Region assignments must stay inside one country.
             </p>
           </div>
           <span

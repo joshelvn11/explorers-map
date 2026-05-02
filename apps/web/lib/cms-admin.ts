@@ -25,6 +25,7 @@ export type UpdateCmsUserInput = {
   userId: string;
   role: CmsRole;
   moderatorRegionIds?: string[];
+  countryModeratorCountryIds?: string[];
 };
 
 export type UpsertCmsCountryInput = {

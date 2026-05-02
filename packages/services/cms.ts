@@ -18,20 +18,25 @@ import {
 import { deriveSlug } from "./editorial.ts";
 import { ServiceError } from "./errors.ts";
 import {
+  assertCanManageCountrySlug,
   assertCanAssignListingDestinationIds,
   assertCanManageDestinationWithRegionIds,
   assertCanManageListing,
   assertCanManageListingInRegion,
+  canManageCountrySlug,
   countAdminUsers,
   createCmsWriteContext,
   getAuthActorContext,
   listManageableDestinationRegionOptions,
   listManageableListingDestinationOptions,
   requireAdminActor,
+  requireCountryModeratorActor,
   resolveDestinationRegionIdsForActor,
+  setCountryModeratorCountryAssignmentsWithExecutor,
   setModeratorRegionAssignmentsWithExecutor,
   setUserRoleWithExecutor,
   type AuthActorContext,
+  type CountryModeratorCountryAssignmentRecord,
   type DestinationRegionOption,
   type ModeratorRegionAssignmentRecord,
 } from "./auth.ts";
@@ -53,6 +58,7 @@ export type CmsUserSummary = {
   email: string;
   role: CmsRole;
   moderatorRegionAssignments: ModeratorRegionAssignmentRecord[];
+  countryModeratorCountryAssignments: CountryModeratorCountryAssignmentRecord[];
   createdAt: string;
 };
 
@@ -70,6 +76,7 @@ export type UpdateCmsUserAccessInput = {
   userId: string;
   role: CmsRole;
   moderatorRegionIds?: string[];
+  countryModeratorCountryIds?: string[];
 };
 
 export type CountryCmsRecord = {
@@ -211,10 +218,11 @@ export type UpdateCmsListingInput = {
   destinationIds: string[];
 };
 
-export function listCmsUsers(dbInstance?: DbInstance): CmsUserSummary[] {
+export function listCmsUsers(actor: AuthActorContext, dbInstance?: DbInstance): CmsUserSummary[] {
+  requireCountryModeratorActor(actor);
   const { db } = resolveDb(dbInstance);
 
-  return db
+  const users = db
     .select({
       userId: user.id,
       name: user.name,
@@ -224,21 +232,27 @@ export function listCmsUsers(dbInstance?: DbInstance): CmsUserSummary[] {
     .from(user)
     .orderBy(asc(user.name), asc(user.email))
     .all()
-    .map((row) => {
-      const actor = getAuthActorContext(row.userId, dbInstance);
+    .map((row) => buildCmsUserSummary(row, dbInstance));
 
-      return {
-        userId: row.userId,
-        name: row.name,
-        email: row.email,
-        role: actor.role,
-        moderatorRegionAssignments: actor.moderatorRegionAssignments,
-        createdAt: row.createdAt.toISOString(),
-      };
-    });
+  return users.filter((record) => canActorManageCmsUser(actor, record));
 }
 
-export function getCmsUserDetail(userId: string, dbInstance?: DbInstance): CmsUserDetail | null {
+export function getCmsUserDetail(userId: string, actor: AuthActorContext, dbInstance?: DbInstance): CmsUserDetail | null {
+  requireCountryModeratorActor(actor);
+  const userDetail = getCmsUserDetailInternal(userId, dbInstance);
+
+  if (!userDetail) {
+    return null;
+  }
+
+  if (!canActorManageCmsUser(actor, userDetail)) {
+    throw new ServiceError("FORBIDDEN", "You can only manage users within your allowed scope.");
+  }
+
+  return userDetail;
+}
+
+function getCmsUserDetailInternal(userId: string, dbInstance?: DbInstance): CmsUserDetail | null {
   const { db } = resolveDb(dbInstance);
   const normalizedUserId = requireNonEmptyString(userId, "userId");
   const row = db
@@ -256,22 +270,14 @@ export function getCmsUserDetail(userId: string, dbInstance?: DbInstance): CmsUs
     return null;
   }
 
-  const actor = getAuthActorContext(normalizedUserId, dbInstance);
-
-  return {
-    userId: row.userId,
-    name: row.name,
-    email: row.email,
-    role: actor.role,
-    moderatorRegionAssignments: actor.moderatorRegionAssignments,
-    createdAt: row.createdAt.toISOString(),
-  };
+  return buildCmsUserSummary(row, dbInstance);
 }
 
-export function listModeratorRegionOptions(dbInstance?: DbInstance): ModeratorRegionOption[] {
+export function listModeratorRegionOptions(actor: AuthActorContext, dbInstance?: DbInstance): ModeratorRegionOption[] {
+  requireCountryModeratorActor(actor);
   const { db } = resolveDb(dbInstance);
 
-  return db
+  const rows = db
     .select({
       regionId: regions.id,
       countrySlug: countries.slug,
@@ -283,6 +289,8 @@ export function listModeratorRegionOptions(dbInstance?: DbInstance): ModeratorRe
     .innerJoin(countries, eq(regions.countryId, countries.id))
     .orderBy(asc(countries.title), asc(regions.title))
     .all();
+
+  return rows.filter((row) => actor.role === "admin" || canManageCountrySlug(actor, row.countrySlug));
 }
 
 export function updateCmsUserAccess(
@@ -290,16 +298,19 @@ export function updateCmsUserAccess(
   actor: AuthActorContext,
   dbInstance?: DbInstance,
 ) {
-  requireAdminActor(actor);
+  requireCountryModeratorActor(actor);
   const { db } = resolveDb(dbInstance);
   const normalizedUserId = requireNonEmptyString(input.userId, "userId");
   const normalizedRole = input.role;
   const moderatorRegionIds = normalizeModeratorRegionIds(input.moderatorRegionIds);
-  const existingUser = getCmsUserDetail(normalizedUserId, dbInstance);
+  const countryModeratorCountryIds = normalizeCountryIds(input.countryModeratorCountryIds);
+  const existingUser = getCmsUserDetailInternal(normalizedUserId, dbInstance);
 
   if (!existingUser) {
     throw new ServiceError("NOT_FOUND", `User "${normalizedUserId}" was not found.`);
   }
+
+  assertActorCanManageCmsUserAccess(actor, existingUser);
 
   if (existingUser.role === "admin" && normalizedRole !== "admin" && countAdminUsers(dbInstance) <= 1) {
     throw new ServiceError("INVALID_STATE", "You cannot demote the last remaining admin.");
@@ -308,6 +319,16 @@ export function updateCmsUserAccess(
   if (normalizedRole === "moderator" && moderatorRegionIds.length === 0) {
     throw new ServiceError("INVALID_INPUT", "Moderators must have at least one assigned region.");
   }
+
+  if (normalizedRole === "country_moderator" && countryModeratorCountryIds.length === 0) {
+    throw new ServiceError("INVALID_INPUT", "Country moderators must have at least one assigned country.");
+  }
+
+  if (actor.role !== "admin" && (normalizedRole === "admin" || normalizedRole === "country_moderator")) {
+    throw new ServiceError("FORBIDDEN", "Only admins can create or manage admin and country moderator users.");
+  }
+
+  assertActorCanAssignModeratorRegions(actor, moderatorRegionIds, dbInstance);
 
   return db.transaction((tx) => {
     const roleRecord = setUserRoleWithExecutor(tx, normalizedUserId, normalizedRole, actor.userId);
@@ -318,11 +339,44 @@ export function updateCmsUserAccess(
       setModeratorRegionAssignmentsWithExecutor(tx, normalizedUserId, [], actor.userId);
     }
 
+    if (normalizedRole === "country_moderator") {
+      requireAdminActor(actor);
+      setCountryModeratorCountryAssignmentsWithExecutor(tx, normalizedUserId, countryModeratorCountryIds, actor.userId);
+    } else {
+      setCountryModeratorCountryAssignmentsWithExecutor(tx, normalizedUserId, [], actor.userId);
+    }
+
     return roleRecord;
   });
 }
 
-export function listCountriesForCms(dbInstance?: DbInstance): CountryCmsRecord[] {
+export function assertCanPrepareCmsUserAccess(
+  input: Omit<UpdateCmsUserAccessInput, "userId">,
+  actor: AuthActorContext,
+  dbInstance?: DbInstance,
+) {
+  requireCountryModeratorActor(actor);
+  const normalizedRole = input.role;
+  const moderatorRegionIds = normalizeModeratorRegionIds(input.moderatorRegionIds);
+  const countryModeratorCountryIds = normalizeCountryIds(input.countryModeratorCountryIds);
+
+  if (normalizedRole === "moderator" && moderatorRegionIds.length === 0) {
+    throw new ServiceError("INVALID_INPUT", "Moderators must have at least one assigned region.");
+  }
+
+  if (normalizedRole === "country_moderator" && countryModeratorCountryIds.length === 0) {
+    throw new ServiceError("INVALID_INPUT", "Country moderators must have at least one assigned country.");
+  }
+
+  if (actor.role !== "admin" && (normalizedRole === "admin" || normalizedRole === "country_moderator")) {
+    throw new ServiceError("FORBIDDEN", "Only admins can create admin and country moderator users.");
+  }
+
+  assertActorCanAssignModeratorRegions(actor, moderatorRegionIds, dbInstance);
+}
+
+export function listCountriesForCms(actor: AuthActorContext, dbInstance?: DbInstance): CountryCmsRecord[] {
+  requireCountryModeratorActor(actor);
   const { db } = resolveDb(dbInstance);
 
   return db
@@ -338,10 +392,12 @@ export function listCountriesForCms(dbInstance?: DbInstance): CountryCmsRecord[]
     .from(countries)
     .orderBy(asc(countries.title))
     .all()
-    .map(mapCountryRow);
+    .map(mapCountryRow)
+    .filter((country) => actor.role === "admin" || canManageCountrySlug(actor, country.slug));
 }
 
-export function getCountryForCms(countrySlug: string, dbInstance?: DbInstance): CountryCmsRecord | null {
+export function getCountryForCms(countrySlug: string, actor: AuthActorContext, dbInstance?: DbInstance): CountryCmsRecord | null {
+  requireCountryModeratorActor(actor);
   const { db } = resolveDb(dbInstance);
   const normalizedCountrySlug = requireNonEmptyString(countrySlug, "countrySlug");
   const row = db
@@ -358,7 +414,17 @@ export function getCountryForCms(countrySlug: string, dbInstance?: DbInstance): 
     .where(eq(countries.slug, normalizedCountrySlug))
     .get();
 
-  return row ? mapCountryRow(row) : null;
+  if (!row) {
+    return null;
+  }
+
+  const country = mapCountryRow(row);
+
+  if (actor.role !== "admin" && !canManageCountrySlug(actor, country.slug)) {
+    throw new ServiceError("FORBIDDEN", "You can only manage countries assigned to you.");
+  }
+
+  return country;
 }
 
 export function createCountryForCms(input: UpsertCountryInput, actor: AuthActorContext, dbInstance?: DbInstance) {
@@ -386,14 +452,14 @@ export function createCountryForCms(input: UpsertCountryInput, actor: AuthActorC
     mapSqliteError(error, `Country slug "${slug}" already exists.`);
   }
 
-  return getCountryForCms(slug, dbInstance)!;
+  return getCountryForCms(slug, actor, dbInstance)!;
 }
 
 export function updateCountryForCms(input: UpsertCountryInput, actor: AuthActorContext, dbInstance?: DbInstance) {
-  requireAdminActor(actor);
+  requireCountryModeratorActor(actor);
   const { db } = resolveDb(dbInstance);
   const currentSlug = requireNonEmptyString(input.currentSlug ?? "", "currentSlug");
-  const current = getCountryForCms(currentSlug, dbInstance);
+  const current = getCountryForCms(currentSlug, actor, dbInstance);
 
   if (!current) {
     throw new ServiceError("NOT_FOUND", `Country "${currentSlug}" was not found.`);
@@ -431,10 +497,11 @@ export function updateCountryForCms(input: UpsertCountryInput, actor: AuthActorC
     mapSqliteError(error, `Country slug "${slug}" already exists.`);
   }
 
-  return getCountryForCms(slug, dbInstance)!;
+  return getCountryForCms(slug, actor, dbInstance)!;
 }
 
-export function listRegionsForCms(dbInstance?: DbInstance): RegionCmsRecord[] {
+export function listRegionsForCms(actor: AuthActorContext, dbInstance?: DbInstance): RegionCmsRecord[] {
+  requireCountryModeratorActor(actor);
   const { db } = resolveDb(dbInstance);
 
   return db
@@ -453,7 +520,8 @@ export function listRegionsForCms(dbInstance?: DbInstance): RegionCmsRecord[] {
     .innerJoin(countries, eq(regions.countryId, countries.id))
     .orderBy(asc(countries.title), asc(regions.title))
     .all()
-    .map(mapRegionRow);
+    .map(mapRegionRow)
+    .filter((region) => actor.role === "admin" || canManageCountrySlug(actor, region.countrySlug));
 }
 
 export function listDestinationsForCms(actor: AuthActorContext, dbInstance?: DbInstance): DestinationCmsRecord[] {
@@ -486,7 +554,17 @@ export function listDestinationsForCms(actor: AuthActorContext, dbInstance?: DbI
 
   return rows
     .map((row) => mapDestinationRow(row, regionMap.get(row.id) ?? []))
-    .filter((destination) => actor.role === "admin" || destination.regions.some((region) => region.manageableByActor));
+    .filter((destination) => {
+      if (actor.role === "admin") {
+        return true;
+      }
+
+      if (actor.role === "country_moderator") {
+        return canManageCountrySlug(actor, destination.countrySlug);
+      }
+
+      return destination.regions.some((region) => region.manageableByActor);
+    });
 }
 
 export function getDestinationForCms(
@@ -525,15 +603,26 @@ export function getDestinationForCms(
   const regions = loadDestinationCmsRegions([row.id], manageableRegionIds, dbInstance).get(row.id) ?? [];
   const destination = mapDestinationRow(row, regions);
 
+  if (actor.role === "country_moderator") {
+    assertCanManageCountrySlug(actor, destination.countrySlug);
+  }
+
   assertCanManageDestinationWithRegionIds(
     actor,
     destination.regions.map((region) => region.regionId),
+    dbInstance,
   );
 
   return destination;
 }
 
-export function getRegionForCms(countrySlug: string, regionSlug: string, dbInstance?: DbInstance): RegionCmsRecord | null {
+export function getRegionForCms(
+  countrySlug: string,
+  regionSlug: string,
+  actor: AuthActorContext,
+  dbInstance?: DbInstance,
+): RegionCmsRecord | null {
+  requireCountryModeratorActor(actor);
   const { db } = resolveDb(dbInstance);
   const normalizedCountrySlug = requireNonEmptyString(countrySlug, "countrySlug");
   const normalizedRegionSlug = requireNonEmptyString(regionSlug, "regionSlug");
@@ -554,13 +643,26 @@ export function getRegionForCms(countrySlug: string, regionSlug: string, dbInsta
     .where(and(eq(countries.slug, normalizedCountrySlug), eq(regions.slug, normalizedRegionSlug)))
     .get();
 
-  return row ? mapRegionRow(row) : null;
+  if (!row) {
+    return null;
+  }
+
+  const region = mapRegionRow(row);
+
+  if (actor.role !== "admin" && !canManageCountrySlug(actor, region.countrySlug)) {
+    throw new ServiceError("FORBIDDEN", "You can only manage regions inside countries assigned to you.");
+  }
+
+  return region;
 }
 
 export function createRegionForCms(input: UpsertRegionInput, actor: AuthActorContext, dbInstance?: DbInstance) {
-  requireAdminActor(actor);
+  requireCountryModeratorActor(actor);
   const { db } = resolveDb(dbInstance);
   const country = requireCountryRecord(db, input.countrySlug);
+  if (actor.role !== "admin") {
+    assertCanManageCountrySlug(actor, country.slug);
+  }
   const title = requireNonEmptyString(input.title, "title");
   const description = requireNonEmptyString(input.description, "description");
   const coverImage = requireNonEmptyString(input.coverImage, "coverImage");
@@ -584,15 +686,15 @@ export function createRegionForCms(input: UpsertRegionInput, actor: AuthActorCon
     mapSqliteError(error, `Region slug "${slug}" already exists in country "${country.slug}".`);
   }
 
-  return getRegionForCms(country.slug, slug, dbInstance)!;
+  return getRegionForCms(country.slug, slug, actor, dbInstance)!;
 }
 
 export function updateRegionForCms(input: UpsertRegionInput, actor: AuthActorContext, dbInstance?: DbInstance) {
-  requireAdminActor(actor);
+  requireCountryModeratorActor(actor);
   const { db } = resolveDb(dbInstance);
   const currentCountrySlug = requireNonEmptyString(input.currentCountrySlug ?? "", "currentCountrySlug");
   const currentRegionSlug = requireNonEmptyString(input.currentRegionSlug ?? "", "currentRegionSlug");
-  const current = getRegionForCms(currentCountrySlug, currentRegionSlug, dbInstance);
+  const current = getRegionForCms(currentCountrySlug, currentRegionSlug, actor, dbInstance);
 
   if (!current) {
     throw new ServiceError(
@@ -605,6 +707,10 @@ export function updateRegionForCms(input: UpsertRegionInput, actor: AuthActorCon
 
   if (country.slug !== current.countrySlug) {
     throw new ServiceError("INVALID_INPUT", "Region country cannot be changed in Phase 9.");
+  }
+
+  if (actor.role !== "admin") {
+    assertCanManageCountrySlug(actor, country.slug);
   }
 
   const title = requireNonEmptyString(input.title, "title");
@@ -639,7 +745,7 @@ export function updateRegionForCms(input: UpsertRegionInput, actor: AuthActorCon
     mapSqliteError(error, `Region slug "${slug}" already exists in country "${country.slug}".`);
   }
 
-  return getRegionForCms(country.slug, slug, dbInstance)!;
+  return getRegionForCms(country.slug, slug, actor, dbInstance)!;
 }
 
 export function createDestinationForCms(
@@ -649,6 +755,9 @@ export function createDestinationForCms(
 ) {
   const { db } = resolveDb(dbInstance);
   const country = requireCountryRecord(db, input.countrySlug);
+  if (actor.role === "country_moderator") {
+    assertCanManageCountrySlug(actor, country.slug);
+  }
   const title = requireNonEmptyString(input.title, "title");
   const description = requireNonEmptyString(input.description, "description");
   const coverImage = requireOptionalString(input.coverImage, "coverImage");
@@ -820,6 +929,43 @@ export function listListingsForCms(actor: AuthActorContext, dbInstance?: DbInsta
           .leftJoin(categories, eq(listings.categorySlug, categories.slug))
           .orderBy(asc(countries.title), asc(regions.title), asc(listings.title))
           .all()
+      : actor.role === "country_moderator"
+        ? actor.countryModeratorCountryAssignments.length === 0
+          ? []
+          : db
+              .select({
+                id: listings.id,
+                countrySlug: countries.slug,
+                countryTitle: countries.title,
+                regionId: regions.id,
+                regionSlug: regions.slug,
+                regionTitle: regions.title,
+                slug: listings.slug,
+                title: listings.title,
+                status: listings.status,
+                deletedAt: listings.deletedAt,
+                shortDescription: listings.shortDescription,
+                description: listings.description,
+                latitude: listings.latitude,
+                longitude: listings.longitude,
+                busynessRating: listings.busynessRating,
+                googleMapsPlaceUrl: listings.googleMapsPlaceUrl,
+                coverImage: listings.coverImage,
+                categorySlug: categories.slug,
+                categoryTitle: categories.title,
+                source: listings.source,
+                createdBy: listings.createdBy,
+                updatedBy: listings.updatedBy,
+                createdAt: listings.createdAt,
+                updatedAt: listings.updatedAt,
+              })
+              .from(listings)
+              .innerJoin(regions, eq(listings.regionId, regions.id))
+              .innerJoin(countries, eq(regions.countryId, countries.id))
+              .leftJoin(categories, eq(listings.categorySlug, categories.slug))
+              .where(inArray(regions.countryId, actor.countryModeratorCountryAssignments.map((assignment) => assignment.countryId)))
+              .orderBy(asc(countries.title), asc(regions.title), asc(listings.title))
+              .all()
       : actor.moderatorRegionAssignments.length === 0
         ? []
         : db
@@ -931,7 +1077,7 @@ export function createListingForCms(
 ) {
   const { db } = resolveDb(dbInstance);
   const region = requireRegionRecordById(db, input.regionId);
-  assertCanManageListingInRegion(actor, region.id);
+  assertCanManageListingInRegion(actor, region.id, dbInstance);
 
   const title = requireNonEmptyString(input.title, "title");
   const slug = deriveSlug(input.slug, title, "listing");
@@ -1151,6 +1297,101 @@ function normalizeModeratorRegionIds(regionIds: string[] | undefined) {
   );
 }
 
+function normalizeCountryIds(countryIds: string[] | undefined) {
+  return Array.from(
+    new Set(
+      (countryIds ?? [])
+        .map((value) => value.trim())
+        .filter((value) => value.length > 0),
+    ),
+  );
+}
+
+function buildCmsUserSummary(
+  row: {
+    userId: string;
+    name: string;
+    email: string;
+    createdAt: Date;
+  },
+  dbInstance?: DbInstance,
+): CmsUserSummary {
+  const actor = getAuthActorContext(row.userId, dbInstance);
+
+  return {
+    userId: row.userId,
+    name: row.name,
+    email: row.email,
+    role: actor.role,
+    moderatorRegionAssignments: actor.moderatorRegionAssignments,
+    countryModeratorCountryAssignments: actor.countryModeratorCountryAssignments,
+    createdAt: row.createdAt.toISOString(),
+  };
+}
+
+function canActorManageCmsUser(actor: AuthActorContext, targetUser: CmsUserSummary) {
+  if (actor.role === "admin") {
+    return true;
+  }
+
+  if (actor.role !== "country_moderator") {
+    return false;
+  }
+
+  if (targetUser.role === "viewer") {
+    return true;
+  }
+
+  if (targetUser.role !== "moderator" || targetUser.moderatorRegionAssignments.length === 0) {
+    return false;
+  }
+
+  const manageableCountrySlugs = new Set(
+    actor.countryModeratorCountryAssignments.map((assignment) => assignment.countrySlug),
+  );
+
+  return targetUser.moderatorRegionAssignments.every((assignment) => manageableCountrySlugs.has(assignment.countrySlug));
+}
+
+function assertActorCanManageCmsUserAccess(actor: AuthActorContext, targetUser: CmsUserSummary) {
+  if (!canActorManageCmsUser(actor, targetUser)) {
+    throw new ServiceError("FORBIDDEN", "You can only manage users within your allowed scope.");
+  }
+}
+
+function assertActorCanAssignModeratorRegions(
+  actor: AuthActorContext,
+  moderatorRegionIds: string[],
+  dbInstance?: DbInstance,
+) {
+  if (moderatorRegionIds.length === 0 || actor.role === "admin") {
+    return;
+  }
+
+  const { db } = resolveDb(dbInstance);
+  const rows = db
+    .select({
+      regionId: regions.id,
+      countrySlug: countries.slug,
+    })
+    .from(regions)
+    .innerJoin(countries, eq(regions.countryId, countries.id))
+    .where(inArray(regions.id, moderatorRegionIds))
+    .all();
+
+  if (rows.length !== moderatorRegionIds.length) {
+    throw new ServiceError("INVALID_INPUT", "One or more moderator regions do not exist.");
+  }
+
+  const manageableCountrySlugs = new Set(
+    actor.countryModeratorCountryAssignments.map((assignment) => assignment.countrySlug),
+  );
+
+  if (rows.some((row) => !manageableCountrySlugs.has(row.countrySlug))) {
+    throw new ServiceError("FORBIDDEN", "You can only assign moderators to regions inside countries you manage.");
+  }
+}
+
 function mapCountryRow(row: {
   id: string;
   slug: string;
@@ -1196,11 +1437,7 @@ function mapRegionRow(row: {
 }
 
 function getManageableDestinationRegionIdSet(actor: AuthActorContext, dbInstance?: DbInstance) {
-  if (actor.role === "admin") {
-    return new Set(listManageableDestinationRegionOptions(actor, dbInstance).map((option) => option.regionId));
-  }
-
-  return new Set(actor.moderatorRegionAssignments.map((assignment) => assignment.regionId));
+  return new Set(listManageableDestinationRegionOptions(actor, dbInstance).map((option) => option.regionId));
 }
 
 function loadDestinationCmsRegions(
@@ -1219,6 +1456,7 @@ function loadDestinationCmsRegions(
     .select({
       destinationId: destinationRegions.destinationId,
       regionId: regions.id,
+      countryId: countries.id,
       countrySlug: countries.slug,
       countryTitle: countries.title,
       regionSlug: regions.slug,
@@ -1235,6 +1473,7 @@ function loadDestinationCmsRegions(
     const bucket = regionsByDestinationId.get(row.destinationId) ?? [];
     bucket.push({
       regionId: row.regionId,
+      countryId: row.countryId,
       countrySlug: row.countrySlug,
       countryTitle: row.countryTitle,
       regionSlug: row.regionSlug,
@@ -1478,7 +1717,7 @@ function requireListingForCmsAccess(
 ) {
   const { db } = resolveDb(dbInstance);
   const listing = requireListingRecord(db, locator);
-  assertCanManageListing(actor, listing);
+  assertCanManageListing(actor, listing, dbInstance);
   return listing;
 }
 
@@ -1523,8 +1762,14 @@ function resolveListingDestinationIdsForActor(
     assertCanAssignListingDestinationIds(input.actor, submittedDestinationIds, dbInstance);
     throw new ServiceError(
       "FORBIDDEN",
-      "You can only assign destinations that overlap at least one region you manage in this country.",
+      input.actor.role === "country_moderator"
+        ? "You can only assign destinations inside countries you manage."
+        : "You can only assign destinations that overlap at least one region you manage in this country.",
     );
+  }
+
+  if (input.actor.role === "country_moderator") {
+    return submittedDestinationIds;
   }
 
   const preservedDestinationIds = existingDestinationIds.filter((destinationId) => !manageableDestinationIds.has(destinationId));

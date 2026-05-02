@@ -37,7 +37,7 @@ export default async function AccountPage() {
               </div>
               <div>
                 <dt className="font-medium text-stone-900">Role</dt>
-                <dd className="capitalize">{actor?.role ?? "viewer"}</dd>
+                <dd className="capitalize">{(actor?.role ?? "viewer").replaceAll("_", " ")}</dd>
               </div>
             </dl>
           </div>
@@ -45,11 +45,11 @@ export default async function AccountPage() {
           <div className="rounded-[1.5rem] border border-stone-200 bg-stone-50/80 p-5">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-stone-500">CMS access</p>
             <p className="mt-4 text-sm leading-6 text-stone-700">
-              {actor?.role === "admin" || actor?.role === "moderator"
+              {actor?.role === "admin" || actor?.role === "country_moderator" || actor?.role === "moderator"
                 ? "Your current role can enter the protected CMS shell."
                 : "Viewer accounts can sign in successfully but cannot access the CMS in this phase."}
             </p>
-            {actor?.role === "admin" || actor?.role === "moderator" ? (
+            {actor?.role === "admin" || actor?.role === "country_moderator" || actor?.role === "moderator" ? (
               <Link
                 className="mt-5 inline-flex items-center justify-center rounded-full bg-emerald-500 px-4 py-2 text-sm font-semibold text-emerald-950 transition hover:bg-emerald-400"
                 href={getCmsHref()}
@@ -68,6 +68,17 @@ export default async function AccountPage() {
                 <li key={`${assignment.userId}:${assignment.regionId}`}>
                   {assignment.regionTitle} ({assignment.regionSlug})
                 </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
+
+        {actor?.countryModeratorCountryAssignments.length ? (
+          <section className="mt-8 rounded-[1.5rem] border border-stone-200 bg-stone-50/80 p-5">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-stone-500">Country moderator countries</p>
+            <ul className="mt-4 space-y-2 text-sm text-stone-700">
+              {actor.countryModeratorCountryAssignments.map((assignment) => (
+                <li key={`${assignment.userId}:${assignment.countryId}`}>{assignment.countryTitle}</li>
               ))}
             </ul>
           </section>

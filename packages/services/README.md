@@ -8,8 +8,8 @@ This package contains shared domain logic used by the public app, repository too
 - Shared public read/query modules for countries, regions, destinations, and listings
 - Shared listing write/service modules for lifecycle, metadata, destination assignment, and gallery operations
 - Shared editorial service modules for MCP-facing category, region, destination, and listing reads, matching, ensure flows, and safe creation
-- Shared CMS/auth service responsibilities such as actor context, permission checks, and CMS write-context helpers
-- Shared Phase 9 CMS admin services for user access management plus country/region create and edit flows
+- Shared CMS/auth service responsibilities such as actor context, permission checks, assignment reconciliation, and CMS write-context helpers
+- Shared Phase 9 and Phase 10c CMS user services for role-aware access management plus actor-aware country/region flows
 - Shared Phase 10a CMS destination services for actor-aware reads plus moderator-safe destination create/edit flows
 - Shared Phase 10b CMS listing services for actor-aware reads plus moderator-safe listing create/edit/lifecycle flows
 
@@ -74,11 +74,11 @@ Editorial MCP support:
 Current CMS/auth additions:
 
 - shared authenticated actor context and role helpers
-- viewer, moderator, and admin role lookup and persistence helpers
-- moderator-region scope helpers for admin and moderator flows
+- viewer, moderator, country_moderator, and admin role lookup and persistence helpers
+- moderator-region and country-moderator scope helpers
 - CMS write-context helpers that convert an authorized actor into the existing shared write-context shape
-- Phase 9 admin helpers for listing users, updating roles with moderator-region reconciliation, and guarding last-admin demotion
-- Phase 9 country and region CMS helpers with shared slug derivation and conflict handling
+- Phase 9 and Phase 10c user helpers for listing users, updating roles with country and region reconciliation, and guarding last-admin demotion
+- Phase 9 and Phase 10c country and region CMS helpers with shared slug derivation, conflict handling, and actor-aware access
 - Phase 10a destination helpers for visible destination listing, destination detail access, moderator-manageable region options, and moderator-safe destination-region replacement within assigned scope
 - Phase 10b listing helpers for visible listing listing/detail reads, moderator-manageable region and destination options, create/edit/lifecycle operations, and canonical slug redirects after listing edits
 

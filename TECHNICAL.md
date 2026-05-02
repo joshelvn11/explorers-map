@@ -29,7 +29,7 @@ Expected flow:
 - `packages/services` now owns the shared seed import pipeline used by repository scripts plus the shared public query and listing write services used by future app and MCP entrypoints.
 - `apps/web` now also serves a narrow machine-facing Actions API for custom GPT integrations, backed by the same shared service layer as the public app and MCP runtime.
 - `apps/web` now also owns Better Auth browser-session handling, signed-in account routes, an idempotent bootstrap-admin initializer, and a protected CMS shell.
-- `apps/web` now also hosts the first real CMS surface: role-aware shell navigation, admin-only user/country/region management, plus Phase 10a destination management and Phase 10b listing management for admins plus region-scoped moderators, all backed by thin server actions.
+- `apps/web` now also hosts the first real CMS surface: role-aware shell navigation, shared user/country/region management, Phase 10a destination management, Phase 10b listing management, and Phase 10c country editorial ownership for admins, country moderators, and region-scoped moderators, all backed by thin server actions.
 - The shared database file defaults to `.data/explorers-map.sqlite` unless `EXPLORERS_MAP_SQLITE_PATH` overrides it.
 - Docker deployment now also supports a persistent runtime DB at `/app/data/explorers-map.sqlite` via container environment configuration.
 - Core data integrity for listings, scoped slugs, and join-table duplication is enforced in the schema layer.
@@ -58,8 +58,8 @@ Expected flow:
 - Listing destination assignment is country-scoped, but destination-to-region membership remains editorial metadata rather than a hard validation rule.
 - Gallery updates are replace-all operations that delete stale rows and recreate ordered gallery records with fresh IDs.
 - Service writes update `source`, `updatedBy`, and `updatedAt` consistently, while creation also populates `createdBy`.
-- The shared service layer now includes browser-auth actor context, CMS role lookup, moderator-region scope lookup, and CMS write-context helpers so later CMS work can reuse one authorization path.
-- The shared service layer now also includes Phase 9 admin CMS operations for listing users, updating roles plus moderator-region assignments atomically, and creating or editing countries and regions with shared slug validation.
+- The shared service layer now includes browser-auth actor context, CMS role lookup, moderator-region and country-moderator scope lookup, and CMS write-context helpers so later CMS work can reuse one authorization path.
+- The shared service layer now also includes Phase 9 and Phase 10c CMS operations for listing users, updating roles plus country and region assignments atomically, and creating or editing countries and regions with shared slug validation.
 - Phase 10a extends that CMS layer with destination audit attribution, actor-aware destination reads, moderator-safe destination-region merging, and destination create/edit flows with shared slug validation.
 - Phase 10b extends that CMS layer with listing RBAC helpers, actor-aware listing reads, listing create/edit/lifecycle flows, moderator-scoped destination assignment, and immediate canonical slug updates without listing reparenting.
 
@@ -70,22 +70,28 @@ Expected flow:
 - Open signup is now live, and new users default to a `viewer` role with no CMS access.
 - Current CMS roles are:
   - `admin` for full CMS and user-management access
+  - `country_moderator` for country-scoped editorial access plus limited user management
   - `moderator` for region-scoped editorial access
   - `viewer` for authenticated non-CMS accounts
-- Planned next-phase note: after Phase 10b, the next intended RBAC expansion is a future `country_moderator` role with country-level assignments and nested moderation responsibilities; this is product direction only and is not implemented in the current runtime.
-- Moderator scope is region-based and may span more than one region once assignments are managed in the CMS.
+- Country moderators can be assigned to one or more countries.
+- Moderator scope remains region-based, but Phase 10c now enforces a global invariant that every saved `moderator` assignment set is non-empty and belongs to exactly one country.
+- Country moderators can edit assigned country records plus the regions, destinations, and listings inside those countries.
+- Country moderators can create and manage `viewer` and `moderator` users only, and they cannot create, manage, promote, or demote `admin` or `country_moderator` users.
+- Viewer accounts remain globally scoped. Phase 10c intentionally allows country moderators to edit viewer users globally even though viewers have no country assignment.
 - Destination management is now the first moderator editorial surface:
   - moderators can create destinations only with linked regions they manage
   - moderators can edit destinations only while at least one linked region overlaps their assignments
   - moderator destination edits replace only the links inside their own scope and preserve out-of-scope links
+- Country-moderator destination management is country-scoped rather than partial-scope: once a destination is inside an assigned country, its country-local region links are fully manageable.
 - Listing management is now also live for moderators:
   - moderators can create listings only inside assigned regions
   - moderators can edit, publish, unpublish, trash, and restore listings only inside assigned regions
   - moderator listing destination edits replace only the links inside their current scope and preserve out-of-scope links
   - listing parent region stays fixed after creation in Phase 10b
+- Country moderators also get full-country listing control inside assigned countries.
 - The first root admin account now uses a one-time environment-backed bootstrap flow rather than a permanent alternate login path.
 - Bootstrap-admin behavior is idempotent, runs only from explicit init paths, and does not rewrite existing admins after initialization.
-- Better Auth owns auth/session/account persistence, while app-owned tables carry CMS roles and moderator-region assignments.
+- Better Auth owns auth/session/account persistence, while app-owned tables carry CMS roles, moderator-region assignments, and country-moderator country assignments.
 - Public anonymous browsing remains unaffected while `/account` and `/cms` are protected behind browser-session auth.
 - The auth layer now distinguishes production build time from production runtime so Docker images can be built without baking in `BETTER_AUTH_SECRET`, while the running production container still requires the real secret.
 
@@ -157,8 +163,8 @@ Expected flow:
 - The repository root now includes `CHATGPT_ACTIONS_OPERATING_PROCEDURE.md` as the short model-facing decision routine that complements the fuller Actions context and prompt docs.
 - The auth route tree now includes `/api/auth/[...all]`, `/sign-in`, `/sign-up`, `/sign-out`, `/account`, and `/cms`.
 - `proxy.ts` performs optimistic cookie-based redirects for `/account` and `/cms`, while the protected pages and layouts still do authoritative server-side session and role checks.
-- The CMS route tree now also includes admin-only `/cms/users`, `/cms/users/new`, `/cms/users/[userId]`, `/cms/countries`, `/cms/countries/new`, `/cms/countries/[countrySlug]`, `/cms/regions`, `/cms/regions/new`, and `/cms/regions/[countrySlug]/[regionSlug]`, plus shared `/cms/listings`, `/cms/listings/new`, `/cms/listings/[countrySlug]/[regionSlug]/[listingSlug]`, `/cms/destinations`, `/cms/destinations/new`, and `/cms/destinations/[countrySlug]/[destinationSlug]`.
-- `/cms` remains accessible to admins and moderators, but a dedicated admin guard still redirects moderators away from the Phase 9 admin-only CMS sections back to `/cms`, while out-of-scope listing and destination detail links redirect moderators to `/cms/listings` and `/cms/destinations`.
+- The CMS route tree now also includes shared `/cms/users`, `/cms/users/new`, `/cms/users/[userId]`, `/cms/countries`, `/cms/countries/[countrySlug]`, `/cms/regions`, `/cms/regions/new`, and `/cms/regions/[countrySlug]/[regionSlug]`, plus shared `/cms/listings`, `/cms/listings/new`, `/cms/listings/[countrySlug]/[regionSlug]/[listingSlug]`, `/cms/destinations`, `/cms/destinations/new`, and `/cms/destinations/[countrySlug]/[destinationSlug]`.
+- `/cms/countries/new` remains admin-only, while actor-aware guards now redirect out-of-scope country moderators or region moderators away from user, country, and region records they cannot manage.
 - The browser-auth tests cover signup, signin, signout, viewer-default role creation, proxy protection, bootstrap-admin idempotency, and the separation between browser sessions and Actions bearer auth.
 
 ## Docker Deployment

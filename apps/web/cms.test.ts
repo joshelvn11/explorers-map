@@ -5,7 +5,15 @@ import { getURLFromRedirectError } from "next/dist/client/components/redirect.js
 import { isRedirectError } from "next/dist/client/components/redirect-error.js";
 
 import { regions, user } from "@explorers-map/db";
-import { createDestinationForCms, createListingForCms, getAuthActorContext, setModeratorRegionAssignments, setUserRole } from "@explorers-map/services";
+import {
+  createCountryForCms,
+  createDestinationForCms,
+  createListingForCms,
+  getAuthActorContext,
+  setCountryModeratorCountryAssignments,
+  setModeratorRegionAssignments,
+  setUserRole,
+} from "@explorers-map/services";
 
 import {
   createCmsCountry,
@@ -16,6 +24,7 @@ import {
   updateCmsRegion,
 } from "./lib/cms-admin.ts";
 import { createAuth } from "./lib/auth.ts";
+import { getCmsUserRoleOptions } from "./lib/cms-user-form-options.ts";
 import {
   createCmsDestination,
   getCmsActionErrorMessage as getCmsDestinationActionErrorMessage,
@@ -30,7 +39,7 @@ import {
   trashCmsListing,
   updateCmsListing,
 } from "./lib/cms-listings.ts";
-import { requireAdminActorFromHeaders } from "./lib/session.ts";
+import { requireAdminActorFromHeaders, requireCountryModeratorActorFromHeaders } from "./lib/session.ts";
 import { createSeededTestDb } from "../../packages/services/test-helpers.ts";
 
 const baseUrl = "http://localhost:3000";
@@ -174,6 +183,166 @@ test("moderators are redirected away from admin-only CMS routes while admins pas
   assert.equal(actor.role, "admin");
 });
 
+test("country moderators pass shared CMS guards but are redirected away from admin-only routes", async (t) => {
+  withAuthEnv(t);
+  const dbInstance = createSeededTestDb(t);
+  const auth = createAuth({ dbInstance, enableNextCookies: false });
+
+  dbInstance.db.insert(user).values({
+    id: "admin-1",
+    name: "Admin User",
+    email: "admin@example.com",
+  }).run();
+  setUserRole("admin-1", "admin", dbInstance);
+
+  const response = await auth.handler(
+    buildAuthRequest("/api/auth/sign-up/email", {
+      method: "POST",
+      body: JSON.stringify({
+        name: "Country Moderator",
+        email: "country-moderator@example.com",
+        password: "password123",
+      }),
+    }),
+  );
+  const cookie = toCookieHeader(response);
+  const countryModeratorId = (dbInstance.sqlite
+    .prepare("select id from user where email = ?")
+    .get("country-moderator@example.com") as { id: string }).id;
+  const unitedKingdom = dbInstance.sqlite
+    .prepare("select id from countries where slug = ?")
+    .get("united-kingdom") as { id: string } | undefined;
+
+  assert.ok(unitedKingdom);
+
+  setUserRole(countryModeratorId, "country_moderator", dbInstance);
+  setCountryModeratorCountryAssignments(countryModeratorId, [unitedKingdom.id], "admin-1", dbInstance);
+
+  const actor = await requireCountryModeratorActorFromHeaders(
+    new Headers({ cookie }),
+    "/cms/users",
+    auth,
+    dbInstance,
+  );
+
+  assert.equal(actor.role, "country_moderator");
+  assert.deepEqual(actor.countryModeratorCountryAssignments.map((assignment) => assignment.countrySlug), ["united-kingdom"]);
+
+  await assert.rejects(
+    () => requireAdminActorFromHeaders(new Headers({ cookie }), "/cms/countries/new", auth, dbInstance),
+    (error) => isRedirectError(error) && getURLFromRedirectError(error) === "/cms",
+  );
+});
+
+test("country moderators can create viewers and moderators but not higher roles, and the user form only exposes allowed roles", async (t) => {
+  withAuthEnv(t);
+  const dbInstance = createSeededTestDb(t);
+
+  dbInstance.db.insert(user).values([
+    {
+      id: "admin-1",
+      name: "Admin User",
+      email: "admin@example.com",
+    },
+    {
+      id: "country-mod-1",
+      name: "Country Moderator",
+      email: "country-mod@example.com",
+    },
+  ]).run();
+
+  setUserRole("admin-1", "admin", dbInstance);
+  setUserRole("country-mod-1", "country_moderator", dbInstance);
+
+  const unitedKingdom = dbInstance.sqlite
+    .prepare("select id from countries where slug = ?")
+    .get("united-kingdom") as { id: string } | undefined;
+  const dorset = dbInstance.sqlite.prepare("select id from regions where slug = ?").get("dorset") as { id: string } | undefined;
+
+  assert.ok(unitedKingdom);
+  assert.ok(dorset);
+
+  setCountryModeratorCountryAssignments("country-mod-1", [unitedKingdom.id], "admin-1", dbInstance);
+
+  const actor = getAuthActorContext("country-mod-1", dbInstance);
+
+  const createdViewer = await createCmsUser(
+    {
+      name: "Scoped Viewer",
+      email: "scoped-viewer@example.com",
+      password: "password123",
+      role: "viewer",
+    },
+    actor,
+    dbInstance,
+  );
+  const createdModerator = await createCmsUser(
+    {
+      name: "Scoped Moderator",
+      email: "scoped-moderator@example.com",
+      password: "password123",
+      role: "moderator",
+      moderatorRegionIds: [dorset.id],
+    },
+    actor,
+    dbInstance,
+  );
+
+  assert.equal(createdViewer.redirectTo.startsWith("/cms/users/"), true);
+  assert.equal(createdModerator.redirectTo.startsWith("/cms/users/"), true);
+
+  const viewerId = (dbInstance.sqlite
+    .prepare("select id from user where email = ?")
+    .get("scoped-viewer@example.com") as { id: string }).id;
+  const moderatorId = (dbInstance.sqlite
+    .prepare("select id from user where email = ?")
+    .get("scoped-moderator@example.com") as { id: string }).id;
+
+  assert.equal(getAuthActorContext(viewerId, dbInstance).role, "viewer");
+  assert.equal(getAuthActorContext(moderatorId, dbInstance).role, "moderator");
+
+  await assert.rejects(
+    () =>
+      createCmsUser(
+        {
+          name: "Blocked Admin",
+          email: "blocked-admin@example.com",
+          password: "password123",
+          role: "admin",
+        },
+        actor,
+        dbInstance,
+      ),
+    /Only admins can create admin and country moderator users/i,
+  );
+  await assert.rejects(
+    () =>
+      createCmsUser(
+        {
+          name: "Blocked Country Moderator",
+          email: "blocked-country-moderator@example.com",
+          password: "password123",
+          role: "country_moderator",
+          countryModeratorCountryIds: [unitedKingdom.id],
+        },
+        actor,
+        dbInstance,
+      ),
+    /Only admins can create admin and country moderator users/i,
+  );
+
+  assert.deepEqual(getCmsUserRoleOptions("admin").map((option) => option.value), [
+    "viewer",
+    "moderator",
+    "country_moderator",
+    "admin",
+  ]);
+  assert.deepEqual(getCmsUserRoleOptions("country_moderator").map((option) => option.value), [
+    "viewer",
+    "moderator",
+  ]);
+});
+
 test("CMS admin helpers redirect to the new slugged routes after country and region edits", async (t) => {
   withAuthEnv(t);
   const dbInstance = createSeededTestDb(t);
@@ -236,6 +405,115 @@ test("CMS admin helpers redirect to the new slugged routes after country and reg
     dbInstance,
   );
   assert.equal(updatedRegion.redirectTo, "/cms/regions/france-west/northern-dunes");
+});
+
+test("country moderators can use shared country and region helpers only inside assigned countries", async (t) => {
+  const dbInstance = createSeededTestDb(t);
+
+  dbInstance.db.insert(user).values([
+    {
+      id: "admin-1",
+      name: "Admin User",
+      email: "admin@example.com",
+    },
+    {
+      id: "country-mod-1",
+      name: "Country Moderator",
+      email: "country-mod@example.com",
+    },
+  ]).run();
+
+  setUserRole("admin-1", "admin", dbInstance);
+  setUserRole("country-mod-1", "country_moderator", dbInstance);
+
+  const adminActor = getAuthActorContext("admin-1", dbInstance);
+  const unitedKingdom = dbInstance.sqlite
+    .prepare("select id from countries where slug = ?")
+    .get("united-kingdom") as { id: string } | undefined;
+
+  assert.ok(unitedKingdom);
+
+  const france = createCountryForCms(
+    {
+      title: "France",
+      description: "Out-of-scope country helper coverage.",
+      coverImage: "https://example.com/france.jpg",
+    },
+    adminActor,
+    dbInstance,
+  );
+
+  setCountryModeratorCountryAssignments("country-mod-1", [unitedKingdom.id], "admin-1", dbInstance);
+
+  const actor = getAuthActorContext("country-mod-1", dbInstance);
+  const updatedCountry = await updateCmsCountry(
+    {
+      currentSlug: "united-kingdom",
+      title: "United Kingdom Coast",
+      slug: "united-kingdom",
+      description: "Updated by a country moderator.",
+      coverImage: "https://example.com/united-kingdom-coast.jpg",
+    },
+    actor,
+    dbInstance,
+  );
+  const createdRegion = await createCmsRegion(
+    {
+      countrySlug: "united-kingdom",
+      title: "Chalk Hills",
+      description: "Created by a country moderator.",
+      coverImage: "https://example.com/chalk-hills.jpg",
+    },
+    actor,
+    dbInstance,
+  );
+  const updatedRegion = await updateCmsRegion(
+    {
+      currentCountrySlug: "united-kingdom",
+      currentRegionSlug: "chalk-hills",
+      countrySlug: "united-kingdom",
+      title: "Chalk Hills Coast",
+      slug: "chalk-hills-coast",
+      description: "Updated by a country moderator.",
+      coverImage: "https://example.com/chalk-hills-coast.jpg",
+    },
+    actor,
+    dbInstance,
+  );
+
+  assert.equal(updatedCountry.redirectTo, "/cms/countries/united-kingdom");
+  assert.equal(createdRegion.redirectTo, "/cms/regions/united-kingdom/chalk-hills");
+  assert.equal(updatedRegion.redirectTo, "/cms/regions/united-kingdom/chalk-hills-coast");
+
+  await assert.rejects(
+    () =>
+      updateCmsCountry(
+        {
+          currentSlug: france.slug,
+          title: "France Atlantic",
+          slug: france.slug,
+          description: "Out-of-scope update should fail.",
+          coverImage: "https://example.com/france-atlantic.jpg",
+        },
+        actor,
+        dbInstance,
+      ),
+    /assigned to you/i,
+  );
+  await assert.rejects(
+    () =>
+      createCmsRegion(
+        {
+          countrySlug: france.slug,
+          title: "Normandy Coast",
+          description: "Out-of-scope create should fail.",
+          coverImage: "https://example.com/normandy-coast.jpg",
+        },
+        actor,
+        dbInstance,
+      ),
+    /assigned to you/i,
+  );
 });
 
 test("CMS destination helpers redirect to the canonical slugged routes after destination edits", async (t) => {

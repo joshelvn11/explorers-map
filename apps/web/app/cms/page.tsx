@@ -19,14 +19,14 @@ import { getCurrentActorContext } from "../../lib/session";
 
 export const metadata = buildMetadata({
   title: "CMS",
-  description: "Protected editorial shell for Explorers Map admins and moderators.",
+  description: "Protected editorial shell for Explorers Map admins, country moderators, and moderators.",
 });
 
 export default async function CmsPage() {
   const actor = await getCurrentActorContext();
-  const countries = actor?.role === "admin" ? listCountriesForCms() : [];
-  const regions = actor?.role === "admin" ? listRegionsForCms() : [];
-  const users = actor?.role === "admin" ? listCmsUsers() : [];
+  const countries = actor && (actor.role === "admin" || actor.role === "country_moderator") ? listCountriesForCms(actor) : [];
+  const regions = actor && (actor.role === "admin" || actor.role === "country_moderator") ? listRegionsForCms(actor) : [];
+  const users = actor && (actor.role === "admin" || actor.role === "country_moderator") ? listCmsUsers(actor) : [];
   const destinations = actor ? listDestinationsForCms(actor) : [];
   const listings = actor ? listListingsForCms(actor) : [];
 
@@ -35,21 +35,28 @@ export default async function CmsPage() {
       <section className="rounded-[1.75rem] border border-white/70 bg-white/88 p-6 shadow-[0_20px_50px_rgba(15,23,42,0.08)] backdrop-blur sm:p-8">
         <p className="text-sm font-semibold uppercase tracking-[0.24em] text-sky-800">Dashboard</p>
         <h2 className="mt-3 font-serif text-3xl text-stone-950">
-          {actor?.role === "admin" ? "Admin controls are live" : "Moderator access is ready"}
+          {actor?.role === "admin"
+            ? "Admin controls are live"
+            : actor?.role === "country_moderator"
+              ? "Country moderation is live"
+              : "Moderator access is ready"}
         </h2>
         <p className="mt-4 max-w-3xl text-base leading-7 text-stone-600">
           {actor?.role === "admin"
-            ? "Phase 10b now extends the CMS into listing editing, while shared services continue to own authorization, slug validation, lifecycle behavior, and audit attribution."
-            : "You can now manage listings and destinations inside your assigned regions, with admin-only management areas still kept separate."}
+            ? "Phase 10c now extends the CMS into country-level editorial ownership while shared services continue to own authorization, slug validation, lifecycle behavior, and audit attribution."
+            : actor?.role === "country_moderator"
+              ? "You can now manage assigned country records, regions, destinations, listings, and the viewer or moderator users that sit inside your country scope."
+              : "You can now manage listings and destinations inside your assigned regions, with broader structural management still kept above your role."}
         </p>
       </section>
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <SummaryCard label="Role" value={actor?.role ?? "viewer"} />
+        <SummaryCard label="Role" value={(actor?.role ?? "viewer").replaceAll("_", " ")} />
+        <SummaryCard label="Assigned countries" value={String(actor?.countryModeratorCountryAssignments.length ?? 0)} />
         <SummaryCard label="Assigned regions" value={String(actor?.moderatorRegionAssignments.length ?? 0)} />
         <SummaryCard label="Visible destinations" value={String(destinations.length)} />
         <SummaryCard label="Visible listings" value={String(listings.length)} />
-        {actor?.role === "admin" ? (
+        {actor?.role === "admin" || actor?.role === "country_moderator" ? (
           <>
             <SummaryCard label="Users" value={String(users.length)} />
             <SummaryCard label="Countries / Regions" value={`${countries.length} / ${regions.length}`} />
@@ -89,6 +96,44 @@ export default async function CmsPage() {
           />
           <QuickLinkCard
             description="Create or edit region records while keeping region-to-country ownership explicit."
+            href={getCmsRegionsHref()}
+            secondaryHref={getCmsNewRegionHref()}
+            secondaryLabel="New region"
+            title="Regions"
+          />
+        </section>
+      ) : actor?.role === "country_moderator" ? (
+        <section className="grid gap-4 xl:grid-cols-5">
+          <QuickLinkCard
+            description="Create, edit, publish, unpublish, trash, and restore listings across your assigned countries."
+            href={getCmsListingsHref()}
+            secondaryHref={getCmsNewListingHref()}
+            secondaryLabel="New listing"
+            title="Listings"
+          />
+          <QuickLinkCard
+            description="Create or edit destinations in your countries and fully manage destination-region links there."
+            href={getCmsDestinationsHref()}
+            secondaryHref={getCmsNewDestinationHref()}
+            secondaryLabel="New destination"
+            title="Destinations"
+          />
+          <QuickLinkCard
+            description="Create viewer users and single-country moderators within the countries you manage."
+            href={getCmsUsersHref()}
+            secondaryHref={getCmsNewUserHref()}
+            secondaryLabel="New user"
+            title="Users"
+          />
+          <QuickLinkCard
+            description="Edit only the country records assigned to you."
+            href={getCmsCountriesHref()}
+            secondaryHref={getCmsCountriesHref()}
+            secondaryLabel="Open countries"
+            title="Countries"
+          />
+          <QuickLinkCard
+            description="Create or edit region records within your assigned countries."
             href={getCmsRegionsHref()}
             secondaryHref={getCmsNewRegionHref()}
             secondaryLabel="New region"

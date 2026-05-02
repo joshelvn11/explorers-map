@@ -1,23 +1,36 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import { getRegionForCms, listCountriesForCms } from "@explorers-map/services";
+import { isServiceError } from "@explorers-map/services/errors";
 
-import { CmsRegionForm } from "../../../../../../components/cms-region-form";
-import { updateRegionAction } from "../../../../actions";
+import { CmsRegionForm } from "../../../../../components/cms-region-form";
+import { updateRegionAction } from "../../../actions";
+import { requireCountryModeratorActor } from "../../../../../lib/session";
 
 export default async function CmsRegionDetailPage({
   params,
 }: {
   params: Promise<{ countrySlug: string; regionSlug: string }>;
 }) {
+  const actor = await requireCountryModeratorActor("/cms/regions");
   const { countrySlug, regionSlug } = await params;
-  const region = getRegionForCms(countrySlug, regionSlug);
+  let region;
+
+  try {
+    region = getRegionForCms(countrySlug, regionSlug, actor);
+  } catch (error) {
+    if (isServiceError(error) && error.code === "FORBIDDEN") {
+      redirect("/cms/regions");
+    }
+
+    throw error;
+  }
 
   if (!region) {
     notFound();
   }
 
-  const countries = listCountriesForCms();
+  const countries = listCountriesForCms(actor);
 
   return (
     <section className="rounded-[1.75rem] border border-white/70 bg-white/88 p-6 shadow-[0_20px_50px_rgba(15,23,42,0.08)] backdrop-blur sm:p-8">
